@@ -81,9 +81,10 @@ export function SyncToJiraDialog({ date, slices, open, onOpenChange, onSuccess }
             }
             onSuccess();
             onOpenChange(false);
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            setError("Failed to sync some items. Check network or Jira status.");
+            const msg = err.response?.data?.errorMessages?.[0] || err.message || "Unknown error";
+            setError(`Sync failed: ${msg}. Check if issue keys are valid.`);
         } finally {
             setSyncing(false);
             setProgress("");
@@ -108,9 +109,14 @@ export function SyncToJiraDialog({ date, slices, open, onOpenChange, onSuccess }
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
-                                <AlertTriangle className="h-4 w-4" />
-                                <span>{syncableSlices.length} unsynced items found.</span>
+                            <div className="flex flex-col gap-2">
+                                <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <span>{syncableSlices.length} unsynced items found.</span>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground px-1 italic">
+                                    Note: Jira requires a minimum of 1 minute. Slices shorter than 60s will be rounded up.
+                                </p>
                             </div>
 
                             <ScrollArea className="h-[200px] border rounded p-2">

@@ -47,8 +47,9 @@ export const useTrackingStore = create<TrackingStore>((set, get) => ({
             elapsedSeconds: 0
         });
 
-        // Notify main process for tray update?
-        // Optional: ipc.invoke('set-tray-active', true)
+        // Notify main process for tray update
+        api.setTrayIcon('active', workItem.description);
+        api.setTrayTooltip(`Tracking: ${workItem.description}`);
     },
 
     stopTracking: async () => {
@@ -62,6 +63,10 @@ export const useTrackingStore = create<TrackingStore>((set, get) => ({
             start_time: get().startTime!,
             end_time: now
         });
+
+        // Reset tray
+        api.setTrayIcon('idle');
+        api.setTrayTooltip('Jira Time Tracker');
 
         set({
             activeWorkItem: null,

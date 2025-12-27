@@ -9,11 +9,14 @@ import { SettingsView } from "@/views/Settings/SettingsView"
 //   return <div className="p-8">Settings View (Coming Soon)</div>
 // }
 
+import { useTrayEvents } from "@/hooks/useTrayEvents"
+
 function SyncPlaceholder() {
   return <div className="p-8">Sync View (Coming Soon)</div>
 }
 
 function App() {
+  useTrayEvents();
   return (
     <Router>
       <Routes>

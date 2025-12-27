@@ -68,8 +68,9 @@ export const api = {
     testJiraConnection: (config: { baseUrl: string, email: string, apiToken: string }) => ipc.invoke('jira:test-connection', config),
     getDatabasePath: () => ipc.invoke('database:get-path'),
     selectDatabasePath: () => ipc.invoke('database:select-path'),
+    saveDatabasePath: (path: string) => ipc.invoke('database:save-path', path),
 
     // System
     setTrayTooltip: (text: string) => ipc.invoke('tray:set-tooltip', text),
-    setTrayIcon: (type: 'active' | 'idle') => ipc.invoke('tray:set-icon', type),
+    setTrayIcon: (type: 'active' | 'idle', description?: string) => ipc.invoke('tray:set-icon', type, description),
 };

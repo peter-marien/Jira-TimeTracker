@@ -1,5 +1,5 @@
 {
-  "name": "temp-app",
+  "name": "jira-timetracker-app",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -31,6 +31,8 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
+    "electron-log": "^5.4.3",
+    "electron-updater": "^6.6.2",
     "lucide-react": "^0.562.0",
     "react": "^18.2.0",
     "react-day-picker": "^9.13.0",

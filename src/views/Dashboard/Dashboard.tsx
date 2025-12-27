@@ -14,6 +14,7 @@ import { MoveTimeSliceDialog } from "@/components/TimeSlice/MoveTimeSliceDialog"
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog"
 import { SyncToJiraDialog } from "@/components/Sync/SyncToJiraDialog"
 import { ArrowLeftRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export function Dashboard() {
     const { selectedDate } = useDateStore();
@@ -53,7 +54,17 @@ export function Dashboard() {
             <div className="flex-1 p-6 space-y-6 overflow-y-auto">
                 <div className="flex items-center justify-between">
                     <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-                    <DateNavigation />
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSyncOpen(true)}
+                            className="text-primary hover:text-primary hover:bg-primary/5"
+                        >
+                            <ArrowLeftRight className="h-4 w-4 mr-2" /> Sync to Jira
+                        </Button>
+                        <DateNavigation />
+                    </div>
                 </div>
 
                 <QuickStartBar />

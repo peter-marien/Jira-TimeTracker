@@ -1,7 +1,8 @@
-import { ipcMain, app, dialog } from 'electron'
+import { ipcMain, dialog } from 'electron'
 import path from 'node:path'
 import { getDatabase } from '../src/database/db'
 import { updateTrayTooltip, updateTrayIcon } from './tray'
+import { getAppConfig, saveAppConfig } from './config-service'
 
 export function registerIpcHandlers() {
     const db = getDatabase()
@@ -225,13 +226,19 @@ export function registerIpcHandlers() {
         updateTrayTooltip(text);
     });
 
-    ipcMain.handle('tray:set-icon', (_, type: 'active' | 'idle') => {
-        updateTrayIcon(type);
+    ipcMain.handle('tray:set-icon', (_, type: 'active' | 'idle', description?: string) => {
+        updateTrayIcon(type, description);
     });
 
     // Database Path
     ipcMain.handle('database:get-path', () => {
-        return path.join(app.getPath('userData'), 'timetracker.db');
+        return getAppConfig().databasePath;
+    });
+
+    ipcMain.handle('database:save-path', async (_, newFolderPath: string) => {
+        const fullPath = path.join(newFolderPath, 'timetracker.db');
+        saveAppConfig({ databasePath: fullPath });
+        return fullPath;
     });
 
     ipcMain.handle('database:select-path', async () => {

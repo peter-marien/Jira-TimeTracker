@@ -1,11 +1,20 @@
 import axios, { AxiosInstance } from 'axios';
 import { JiraConnectionConfig, JiraIssue, JiraSearchResult, JiraWorklog } from './jira-types';
+import { format } from 'date-fns';
 
 export class JiraClient {
     private client: AxiosInstance;
 
     constructor(config: JiraConnectionConfig) {
-        const baseURL = config.baseUrl.replace(/\/$/, ''); // Remove trailing slash
+        // Enforce https if it's an atlassian.net domain
+        let baseURL = config.baseUrl.replace(/\/$/, '');
+        if (baseURL.includes('atlassian.net') && !baseURL.startsWith('https://')) {
+            baseURL = baseURL.replace(/^http:\/\//, 'https://');
+            if (!baseURL.startsWith('https://')) {
+                baseURL = `https://${baseURL}`;
+            }
+        }
+
         const auth = btoa(`${config.email}:${config.apiToken}`);
 
         this.client = axios.create({
@@ -65,14 +74,18 @@ export class JiraClient {
         timeSpentSeconds: number;
     }): Promise<JiraWorklog> {
         try {
-            // Jira API v3 expects ADF for comments usually, but simple string might not work in v3 directly without specific structure.
-            // However, v2 allows strings. Some instances support both.
-            // For v3, use specific structure or try sending simple object.
-            // To be safe, we will create a text ADF structure if comment is provided.
+            // Atlassian documentation specifies: yyyy-MM-dd'T'HH:mm:ss.SSSZ
+            // Example: 2021-01-12T14:46:25.000+0000
+            // date-fns 'XX' format gives +0000
+            const startedDate = new Date(worklog.started);
+            const formattedStarted = format(startedDate, "yyyy-MM-dd'T'HH:mm:ss.SSSXXXX");
+
+            // Enforce minimum of 60 seconds (Jira requirement in many instances)
+            const timeSpentSeconds = Math.max(60, worklog.timeSpentSeconds);
 
             const payload: any = {
-                started: worklog.started,
-                timeSpentSeconds: worklog.timeSpentSeconds,
+                started: formattedStarted,
+                timeSpentSeconds: timeSpentSeconds,
             };
 
             if (worklog.comment) {
@@ -95,8 +108,12 @@ export class JiraClient {
 
             const response = await this.client.post<JiraWorklog>(`/issue/${issueIdOrKey}/worklog`, payload);
             return response.data;
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to add worklog:', error);
+            if (error.response) {
+                console.error('Response status:', error.response.status);
+                console.error('Response data:', JSON.stringify(error.response.data, null, 2));
+            }
             throw error;
         }
     }

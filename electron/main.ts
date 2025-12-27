@@ -1,9 +1,11 @@
 import { app, BrowserWindow } from 'electron'
-import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import { initializeDatabase } from '../src/database/db'
+import { registerIpcHandlers } from './ipc-handlers'
+import { initializeTray } from './tray'
+import { initializeAutoUpdater } from './auto-updater'
 
-const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // The built directory structure
@@ -41,9 +43,15 @@ function createWindow() {
 
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL)
+    win.webContents.openDevTools()
   } else {
     // win.loadFile('dist/index.html')
     win.loadFile(path.join(RENDERER_DIST, 'index.html'))
+  }
+
+  if (win) {
+    initializeTray(win)
+    initializeAutoUpdater(win)
   }
 }
 
@@ -65,4 +73,8 @@ app.on('activate', () => {
   }
 })
 
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+  initializeDatabase()
+  registerIpcHandlers()
+  createWindow()
+})

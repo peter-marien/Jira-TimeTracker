@@ -16,14 +16,11 @@ export function SettingsView() {
     }, []);
 
     const handleBrowse = async () => {
-        const newPath = await api.selectDatabasePath();
-        if (newPath) {
-            // Logic to move DB or just show it? 
-            // For now, just show the path and note restart required.
-            // Ideally we should save this setting.
-            // But 'timetracker.db' name is hardcoded in implementation currently unless I change it.
-            // Let's assume we just select folder.
-            alert(`Database location changed to: ${newPath}\\timetracker.db\nPlease restart the application to apply changes.`);
+        const newFolder = await api.selectDatabasePath();
+        if (newFolder) {
+            const fullPath = await api.saveDatabasePath(newFolder);
+            setDbPath(fullPath);
+            alert(`Database location set to: ${fullPath}\nPlease restart the application to apply changes.`);
         }
     }
 
