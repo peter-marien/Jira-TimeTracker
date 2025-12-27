@@ -55,6 +55,7 @@ function updateTrayMenu(isTracking: boolean, currentWorkItem?: string) {
                 // We could send an IPC to the renderer to stop or prompt for start
                 if (isTracking) {
                     mainWindow.webContents.send('tray:stop-tracking');
+                    mainWindow.show(); // Added as per instruction
                 }
             }
         },

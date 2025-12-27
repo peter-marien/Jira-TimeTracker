@@ -7,7 +7,7 @@ import { useDateStore } from "@/stores/useDateStore"
 import { useTrackingStore } from "@/stores/useTrackingStore"
 import { useTimeSlices } from "@/hooks/useTimeSlices"
 import { TimeSlice, api } from "@/lib/api"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { EditTimeSliceDialog } from "@/components/TimeSlice/EditTimeSliceDialog"
 import { SplitTimeSliceDialog } from "@/components/TimeSlice/SplitTimeSliceDialog"
 import { MoveTimeSliceDialog } from "@/components/TimeSlice/MoveTimeSliceDialog"
@@ -20,11 +20,7 @@ export function Dashboard() {
     const { selectedDate } = useDateStore();
     const { slices, loading, refresh } = useTimeSlices(selectedDate);
     const activeTimeSliceId = useTrackingStore(state => state.activeTimeSliceId);
-
-    // Refresh list when tracking starts/stops
-    useEffect(() => {
-        refresh();
-    }, [activeTimeSliceId, refresh]);
+    const prevActiveIdRef = useRef<number | null>(activeTimeSliceId);
 
     // Dialog States
     const [editSlice, setEditSlice] = useState<TimeSlice | null>(null);
@@ -32,6 +28,20 @@ export function Dashboard() {
     const [moveSlice, setMoveSlice] = useState<TimeSlice | null>(null);
     const [deleteSlice, setDeleteSlice] = useState<TimeSlice | null>(null);
     const [syncOpen, setSyncOpen] = useState(false);
+
+    // Refresh list when tracking starts/stops
+    // AND detection of when timing stops to prompt for notes
+    useEffect(() => {
+        if (prevActiveIdRef.current && !activeTimeSliceId) {
+            // Tracking just stopped!
+            const lastId = prevActiveIdRef.current;
+            api.getTimeSlice(lastId).then(slice => {
+                if (slice) setEditSlice(slice);
+            });
+        }
+        prevActiveIdRef.current = activeTimeSliceId;
+        refresh();
+    }, [activeTimeSliceId, refresh]);
 
     // Handlers
     const handleEdit = (slice: TimeSlice) => setEditSlice(slice);

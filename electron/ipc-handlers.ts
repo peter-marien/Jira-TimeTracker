@@ -92,6 +92,17 @@ export function registerIpcHandlers() {
         return stmt.all({ startStr, endStr });
     });
 
+    ipcMain.handle('db:get-time-slice', (_, id: number) => {
+        const stmt = db.prepare(`
+            SELECT ts.*, wi.description as work_item_description, wi.jira_key, jc.name as connection_name
+            FROM time_slices ts 
+            LEFT JOIN work_items wi ON ts.work_item_id = wi.id 
+            LEFT JOIN jira_connections jc ON wi.jira_connection_id = jc.id
+            WHERE ts.id = ?
+        `);
+        return stmt.get(id);
+    });
+
     ipcMain.handle('db:save-time-slice', (_, slice) => {
         if (slice.id) {
             const stmt = db.prepare(`

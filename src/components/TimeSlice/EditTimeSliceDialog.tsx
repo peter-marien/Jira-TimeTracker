@@ -9,10 +9,10 @@ import {
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-// import { Textarea } from "@/components/ui/textarea"
 import { TimeSlice, api } from "@/lib/api"
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
+import { TimePicker } from "@/components/shared/TimePicker"
 
 interface EditTimeSliceDialogProps {
     slice: TimeSlice | null;
@@ -76,20 +76,17 @@ export function EditTimeSliceDialog({ slice, open, onOpenChange, onSave }: EditT
                     <div className="grid grid-cols-2 gap-4">
                         <div className="grid gap-2">
                             <Label htmlFor="start">Start Time</Label>
-                            <Input
-                                id="start"
-                                type="time"
+                            <TimePicker
                                 value={startTime}
-                                onChange={(e) => setStartTime(e.target.value)}
+                                onChange={setStartTime}
                             />
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="end">End Time</Label>
-                            <Input
-                                id="end"
-                                type="time"
-                                value={endTime}
-                                onChange={(e) => setEndTime(e.target.value)}
+                            <TimePicker
+                                value={endTime || "00:00"}
+                                onChange={setEndTime}
+                                disabled={!slice?.end_time} // Or let them add an end time?
                             />
                         </div>
                     </div>

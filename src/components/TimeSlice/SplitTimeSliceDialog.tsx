@@ -8,11 +8,11 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
 import { TimeSlice, api, WorkItem } from "@/lib/api"
 import { useState, useEffect } from "react"
 import { format, differenceInMinutes, addMinutes } from "date-fns"
 import { WorkItemSearchBar } from "@/components/shared/WorkItemSearchBar"
+import { TimePicker } from "@/components/shared/TimePicker"
 
 interface SplitTimeSliceDialogProps {
     slice: TimeSlice | null;
@@ -81,11 +81,9 @@ export function SplitTimeSliceDialog({ slice, open, onOpenChange, onSave }: Spli
                 <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
                         <Label htmlFor="split-time">Split Time</Label>
-                        <Input
-                            id="split-time"
-                            type="time"
+                        <TimePicker
                             value={splitTime}
-                            onChange={(e) => setSplitTime(e.target.value)}
+                            onChange={setSplitTime}
                         />
                         <p className="text-xs text-muted-foreground">Original slice will end at this time. New slice will start here.</p>
                     </div>

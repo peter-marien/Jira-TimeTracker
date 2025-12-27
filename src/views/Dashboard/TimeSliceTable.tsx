@@ -30,41 +30,52 @@ export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete }: Ti
 
     return (
         <div className="rounded-md border bg-card">
-            <div className="grid grid-cols-[auto_1fr_auto_auto] gap-4 p-4 border-b font-medium text-sm text-muted-foreground bg-secondary/20">
-                <div className="w-32">Time</div>
+            <div className="grid grid-cols-[6rem_6rem_8rem_1fr_6rem_3rem] gap-4 p-4 border-b font-medium text-sm text-muted-foreground bg-secondary/20">
+                <div>Start</div>
+                <div>End</div>
+                <div>Jira Key</div>
                 <div>Work Item</div>
-                <div className="w-24 text-right">Duration</div>
-                <div className="w-24 text-right">Actions</div>
+                <div className="text-right">Duration</div>
+                <div className="text-right">Actions</div>
             </div>
             <div className="divide-y divide-border">
                 {slices.map(slice => {
                     const start = new Date(slice.start_time);
                     const end = slice.end_time ? new Date(slice.end_time) : null;
-                    const duration = end ? differenceInSeconds(end, start) : 0; // Or live duration if active? But active usually not in this list or listed as 'Tracking'
-                    // Actually active slice IS in the list if fetched.
+                    const duration = end ? differenceInSeconds(end, start) : 0;
                     const isActive = !slice.end_time;
 
                     const Content = (
                         <div
-                            className={cn("grid grid-cols-[auto_1fr_auto_auto] gap-4 p-4 items-center hover:bg-accent/50 transition-colors cursor-default select-none", isActive && "bg-emerald-500/5 hover:bg-emerald-500/10 border-l-2 border-l-emerald-500")}
+                            className={cn("grid grid-cols-[6rem_6rem_8rem_1fr_6rem_3rem] gap-4 p-4 items-center hover:bg-accent/50 transition-colors cursor-default select-none", isActive && "bg-emerald-500/5 hover:bg-emerald-500/10 border-l-2 border-l-emerald-500")}
                             onDoubleClick={() => onEdit(slice)}
                         >
-                            {/* Time Column */}
-                            <div className="w-32 flex flex-col text-sm">
+                            {/* Start Column */}
+                            <div className="flex flex-col text-sm">
                                 <TimeDisplay date={start} className="font-semibold text-foreground/90" />
-                                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                    to
-                                    {end ? <TimeDisplay date={end} /> : <span className="text-emerald-500 font-medium animate-pulse">Now</span>}
-                                </span>
+                            </div>
+
+                            {/* End Column */}
+                            <div className="flex flex-col text-sm">
+                                {end ? (
+                                    <TimeDisplay date={end} className="text-foreground/70" />
+                                ) : (
+                                    <span className="text-emerald-500 font-medium animate-pulse text-xs">Now</span>
+                                )}
+                            </div>
+
+                            {/* Jira Key Column */}
+                            <div className="flex items-center">
+                                {slice.jira_key ? (
+                                    <JiraBadge jiraKey={slice.jira_key} className="scale-90" />
+                                ) : (
+                                    <span className="text-[10px] text-muted-foreground/40 italic px-2">Manual</span>
+                                )}
                             </div>
 
                             {/* Work Item Column */}
-                            {/* Work Item Column */}
                             <div className="flex flex-col gap-1 min-w-0 py-1">
-                                <div className="flex items-center gap-2">
-                                    <span className="font-medium truncate">{slice.work_item_description}</span>
-                                    {slice.jira_key && <JiraBadge jiraKey={slice.jira_key} className="scale-90" />}
-                                </div>
+                                <span className="font-medium truncate">{slice.work_item_description}</span>
                                 {slice.notes && (
                                     <p className="text-xs text-muted-foreground break-words max-w-[500px]">
                                         {slice.notes}
@@ -73,16 +84,16 @@ export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete }: Ti
                             </div>
 
                             {/* Duration Column */}
-                            <div className="w-24 text-right font-mono text-sm">
+                            <div className="text-right font-mono text-sm">
                                 {isActive ? (
-                                    <span className="text-emerald-500">Tracking</span>
+                                    <span className="text-emerald-500 font-medium">Tracking</span>
                                 ) : (
                                     <DurationDisplay seconds={duration} />
                                 )}
                             </div>
 
                             {/* Actions Column */}
-                            <div className="w-24 flex justify-end">
+                            <div className="flex justify-end">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="ghost" size="icon" className="h-8 w-8">

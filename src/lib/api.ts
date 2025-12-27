@@ -52,7 +52,8 @@ export const api = {
     deleteWorkItem: (id: number) => ipc.invoke('db:delete-work-item', id),
 
     // Time Slices
-    getTimeSlices: (startStr: string, endStr: string) => ipc.invoke('db:get-time-slices', { startStr, endStr }) as Promise<TimeSlice[]>,
+    getTimeSlices: (startStr: string, endStr: string) => ipc.invoke('db:get-time-slices', { startStr, endStr }),
+    getTimeSlice: (id: number) => ipc.invoke('db:get-time-slice', id) as Promise<TimeSlice>,
     saveTimeSlice: (slice: Partial<TimeSlice>) => ipc.invoke('db:save-time-slice', slice) as Promise<TimeSlice>,
     deleteTimeSlice: (id: number) => ipc.invoke('db:delete-time-slice', id),
 
