@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { WorkItem, api } from '@/lib/api'
+import { formatISO } from 'date-fns'
 
 interface TrackingStore {
     activeWorkItem: WorkItem | null;
@@ -32,7 +33,7 @@ export const useTrackingStore = create<TrackingStore>((set, get) => ({
             await stopTracking();
         }
 
-        const now = new Date().toISOString();
+        const now = formatISO(new Date());
         // 2. Create new time slice in DB
         const slice = await api.saveTimeSlice({
             work_item_id: workItem.id,
@@ -56,7 +57,7 @@ export const useTrackingStore = create<TrackingStore>((set, get) => ({
         const { activeTimeSliceId, activeWorkItem } = get();
         if (!activeTimeSliceId) return;
 
-        const now = new Date().toISOString();
+        const now = formatISO(new Date());
         await api.saveTimeSlice({
             id: activeTimeSliceId,
             work_item_id: activeWorkItem!.id,

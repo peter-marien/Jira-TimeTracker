@@ -78,7 +78,7 @@ export function SplitTimeSliceDialog({ slice, open, onOpenChange, onSave }: Spli
 
     const validate = () => {
         if (!slice) return false;
-        const dateBase = slice.start_time.split('T')[0];
+        const dateBase = format(new Date(slice.start_time), "yyyy-MM-dd");
         const sliceStart = new Date(slice.start_time);
         const sliceEnd = slice.end_time ? new Date(slice.end_time) : new Date();
 
@@ -120,7 +120,7 @@ export function SplitTimeSliceDialog({ slice, open, onOpenChange, onSave }: Spli
     const handleSplit = async () => {
         if (!slice || !validate()) return;
 
-        const dateBase = slice.start_time.split('T')[0];
+        const dateBase = format(new Date(slice.start_time), "yyyy-MM-dd");
         const originalStart = slice.start_time;
         const originalEnd = slice.end_time || new Date().toISOString();
         const originalWorkItemId = slice.work_item_id;
