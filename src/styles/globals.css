@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+ 
+@layer base {
+  :root {
+    /* Colors - Deep Slate Theme */
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+ 
+    --card: 222 47% 13%;
+    --card-foreground: 210 40% 98%;
+ 
+    --popover: 222 47% 13%;
+    --popover-foreground: 210 40% 98%;
+ 
+    --primary: 160 84% 39%; /* Emerald 500 */
+    --primary-foreground: 210 40% 98%;
+ 
+    --secondary: 217 32% 17%;
+    --secondary-foreground: 210 40% 98%;
+ 
+    --muted: 217 32% 17%;
+    --muted-foreground: 215 20% 65%;
+ 
+    --accent: 217 32% 17%;
+    --accent-foreground: 210 40% 98%;
+ 
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 32% 20%;
+    --input: 217 32% 20%;
+    --ring: 160 84% 39%;
+ 
+    --radius: 0.3rem; /* Precision corners */
+    
+    /* Custom Semantic Colors */
+    --warning: 45 93% 47%; /* Amber 500 */
+    --jira: 217 91% 60%; /* Blue 500 */
+  }
+ 
+  .dark {
+    /* Already dark by default, but keeping structure */
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    /* ... same values ... */
+  }
+}
+ 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "ss01", "ss02", "cv01", "cv02"; /* Technical font features */
+  }
+}
+
+/* Custom Utilities */
+.font-mono-data {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
