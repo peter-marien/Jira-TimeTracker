@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { TimeSlice, api } from "@/lib/api"
 import { useState, useEffect } from "react"
 import { DateTimePicker } from "@/components/shared/DateTimePicker"
+import { useTrackingStore } from "@/stores/useTrackingStore"
 import { formatISO } from "date-fns"
 
 interface EditTimeSliceDialogProps {
@@ -49,6 +50,12 @@ export function EditTimeSliceDialog({ slice, open, onOpenChange, onSave }: EditT
             synced_start_time: slice.synced_start_time,
             synced_end_time: slice.synced_end_time
         });
+
+        // If this was the active slice, refresh the tracking store too
+        const activeTimeSliceId = useTrackingStore.getState().activeTimeSliceId;
+        if (activeTimeSliceId === slice.id) {
+            useTrackingStore.getState().checkActiveTracking();
+        }
 
         onSave();
         onOpenChange(false);

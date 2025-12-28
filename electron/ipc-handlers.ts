@@ -144,6 +144,10 @@ export function registerIpcHandlers() {
         }
     })
 
+    ipcMain.handle('db:get-active-time-slice', () => {
+        return db.prepare('SELECT * FROM time_slices WHERE end_time IS NULL LIMIT 1').get()
+    })
+
     ipcMain.handle('db:delete-time-slice', (_, id) => {
         return db.prepare('DELETE FROM time_slices WHERE id = ?').run(id)
     })

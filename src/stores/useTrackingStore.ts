@@ -87,14 +87,34 @@ export const useTrackingStore = create<TrackingStore>((set, get) => ({
     },
 
     checkActiveTracking: async () => {
-        // Logic to find open time slice from DB
-        // const slices = await api.getTimeSlices(veryOldDate, futureDate);
-        // Filter for end_time IS NULL
-        // For now we assume we start fresh or persist state in localStorage?
-        // DB is single source of truth for "active" (end_time is null).
+        const activeSlice = await api.getActiveTimeSlice();
 
-        // We need an API method: api.getActiveTimeSlice()
-        // I haven't implemented it in handlers yet, but I can use getTimeSlices with null check if I implement it.
-        // Or just a specific query `SELECT * FROM time_slices WHERE end_time IS NULL LIMIT 1`
+        if (activeSlice) {
+            // Need to get work item details too
+            const workItems = await api.getWorkItems();
+            const workItem = workItems.find(wi => wi.id === activeSlice.work_item_id);
+
+            if (workItem) {
+                set({
+                    activeWorkItem: workItem,
+                    activeTimeSliceId: activeSlice.id,
+                    startTime: activeSlice.start_time,
+                    elapsedSeconds: Math.floor((Date.now() - new Date(activeSlice.start_time).getTime()) / 1000)
+                });
+
+                // Update tray
+                api.setTrayIcon('active', workItem.description);
+                api.setTrayTooltip(`Tracking: ${workItem.description}`);
+            }
+        } else {
+            set({
+                activeWorkItem: null,
+                activeTimeSliceId: null,
+                startTime: null,
+                elapsedSeconds: 0
+            });
+            api.setTrayIcon('idle');
+            api.setTrayTooltip('Jira Time Tracker');
+        }
     }
 }))

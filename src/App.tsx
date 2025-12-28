@@ -15,8 +15,17 @@ function SyncPlaceholder() {
   return <div className="p-8">Sync View (Coming Soon)</div>
 }
 
+import { useTrackingStore } from "@/stores/useTrackingStore"
+import { useEffect } from "react"
+
 function App() {
   useTrayEvents();
+  const checkActiveTracking = useTrackingStore(state => state.checkActiveTracking);
+
+  useEffect(() => {
+    checkActiveTracking();
+  }, [checkActiveTracking]);
+
   return (
     <Router>
       <Routes>
