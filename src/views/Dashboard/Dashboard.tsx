@@ -50,6 +50,18 @@ export function Dashboard() {
     const handleSplit = (slice: TimeSlice) => setSplitSlice(slice);
     const handleMove = (slice: TimeSlice) => setMoveSlice(slice);
     const handleDelete = (slice: TimeSlice) => setDeleteSlice(slice);
+    const handleResume = async (slice: TimeSlice) => {
+        const { startTracking } = useTrackingStore.getState();
+        // Since the slice has the work item info, we can just pass it as a work item
+        // startTracking expects a WorkItem object. We have the id and description.
+        // We might need to fetch the full WorkItem but usually descriptions/keys are enough for starting tracking.
+        const workItems = await api.getWorkItems();
+        const workItem = workItems.find(wi => wi.id === slice.work_item_id);
+        if (workItem) {
+            await startTracking(workItem);
+            refresh();
+        }
+    };
 
     const confirmDelete = async () => {
         if (deleteSlice) {
@@ -103,6 +115,7 @@ export function Dashboard() {
                             onDelete={handleDelete}
                             onSplit={handleSplit}
                             onMove={handleMove}
+                            onResume={handleResume}
                         />
                     )}
                 </div>

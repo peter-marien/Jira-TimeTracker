@@ -13,7 +13,7 @@ import {
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, Pencil, Split, ArrowRightLeft, Trash2, CheckCircle2, AlertTriangle } from "lucide-react"
+import { MoreHorizontal, Pencil, Split, ArrowRightLeft, Trash2, CheckCircle2, AlertTriangle, Play } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface TimeSliceTableProps {
@@ -22,9 +22,10 @@ interface TimeSliceTableProps {
     onSplit: (slice: TimeSlice) => void;
     onMove: (slice: TimeSlice) => void;
     onDelete: (slice: TimeSlice) => void;
+    onResume: (slice: TimeSlice) => void;
 }
 
-export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete }: TimeSliceTableProps) {
+export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete, onResume }: TimeSliceTableProps) {
     if (slices.length === 0) {
         return <div className="text-center py-10 text-muted-foreground">No time tracked for this day.</div>
     }
@@ -138,6 +139,10 @@ export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete }: Ti
                                             <Pencil className="mr-2 h-4 w-4" />
                                             Edit
                                         </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => onResume(slice)}>
+                                            <Play className="mr-2 h-4 w-4 text-emerald-500" />
+                                            Resume
+                                        </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => onSplit(slice)}>
                                             <Split className="mr-2 h-4 w-4" />
                                             Split
@@ -165,6 +170,7 @@ export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete }: Ti
                             onSplit={onSplit}
                             onMove={onMove}
                             onDelete={onDelete}
+                            onResume={onResume}
                         >
                             {Content}
                         </TimeSliceContextMenu>
