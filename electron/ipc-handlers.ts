@@ -164,6 +164,17 @@ export function registerIpcHandlers() {
         return stmt.all(workItemId);
     });
 
+    ipcMain.handle('db:clear-data', (_, { clearTimeSlices, clearWorkItems }: { clearTimeSlices: boolean, clearWorkItems: boolean }) => {
+        // Order matters if foreign keys are enforced, but here we use CASCADE for work_items -> time_slices
+        // However, if we only want to clear slices, we do just that.
+        if (clearWorkItems) {
+            // This will also clear time_slices due to ON DELETE CASCADE
+            return db.prepare('DELETE FROM work_items').run();
+        } else if (clearTimeSlices) {
+            return db.prepare('DELETE FROM time_slices').run();
+        }
+    });
+
     // Settings
     ipcMain.handle('db:get-settings', () => {
         const stmt = db.prepare('SELECT key, value FROM settings');

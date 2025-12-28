@@ -16,6 +16,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { MessageDialog } from "@/components/shared/MessageDialog"
 
 export function WorkItemsView() {
     const [items, setItems] = useState<WorkItem[]>([]);
@@ -28,6 +29,7 @@ export function WorkItemsView() {
     const [editItem, setEditItem] = useState<WorkItem | null>(null);
     const [deleteItem, setDeleteItem] = useState<WorkItem | null>(null);
     const [timeSlicesItem, setTimeSlicesItem] = useState<WorkItem | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     const fetchItems = async () => {
         setLoading(true);
@@ -52,7 +54,7 @@ export function WorkItemsView() {
                 await api.deleteWorkItem(deleteItem.id);
                 fetchItems();
             } catch (e) {
-                alert("Cannot delete work item with existing time slices.");
+                setError("Cannot delete work item with existing time slices.");
             }
             setDeleteItem(null);
         }
@@ -176,6 +178,12 @@ export function WorkItemsView() {
                 description={`Are you sure you want to delete "${deleteItem?.description}"?`}
                 confirmText="Delete"
                 variant="destructive"
+            />
+            <MessageDialog
+                open={!!error}
+                onOpenChange={(open) => !open && setError(null)}
+                title="Cannot Delete"
+                description={error || ""}
             />
         </div>
     )
