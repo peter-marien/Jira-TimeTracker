@@ -167,8 +167,7 @@ export function registerIpcHandlers() {
 
     // Jira API
     ipcMain.handle('jira:search-issues', async (_, query: string) => {
-        // Find default connection or all?
-        // Logic: Get default connection from DB
+        // Find default connection
         const stmt = db.prepare('SELECT * FROM jira_connections WHERE is_default = 1 LIMIT 1');
         const conn = stmt.get() as any;
 
@@ -183,7 +182,20 @@ export function registerIpcHandlers() {
             apiToken: conn.api_token
         });
 
-        return await client.searchIssues(query);
+        // Smart JQL construction if it's not already JQL
+        let jql = query.trim();
+        if (jql && !jql.includes('=') && !jql.includes('~')) {
+            // Clean query of characters that might break JQL
+            const sanitized = jql.replace(/["\\]/g, '');
+            // Search by key directly if it matches the pattern, otherwise search summary
+            if (/^[A-Za-z]+-[0-9]+$/.test(sanitized)) {
+                jql = `key = "${sanitized}" OR summary ~ "${sanitized}*"`;
+            } else {
+                jql = `summary ~ "${sanitized}*"`;
+            }
+        }
+
+        return await client.searchIssues(jql);
     });
 
     ipcMain.handle('jira:add-worklog', async (_, { issueKey, timeSpentSeconds, comment, started }) => {
