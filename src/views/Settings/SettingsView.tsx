@@ -8,12 +8,37 @@ import { FolderOpen, Moon, Sun, Monitor } from "lucide-react"
 import React from "react"
 import { api } from "@/lib/api"
 
+type Theme = 'light' | 'dark' | 'system';
+
+function applyTheme(theme: Theme) {
+    const root = document.documentElement;
+    if (theme === 'system') {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        root.classList.toggle('dark', prefersDark);
+    } else {
+        root.classList.toggle('dark', theme === 'dark');
+    }
+}
+
 export function SettingsView() {
     const [dbPath, setDbPath] = React.useState("Loading...");
+    const [theme, setTheme] = React.useState<Theme>('dark');
 
     React.useEffect(() => {
         api.getDatabasePath().then(setDbPath).catch(() => setDbPath("Error fetching path"));
+        // Load saved theme
+        api.getSettings().then(settings => {
+            const savedTheme = (settings.theme as Theme) || 'dark';
+            setTheme(savedTheme);
+            applyTheme(savedTheme);
+        });
     }, []);
+
+    const handleThemeChange = async (newTheme: Theme) => {
+        setTheme(newTheme);
+        applyTheme(newTheme);
+        await api.saveSetting('theme', newTheme);
+    };
 
     const handleBrowse = async () => {
         const newFolder = await api.selectDatabasePath();
@@ -47,15 +72,27 @@ export function SettingsView() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="grid grid-cols-3 gap-4">
-                                <Button variant="outline" className="flex flex-col items-center gap-2 h-auto py-4">
+                                <Button
+                                    variant="outline"
+                                    className={`flex flex-col items-center gap-2 h-auto py-4 ${theme === 'light' ? 'border-primary bg-primary/5' : ''}`}
+                                    onClick={() => handleThemeChange('light')}
+                                >
                                     <Sun className="h-6 w-6" />
                                     <span>Light</span>
                                 </Button>
-                                <Button variant="outline" className="flex flex-col items-center gap-2 h-auto py-4 border-primary bg-primary/5">
+                                <Button
+                                    variant="outline"
+                                    className={`flex flex-col items-center gap-2 h-auto py-4 ${theme === 'dark' ? 'border-primary bg-primary/5' : ''}`}
+                                    onClick={() => handleThemeChange('dark')}
+                                >
                                     <Moon className="h-6 w-6" />
                                     <span>Dark</span>
                                 </Button>
-                                <Button variant="outline" className="flex flex-col items-center gap-2 h-auto py-4">
+                                <Button
+                                    variant="outline"
+                                    className={`flex flex-col items-center gap-2 h-auto py-4 ${theme === 'system' ? 'border-primary bg-primary/5' : ''}`}
+                                    onClick={() => handleThemeChange('system')}
+                                >
                                     <Monitor className="h-6 w-6" />
                                     <span>System</span>
                                 </Button>

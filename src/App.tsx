@@ -17,6 +17,17 @@ function SyncPlaceholder() {
 
 import { useTrackingStore } from "@/stores/useTrackingStore"
 import { useEffect } from "react"
+import { api } from "@/lib/api"
+
+function applyTheme(theme: 'light' | 'dark' | 'system') {
+  const root = document.documentElement;
+  if (theme === 'system') {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    root.classList.toggle('dark', prefersDark);
+  } else {
+    root.classList.toggle('dark', theme === 'dark');
+  }
+}
 
 function App() {
   useTrayEvents();
@@ -24,6 +35,11 @@ function App() {
 
   useEffect(() => {
     checkActiveTracking();
+    // Load and apply theme on startup
+    api.getSettings().then(settings => {
+      const savedTheme = (settings.theme as 'light' | 'dark' | 'system') || 'dark';
+      applyTheme(savedTheme);
+    });
   }, [checkActiveTracking]);
 
   return (
