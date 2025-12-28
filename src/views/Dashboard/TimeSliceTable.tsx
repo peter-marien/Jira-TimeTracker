@@ -13,7 +13,7 @@ import {
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, Pencil, Split, ArrowRightLeft, Trash2 } from "lucide-react"
+import { MoreHorizontal, Pencil, Split, ArrowRightLeft, Trash2, CheckCircle2 } from "lucide-react"
 
 interface TimeSliceTableProps {
     slices: TimeSlice[];
@@ -65,9 +65,14 @@ export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete }: Ti
                             </div>
 
                             {/* Jira Key Column */}
-                            <div className="flex items-center">
+                            <div className="flex items-center gap-1.5">
                                 {slice.jira_key ? (
-                                    <JiraBadge jiraKey={slice.jira_key} className="scale-90" />
+                                    <>
+                                        <JiraBadge jiraKey={slice.jira_key} className="scale-90" />
+                                        {slice.synced_to_jira === 1 && (
+                                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                                        )}
+                                    </>
                                 ) : (
                                     <span className="text-[10px] text-muted-foreground/40 italic px-2">Manual</span>
                                 )}
