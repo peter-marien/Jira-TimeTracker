@@ -3,6 +3,7 @@ import { AppLayout } from "@/components/layout/AppLayout"
 import { Dashboard } from "@/views/Dashboard/Dashboard"
 import { WorkItemsView } from "@/views/WorkItems/WorkItemsView"
 import { SettingsView } from "@/views/Settings/SettingsView"
+import { MonthView } from "@/views/MonthView/MonthView"
 // import { SyncView } from "@/views/Sync/SyncView"
 
 // function SettingsPlaceholder() {
@@ -48,6 +49,7 @@ function App() {
         <Route element={<AppLayout />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/work-items" element={<WorkItemsView />} />
+          <Route path="/month" element={<MonthView />} />
           <Route path="/sync" element={<SyncPlaceholder />} />
           <Route path="/settings" element={<SettingsView />} />
         </Route>
