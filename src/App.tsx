@@ -12,10 +12,6 @@ import { MonthView } from "@/views/MonthView/MonthView"
 
 import { useTrayEvents } from "@/hooks/useTrayEvents"
 
-function SyncPlaceholder() {
-  return <div className="p-8">Sync View (Coming Soon)</div>
-}
-
 import { useTrackingStore } from "@/stores/useTrackingStore"
 import { useEffect } from "react"
 import { api } from "@/lib/api"
@@ -50,7 +46,6 @@ function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/work-items" element={<WorkItemsView />} />
           <Route path="/month" element={<MonthView />} />
-          <Route path="/sync" element={<SyncPlaceholder />} />
           <Route path="/settings" element={<SettingsView />} />
         </Route>
       </Routes>

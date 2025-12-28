@@ -1,5 +1,5 @@
 import { Outlet, NavLink } from "react-router-dom"
-import { LayoutDashboard, Briefcase, Settings, ArrowLeftRight, CalendarDays } from "lucide-react"
+import { LayoutDashboard, Briefcase, Settings, CalendarDays } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export function AppLayout() {
@@ -21,13 +21,6 @@ export function AppLayout() {
                         title="Work Items"
                     >
                         <Briefcase className="h-6 w-6" />
-                    </NavLink>
-                    <NavLink
-                        to="/sync"
-                        className={({ isActive }) => cn("p-3 rounded-md transition-colors hover:bg-accent", isActive && "bg-accent/80 text-accent-foreground")}
-                        title="Sync to Jira"
-                    >
-                        <ArrowLeftRight className="h-6 w-6" />
                     </NavLink>
                     <NavLink
                         to="/month"
