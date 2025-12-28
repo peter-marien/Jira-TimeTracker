@@ -16,6 +16,16 @@ export function DateNavigation({ className }: { className?: string }) {
     return (
         <div className={cn("flex items-center gap-4", className)}>
             <div className="flex items-center gap-1">
+                {!isToday(selectedDate) && (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="mr-2 h-8"
+                        onClick={() => setSelectedDate(new Date())}
+                    >
+                        Today
+                    </Button>
+                )}
                 <Button variant="ghost" size="icon" onClick={prevDay}>
                     <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -39,9 +49,6 @@ export function DateNavigation({ className }: { className?: string }) {
                     <ChevronRight className="h-4 w-4" />
                 </Button>
             </div>
-            {isToday(selectedDate) && (
-                <span className="text-xs font-semibold text-primary/80 uppercase tracking-wider">Today</span>
-            )}
         </div>
     )
 }
