@@ -42,7 +42,7 @@ export class JiraClient {
             console.log(`[JiraClient] Searching with JQL: ${jql}`);
             const response = await this.client.post('/search/jql', {
                 jql,
-                fields: ['summary', 'description', 'status', 'assignee', 'updated'],
+                fields: ['summary'],
                 maxResults: 20
             });
             console.log(`[JiraClient] Search response:`, JSON.stringify(response.data, null, 2));
