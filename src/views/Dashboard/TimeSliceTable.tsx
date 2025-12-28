@@ -13,7 +13,8 @@ import {
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, Pencil, Split, ArrowRightLeft, Trash2, CheckCircle2 } from "lucide-react"
+import { MoreHorizontal, Pencil, Split, ArrowRightLeft, Trash2, CheckCircle2, AlertTriangle } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface TimeSliceTableProps {
     slices: TimeSlice[];
@@ -45,6 +46,13 @@ export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete }: Ti
                     const duration = end ? differenceInSeconds(end, start) : 0;
                     const isActive = !slice.end_time;
 
+                    // Check if synced and if times have changed
+                    const isSynced = slice.synced_to_jira === 1;
+                    const isOutOfSync = isSynced && (
+                        slice.start_time !== slice.synced_start_time ||
+                        slice.end_time !== slice.synced_end_time
+                    );
+
                     const Content = (
                         <div
                             className={cn("grid grid-cols-[6rem_6rem_8rem_1fr_6rem_3rem] gap-4 p-4 items-center hover:bg-accent/50 transition-colors cursor-default select-none", isActive && "bg-emerald-500/5 hover:bg-emerald-500/10 border-l-2 border-l-emerald-500")}
@@ -69,9 +77,29 @@ export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete }: Ti
                                 {slice.jira_key ? (
                                     <>
                                         <JiraBadge jiraKey={slice.jira_key} className="scale-90" />
-                                        {slice.synced_to_jira === 1 && (
-                                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                                        )}
+                                        {isOutOfSync ? (
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Time changed after sync - re-sync to Jira</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        ) : isSynced ? (
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Synced to Jira</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        ) : null}
                                     </>
                                 ) : (
                                     <span className="text-[10px] text-muted-foreground/40 italic px-2">Manual</span>

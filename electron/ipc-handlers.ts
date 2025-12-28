@@ -107,7 +107,7 @@ export function registerIpcHandlers() {
         if (slice.id) {
             const stmt = db.prepare(`
             UPDATE time_slices
-            SET work_item_id = @work_item_id, start_time = @start_time, end_time = @end_time, notes = @notes, synced_to_jira = @synced_to_jira, jira_worklog_id = @jira_worklog_id, updated_at = unixepoch()
+            SET work_item_id = @work_item_id, start_time = @start_time, end_time = @end_time, notes = @notes, synced_to_jira = @synced_to_jira, jira_worklog_id = @jira_worklog_id, synced_start_time = @synced_start_time, synced_end_time = @synced_end_time, updated_at = unixepoch()
             WHERE id = @id
         `)
             // Ensure all parameters are present, even if optional
@@ -118,13 +118,15 @@ export function registerIpcHandlers() {
                 end_time: slice.end_time || null,
                 notes: slice.notes || '',
                 synced_to_jira: slice.synced_to_jira || 0,
-                jira_worklog_id: slice.jira_worklog_id || null
+                jira_worklog_id: slice.jira_worklog_id || null,
+                synced_start_time: slice.synced_start_time || null,
+                synced_end_time: slice.synced_end_time || null
             };
             return stmt.run(params)
         } else {
             const stmt = db.prepare(`
-                INSERT INTO time_slices (work_item_id, start_time, end_time, notes, synced_to_jira, jira_worklog_id)
-                VALUES (@work_item_id, @start_time, @end_time, @notes, @synced_to_jira, @jira_worklog_id)
+                INSERT INTO time_slices (work_item_id, start_time, end_time, notes, synced_to_jira, jira_worklog_id, synced_start_time, synced_end_time)
+                VALUES (@work_item_id, @start_time, @end_time, @notes, @synced_to_jira, @jira_worklog_id, @synced_start_time, @synced_end_time)
             `)
             // Ensure all parameters are present, even if optional
             const params = {
@@ -133,7 +135,9 @@ export function registerIpcHandlers() {
                 end_time: slice.end_time || null,
                 notes: slice.notes || '',
                 synced_to_jira: slice.synced_to_jira || 0,
-                jira_worklog_id: slice.jira_worklog_id || null
+                jira_worklog_id: slice.jira_worklog_id || null,
+                synced_start_time: slice.synced_start_time || null,
+                synced_end_time: slice.synced_end_time || null
             };
             const info = stmt.run(params)
             return { id: info.lastInsertRowid, ...slice }
@@ -211,6 +215,30 @@ export function registerIpcHandlers() {
         });
 
         return await client.getWorklogs(issueKey);
+    });
+
+    ipcMain.handle('jira:update-worklog', async (_, { issueKey, worklogId, timeSpentSeconds, comment, started }) => {
+        const stmt = db.prepare('SELECT * FROM jira_connections WHERE is_default = 1 LIMIT 1');
+        const conn = stmt.get() as any;
+        if (!conn) throw new Error("No default Jira connection configured");
+
+        const { JiraClient } = await import('../src/services/jira/jira-client');
+        const client = new JiraClient({
+            baseUrl: conn.base_url,
+            email: conn.email,
+            apiToken: conn.api_token
+        });
+
+        try {
+            return await client.updateWorklog(issueKey, worklogId, {
+                timeSpentSeconds,
+                comment,
+                started
+            });
+        } catch (error: any) {
+            // Return error info so frontend can handle it (e.g., 404 = worklog deleted)
+            throw error;
+        }
     });
 
     ipcMain.handle('jira:test-connection', async (_, config) => {

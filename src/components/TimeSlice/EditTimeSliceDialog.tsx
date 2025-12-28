@@ -42,7 +42,12 @@ export function EditTimeSliceDialog({ slice, open, onOpenChange, onSave }: EditT
             work_item_id: slice.work_item_id,
             start_time: formatISO(startDateTime),
             end_time: endDateTime ? formatISO(endDateTime) : null,
-            notes: notes
+            notes: notes,
+            // Preserve sync-related fields
+            synced_to_jira: slice.synced_to_jira,
+            jira_worklog_id: slice.jira_worklog_id,
+            synced_start_time: slice.synced_start_time,
+            synced_end_time: slice.synced_end_time
         });
 
         onSave();

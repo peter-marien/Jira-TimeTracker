@@ -20,6 +20,8 @@ export interface TimeSlice {
     notes?: string | null;
     synced_to_jira?: number; // 0 or 1
     jira_worklog_id?: string | null;
+    synced_start_time?: string | null;
+    synced_end_time?: string | null;
     created_at?: number;
     updated_at?: number;
 
@@ -65,6 +67,8 @@ export const api = {
     searchJiraIssues: (query: string) => ipc.invoke('jira:search-issues', query),
     addJiraWorklog: (issueKey: string, data: { timeSpentSeconds: number, comment: string, started: string }) =>
         ipc.invoke('jira:add-worklog', { issueKey, ...data }),
+    updateJiraWorklog: (issueKey: string, worklogId: string, data: { timeSpentSeconds: number, comment: string, started: string }) =>
+        ipc.invoke('jira:update-worklog', { issueKey, worklogId, ...data }),
     getJiraWorklogs: (issueKey: string) => ipc.invoke('jira:get-worklogs', { issueKey }),
     testJiraConnection: (config: { baseUrl: string, email: string, apiToken: string }) => ipc.invoke('jira:test-connection', config),
     getDatabasePath: () => ipc.invoke('database:get-path'),

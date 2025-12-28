@@ -29,10 +29,20 @@ export function SyncToJiraDialog({ date, slices, open, onOpenChange, onSuccess }
     // Group slices by issue? Or sync individually?
     // Ideally aggregate if for same issue and adjacent? Or distinct worklogs?
     // Plan says "Create separate worklog for each time slice". Logic is simpler.
-    // Validation: Must have Jira Key. Must have end time (not active). Not already synced.
+    // Validation: Must have Jira Key. Must have end time (not active). 
+    // Include: Not synced OR out-of-sync (synced but times changed)
 
     const syncableSlices = useMemo(() => {
-        return slices.filter(s => s.jira_key && s.end_time && !s.synced_to_jira);
+        return slices.filter(s => {
+            if (!s.jira_key || !s.end_time) return false;
+
+            // Include if not synced
+            if (!s.synced_to_jira) return true;
+
+            // Include if synced but times have changed (out-of-sync)
+            const isOutOfSync = s.start_time !== s.synced_start_time || s.end_time !== s.synced_end_time;
+            return isOutOfSync;
+        });
     }, [slices]);
 
     const handleSync = async () => {
@@ -58,15 +68,45 @@ export function SyncToJiraDialog({ date, slices, open, onOpenChange, onSuccess }
                 // Check conflicts? 
                 // Basic check: getWorklogs and see if one exists with same start/duration?
                 // For MVP, skip complex conflict detection to minimize implementation risk. 
-                // Just append.
+                // Just append or update.
 
-                const result = await api.addJiraWorklog(slice.jira_key, {
-                    timeSpentSeconds: duration,
-                    comment: slice.notes || slice.work_item_description || "Worked on issue",
-                    started: slice.start_time // ISO
-                });
+                let result;
+                if (slice.jira_worklog_id) {
+                    // Try to update existing worklog, fallback to create if deleted
+                    try {
+                        result = await api.updateJiraWorklog(slice.jira_key, slice.jira_worklog_id, {
+                            timeSpentSeconds: duration,
+                            comment: slice.notes || slice.work_item_description || "Worked on issue",
+                            started: slice.start_time
+                        });
+                    } catch (updateError: any) {
+                        // If worklog was deleted in Jira (404), create a new one
+                        // Check both response.status and error message for 404
+                        const is404 = updateError.response?.status === 404 ||
+                            updateError.message?.includes('404') ||
+                            updateError.message?.includes('status code 404');
 
-                // Mark as synced
+                        if (is404) {
+                            console.log(`Worklog ${slice.jira_worklog_id} not found, creating new one`);
+                            result = await api.addJiraWorklog(slice.jira_key, {
+                                timeSpentSeconds: duration,
+                                comment: slice.notes || slice.work_item_description || "Worked on issue",
+                                started: slice.start_time
+                            });
+                        } else {
+                            throw updateError;
+                        }
+                    }
+                } else {
+                    // Create new worklog
+                    result = await api.addJiraWorklog(slice.jira_key, {
+                        timeSpentSeconds: duration,
+                        comment: slice.notes || slice.work_item_description || "Worked on issue",
+                        started: slice.start_time
+                    });
+                }
+
+                // Mark as synced and save the synced times
                 await api.saveTimeSlice({
                     id: slice.id,
                     work_item_id: slice.work_item_id,
@@ -74,7 +114,9 @@ export function SyncToJiraDialog({ date, slices, open, onOpenChange, onSuccess }
                     end_time: slice.end_time,
                     notes: slice.notes,
                     synced_to_jira: 1,
-                    jira_worklog_id: result.id
+                    jira_worklog_id: result.id,
+                    synced_start_time: slice.start_time,
+                    synced_end_time: slice.end_time
                 });
 
                 syncedCount++;
