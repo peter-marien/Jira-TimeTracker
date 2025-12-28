@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { TimeSlice, api } from "@/lib/api"
 import { useState, useEffect } from "react"
 import { DateTimePicker } from "@/components/shared/DateTimePicker"
@@ -89,11 +89,12 @@ export function EditTimeSliceDialog({ slice, open, onOpenChange, onSave }: EditT
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="notes">Notes</Label>
-                        <Input
+                        <Textarea
                             id="notes"
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
                             placeholder="What were you doing?"
+                            rows={3}
                         />
                     </div>
                 </div>
