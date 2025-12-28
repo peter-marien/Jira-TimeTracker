@@ -96,7 +96,7 @@ export function Timeline({ date, slices, className }: TimelineProps) {
                     const isActive = !slice.end_time;
 
                     // Text display logic: only show if block is wide enough
-                    const showDetails = widthPercent > 8;
+                    const showDetails = widthPercent > 4;
                     const showTimes = widthPercent > 15;
 
                     return (
