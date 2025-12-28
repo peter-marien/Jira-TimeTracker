@@ -152,6 +152,18 @@ export function registerIpcHandlers() {
         return db.prepare('DELETE FROM time_slices WHERE id = ?').run(id)
     })
 
+    ipcMain.handle('db:get-work-item-time-slices', (_, workItemId: number) => {
+        const stmt = db.prepare(`
+            SELECT ts.*, wi.description as work_item_description, wi.jira_key, jc.name as connection_name
+            FROM time_slices ts 
+            LEFT JOIN work_items wi ON ts.work_item_id = wi.id 
+            LEFT JOIN jira_connections jc ON wi.jira_connection_id = jc.id
+            WHERE ts.work_item_id = ?
+            ORDER BY ts.start_time ASC
+        `);
+        return stmt.all(workItemId);
+    });
+
     // Settings
     ipcMain.handle('db:get-settings', () => {
         const stmt = db.prepare('SELECT key, value FROM settings');

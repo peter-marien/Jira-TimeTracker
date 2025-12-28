@@ -3,12 +3,19 @@ import { api, WorkItem } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Search, Trash2, Edit2, Download } from "lucide-react"
+import { Plus, Search, Trash2, Edit2, Download, MoreHorizontal, History } from "lucide-react"
 import { JiraBadge } from "@/components/shared/JiraBadge"
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog"
 import { ImportFromJiraDialog } from "@/components/WorkItem/ImportFromJiraDialog"
 import { CreateWorkItemDialog } from "@/components/WorkItem/CreateWorkItemDialog"
 import { EditWorkItemDialog } from "@/components/WorkItem/EditWorkItemDialog"
+import { WorkItemTimeSlicesDialog } from "@/components/WorkItem/WorkItemTimeSlicesDialog"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export function WorkItemsView() {
     const [items, setItems] = useState<WorkItem[]>([]);
@@ -20,6 +27,7 @@ export function WorkItemsView() {
     const [createOpen, setCreateOpen] = useState(false);
     const [editItem, setEditItem] = useState<WorkItem | null>(null);
     const [deleteItem, setDeleteItem] = useState<WorkItem | null>(null);
+    const [timeSlicesItem, setTimeSlicesItem] = useState<WorkItem | null>(null);
 
     const fetchItems = async () => {
         setLoading(true);
@@ -41,14 +49,6 @@ export function WorkItemsView() {
     const handleDelete = async () => {
         if (deleteItem) {
             try {
-                // Delete logic in API should check for dependencies or cascade?
-                // Current implementation: `run('DELETE FROM work_items WHERE id = ?')`
-                // If foreign key ON DELETE CASCADE/SET NULL isn't set, it might fail if referenced.
-                // SQLite default FK enforcement is off unless enabled. I didn't enable it explicitly in db.ts `PRAGMA foreign_keys = ON`.
-                // But logic says "validate for existing time slices".
-                // `api.deleteWorkItem` call `db:delete-work-item`.
-                // We should probably check if slices exist first in UI or handle error.
-
                 await api.deleteWorkItem(deleteItem.id);
                 fetchItems();
             } catch (e) {
@@ -115,14 +115,30 @@ export function WorkItemsView() {
                                         {item.connection_name || '-'}
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <div className="flex justify-end gap-1">
-                                            <Button variant="ghost" size="icon" onClick={() => setEditItem(item)}>
-                                                <Edit2 className="h-4 w-4" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setDeleteItem(item)}>
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon">
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => setEditItem(item)}>
+                                                    <Edit2 className="mr-2 h-4 w-4" />
+                                                    Edit
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => setTimeSlicesItem(item)}>
+                                                    <History className="mr-2 h-4 w-4" />
+                                                    Show Time Slices
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    className="text-destructive focus:text-destructive"
+                                                    onClick={() => setDeleteItem(item)}
+                                                >
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    Delete
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -147,14 +163,19 @@ export function WorkItemsView() {
                 item={editItem}
                 onSave={fetchItems}
             />
+            <WorkItemTimeSlicesDialog
+                open={!!timeSlicesItem}
+                onOpenChange={(open) => !open && setTimeSlicesItem(null)}
+                workItem={timeSlicesItem}
+            />
             <ConfirmDialog
                 open={!!deleteItem}
                 onOpenChange={(open) => !open && setDeleteItem(null)}
                 onConfirm={handleDelete}
                 title="Delete Work Item?"
                 description={`Are you sure you want to delete "${deleteItem?.description}"?`}
-                variant="destructive"
                 confirmText="Delete"
+                variant="destructive"
             />
         </div>
     )
