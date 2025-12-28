@@ -26,13 +26,13 @@ export function DateTimePicker({
 }: DateTimePickerProps) {
     const [date, setDate] = React.useState<Date | undefined>(value)
     const [timeValue, setTimeValue] = React.useState<string>(
-        value ? format(value, "HH:mm") : "00:00"
+        value ? format(value, "HH:mm:ss") : "00:00:00"
     )
 
     React.useEffect(() => {
         if (value) {
             setDate(value)
-            setTimeValue(format(value, "HH:mm"))
+            setTimeValue(format(value, "HH:mm:ss"))
         }
     }, [value])
 
@@ -44,9 +44,13 @@ export function DateTimePicker({
         }
 
         // Preserve the time when changing the date
-        const [hours, minutes] = timeValue.split(':').map(Number)
+        const parts = timeValue.split(':')
+        const hours = parseInt(parts[0], 10)
+        const minutes = parseInt(parts[1], 10)
+        const seconds = parts[2] ? parseInt(parts[2], 10) : 0
+
         const newDate = new Date(selectedDate)
-        newDate.setHours(hours, minutes, 0, 0)
+        newDate.setHours(hours, minutes, seconds, 0)
 
         setDate(newDate)
         onChange?.(newDate)
@@ -57,9 +61,13 @@ export function DateTimePicker({
 
         if (!date) return
 
-        const [hours, minutes] = newTime.split(':').map(Number)
+        const parts = newTime.split(':')
+        const hours = parseInt(parts[0], 10)
+        const minutes = parseInt(parts[1], 10)
+        const seconds = parts[2] ? parseInt(parts[2], 10) : 0
+
         const newDate = new Date(date)
-        newDate.setHours(hours, minutes, 0, 0)
+        newDate.setHours(hours, minutes, seconds, 0)
 
         setDate(newDate)
         onChange?.(newDate)

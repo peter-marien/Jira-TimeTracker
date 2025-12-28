@@ -7,14 +7,14 @@ interface TimeDisplayProps {
 }
 
 export function TimeDisplay({ date, timeStr, className }: TimeDisplayProps) {
-    let display = "--:--";
+    let display = "--:--:--";
 
     if (timeStr) {
         display = timeStr;
     } else if (date) {
         const d = typeof date === 'string' ? new Date(date) : date;
         if (!isNaN(d.getTime())) {
-            display = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+            display = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
         }
     }
 

@@ -1,64 +1,68 @@
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
+import * as React from "react"
+import InputMask from "react-input-mask"
+import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 
 interface TimePickerProps {
-    value: string; // HH:mm
+    value: string; // HH:mm:ss
     onChange: (value: string) => void;
     className?: string;
     disabled?: boolean;
 }
 
 export function TimePicker({ value, onChange, className, disabled }: TimePickerProps) {
-    const [hours, minutes] = value ? value.split(':') : ['00', '00'];
+    const [localValue, setLocalValue] = React.useState(value || "00:00:00")
 
-    const setHours = (newHours: string) => {
-        onChange(`${newHours}:${minutes}`);
-    };
+    // Update local value when prop changes
+    React.useEffect(() => {
+        if (value) {
+            // Ensure value has seconds
+            const parts = value.split(':')
+            if (parts.length === 2) {
+                setLocalValue(`${value}:00`)
+            } else {
+                setLocalValue(value)
+            }
+        }
+    }, [value])
 
-    const setMinutes = (newMinutes: string) => {
-        onChange(`${hours}:${newMinutes}`);
-    };
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newValue = e.target.value
+        setLocalValue(newValue)
 
-    const hourOptions = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
-    const minuteOptions = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
+        // Call onChange for valid complete time
+        if (newValue.length === 8) {
+            const parts = newValue.split(':')
+            if (parts.length === 3) {
+                const h = parseInt(parts[0], 10)
+                const m = parseInt(parts[1], 10)
+                const s = parseInt(parts[2], 10)
+
+                // Validate hours (0-23), minutes (0-59), seconds (0-59)
+                if (!isNaN(h) && !isNaN(m) && !isNaN(s) &&
+                    h >= 0 && h <= 23 && m >= 0 && m <= 59 && s >= 0 && s <= 59) {
+                    onChange(newValue)
+                }
+            }
+        }
+    }
 
     return (
-        <div className={cn("flex items-center gap-2", className)}>
-            <div className="flex-1">
-                <Select value={hours} onValueChange={setHours} disabled={disabled}>
-                    <SelectTrigger className="h-9 font-mono">
-                        <SelectValue placeholder="HH" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {hourOptions.map(h => (
-                            <SelectItem key={h} value={h} className="font-mono">
-                                {h}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-            <span className="text-muted-foreground font-bold">:</span>
-            <div className="flex-1">
-                <Select value={minutes} onValueChange={setMinutes} disabled={disabled}>
-                    <SelectTrigger className="h-9 font-mono">
-                        <SelectValue placeholder="mm" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {minuteOptions.map(m => (
-                            <SelectItem key={m} value={m} className="font-mono">
-                                {m}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-        </div>
-    );
+        <InputMask
+            mask="99:99:99"
+            value={localValue}
+            onChange={handleChange}
+            disabled={disabled}
+            maskChar="_"
+        >
+            {(inputProps: any) => (
+                <Input
+                    {...inputProps}
+                    type="text"
+                    className={cn("font-mono text-center", className)}
+                    placeholder="HH:MM:SS"
+                />
+            )}
+        </InputMask>
+    )
 }
