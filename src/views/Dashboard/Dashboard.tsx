@@ -9,11 +9,12 @@ import { useTimeSlices } from "@/hooks/useTimeSlices"
 import { TimeSlice, api } from "@/lib/api"
 import { useState, useEffect, useRef } from "react"
 import { EditTimeSliceDialog } from "@/components/TimeSlice/EditTimeSliceDialog"
+import { AddTimeSliceDialog } from "@/components/TimeSlice/AddTimeSliceDialog"
 import { SplitTimeSliceDialog } from "@/components/TimeSlice/SplitTimeSliceDialog"
 import { MoveTimeSliceDialog } from "@/components/TimeSlice/MoveTimeSliceDialog"
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog"
 import { SyncToJiraDialog } from "@/components/Sync/SyncToJiraDialog"
-import { ArrowLeftRight } from "lucide-react"
+import { ArrowLeftRight, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export function Dashboard() {
@@ -24,6 +25,7 @@ export function Dashboard() {
 
     // Dialog States
     const [editSlice, setEditSlice] = useState<TimeSlice | null>(null);
+    const [addSliceOpen, setAddSliceOpen] = useState(false);
     const [splitSlice, setSplitSlice] = useState<TimeSlice | null>(null);
     const [moveSlice, setMoveSlice] = useState<TimeSlice | null>(null);
     const [deleteSlice, setDeleteSlice] = useState<TimeSlice | null>(null);
@@ -82,7 +84,16 @@ export function Dashboard() {
                 <Timeline date={selectedDate} slices={slices} />
 
                 <div className="space-y-4">
-                    <h2 className="text-lg font-semibold">Time Slices</h2>
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-lg font-semibold">Time Slices</h2>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setAddSliceOpen(true)}
+                        >
+                            <Plus className="h-4 w-4 mr-2" /> Add Time Slice
+                        </Button>
+                    </div>
                     {loading ? (
                         <div className="p-10 text-center text-muted-foreground animate-pulse">Loading...</div>
                     ) : (
@@ -101,6 +112,12 @@ export function Dashboard() {
                 open={!!editSlice}
                 onOpenChange={(open) => !open && setEditSlice(null)}
                 slice={editSlice}
+                onSave={refresh}
+            />
+            <AddTimeSliceDialog
+                open={addSliceOpen}
+                onOpenChange={setAddSliceOpen}
+                selectedDate={selectedDate}
                 onSave={refresh}
             />
             <SplitTimeSliceDialog
