@@ -34,17 +34,27 @@ export function registerIpcHandlers() {
     })
 
     // Work Items
-    ipcMain.handle('db:get-work-items', (_, query = '') => {
+    ipcMain.handle('db:get-work-items', (_, { query = '', limit = 50, offset = 0 } = {}) => {
         // Basic search by description or jira_key
         const sql = `
         SELECT wi.*, jc.name as connection_name 
         FROM work_items wi
         LEFT JOIN jira_connections jc ON wi.jira_connection_id = jc.id
         WHERE wi.description LIKE @query OR wi.jira_key LIKE @query
-        ORDER BY wi.updated_at DESC
-        LIMIT 50
+        ORDER BY wi.jira_key ASC, wi.description ASC
+        LIMIT @limit OFFSET @offset
       `
-        return db.prepare(sql).all({ query: `%${query}%` })
+        return db.prepare(sql).all({ query: `%${query}%`, limit, offset })
+    })
+
+    ipcMain.handle('db:get-work-items-count', (_, { query = '' } = {}) => {
+        const sql = `
+        SELECT COUNT(*) as count
+        FROM work_items
+        WHERE description LIKE @query OR jira_key LIKE @query
+      `
+        const result = db.prepare(sql).get({ query: `%${query}%` }) as { count: number };
+        return result.count;
     })
 
     ipcMain.handle('db:save-work-item', (_, item) => {

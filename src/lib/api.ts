@@ -49,7 +49,10 @@ export const api = {
     deleteJiraConnection: (id: number) => ipc.invoke('db:delete-connection', id),
 
     // Work Items
-    getWorkItems: (query: string = '') => ipc.invoke('db:get-work-items', query) as Promise<WorkItem[]>,
+    getWorkItems: (params: { query?: string, limit?: number, offset?: number } = {}) =>
+        ipc.invoke('db:get-work-items', params) as Promise<WorkItem[]>,
+    getWorkItemsCount: (params: { query?: string } = {}) =>
+        ipc.invoke('db:get-work-items-count', params) as Promise<number>,
     saveWorkItem: (item: Partial<WorkItem>) => ipc.invoke('db:save-work-item', item) as Promise<WorkItem>,
     deleteWorkItem: (id: number) => ipc.invoke('db:delete-work-item', id),
 

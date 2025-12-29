@@ -91,7 +91,7 @@ export const useTrackingStore = create<TrackingStore>((set, get) => ({
 
         if (activeSlice) {
             // Need to get work item details too
-            const workItems = await api.getWorkItems();
+            const workItems = await api.getWorkItems({});
             const workItem = workItems.find(wi => wi.id === activeSlice.work_item_id);
 
             if (workItem) {

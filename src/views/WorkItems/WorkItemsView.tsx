@@ -22,6 +22,9 @@ export function WorkItemsView() {
     const [items, setItems] = useState<WorkItem[]>([]);
     const [query, setQuery] = useState("");
     const [loading, setLoading] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+    const itemsPerPage = 50;
 
     // Dialogs
     const [importOpen, setImportOpen] = useState(false);
@@ -34,8 +37,13 @@ export function WorkItemsView() {
     const fetchItems = async () => {
         setLoading(true);
         try {
-            const data = await api.getWorkItems(query);
+            const offset = (currentPage - 1) * itemsPerPage;
+            const [data, count] = await Promise.all([
+                api.getWorkItems({ query, limit: itemsPerPage, offset }),
+                api.getWorkItemsCount({ query })
+            ]);
             setItems(data);
+            setTotalCount(count);
         } catch (err) {
             console.error(err);
         } finally {
@@ -44,9 +52,13 @@ export function WorkItemsView() {
     };
 
     useEffect(() => {
+        setCurrentPage(1); // Reset to page 1 on search
+    }, [query]);
+
+    useEffect(() => {
         const timer = setTimeout(fetchItems, 300);
         return () => clearTimeout(timer);
-    }, [query]);
+    }, [query, currentPage]);
 
     const handleDelete = async () => {
         if (deleteItem) {
@@ -146,6 +158,35 @@ export function WorkItemsView() {
                             ))}
                         </TableBody>
                     </Table>
+                </div>
+            </div>
+
+            {/* Pagination */}
+            <div className="flex items-center justify-between px-2">
+                <div className="text-sm text-muted-foreground">
+                    Showing {totalCount > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-
+                    {Math.min(totalCount, currentPage * itemsPerPage)} of {totalCount} items
+                </div>
+                <div className="flex items-center space-x-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1 || loading}
+                    >
+                        Previous
+                    </Button>
+                    <div className="text-sm font-medium w-20 text-center">
+                        Page {currentPage}
+                    </div>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => p + 1)}
+                        disabled={currentPage * itemsPerPage >= totalCount || loading}
+                    >
+                        Next
+                    </Button>
                 </div>
             </div>
 

@@ -24,7 +24,7 @@ export function WorkItemSearchBar({ onSelect, className, placeholder = "Search w
         // Debounce search
         const timer = setTimeout(() => {
             setLoading(true);
-            api.getWorkItems(query).then(res => {
+            api.getWorkItems({ query }).then(res => {
                 setItems(res || []);
             }).finally(() => setLoading(false));
         }, 300);
