@@ -7,14 +7,14 @@ import { useDateStore } from "@/stores/useDateStore"
 import { useTrackingStore } from "@/stores/useTrackingStore"
 import { useTimeSlices } from "@/hooks/useTimeSlices"
 import { TimeSlice, api } from "@/lib/api"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { EditTimeSliceDialog } from "@/components/TimeSlice/EditTimeSliceDialog"
 import { AddTimeSliceDialog } from "@/components/TimeSlice/AddTimeSliceDialog"
 import { SplitTimeSliceDialog } from "@/components/TimeSlice/SplitTimeSliceDialog"
 import { MoveTimeSliceDialog } from "@/components/TimeSlice/MoveTimeSliceDialog"
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog"
 import { SyncToJiraDialog } from "@/components/Sync/SyncToJiraDialog"
-import { ArrowLeftRight, Plus } from "lucide-react"
+import { ArrowLeftRight, Plus, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export function Dashboard() {
@@ -71,13 +71,34 @@ export function Dashboard() {
         }
     }
 
+    // Calculate total time for the day
+    const totalTime = useMemo(() => {
+        let totalMinutes = 0;
+        for (const slice of slices) {
+            if (slice.start_time && slice.end_time) {
+                const start = new Date(slice.start_time).getTime();
+                const end = new Date(slice.end_time).getTime();
+                totalMinutes += (end - start) / (1000 * 60);
+            }
+        }
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = Math.round(totalMinutes % 60);
+        return { hours, minutes, formatted: `${hours}h ${minutes.toString().padStart(2, '0')}m` };
+    }, [slices]);
+
     return (
         <div className="flex flex-col h-full bg-background">
             <ActiveTrackingBanner />
 
             <div className="flex-1 p-6 space-y-6 overflow-y-auto">
                 <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+                    <div className="flex items-center gap-4">
+                        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+                        <div className="flex items-center gap-1.5 text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-md">
+                            <Clock className="h-4 w-4" />
+                            <span className="text-sm font-medium">{totalTime.formatted}</span>
+                        </div>
+                    </div>
                     <div className="flex items-center gap-2">
                         <Button
                             variant="outline"
