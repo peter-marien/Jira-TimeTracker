@@ -18,12 +18,10 @@ import { cn } from "@/lib/utils"
 export function MonthView() {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [slices, setSlices] = useState<TimeSlice[]>([]);
-    const [workItems, setWorkItems] = useState<WorkItem[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const monthStart = startOfMonth(currentMonth);
-    const monthEnd = endOfMonth(currentMonth);
-    const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+    const monthStart = useMemo(() => startOfMonth(currentMonth), [currentMonth]);
+    const monthEnd = useMemo(() => endOfMonth(currentMonth), [currentMonth]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -32,13 +30,8 @@ export function MonthView() {
                 const startStr = monthStart.toISOString();
                 const endStr = monthEnd.toISOString();
 
-                const [fetchedSlices, fetchedWorkItems] = await Promise.all([
-                    api.getTimeSlices(startStr, endStr),
-                    api.getWorkItems()
-                ]);
-
+                const fetchedSlices = await api.getTimeSlices(startStr, endStr);
                 setSlices(fetchedSlices);
-                setWorkItems(fetchedWorkItems);
             } catch (err) {
                 console.error("Failed to fetch month data:", err);
             } finally {
@@ -47,7 +40,28 @@ export function MonthView() {
         };
 
         fetchData();
-    }, [currentMonth]);
+    }, [currentMonth, monthStart, monthEnd]);
+
+    // Derive work items from slices
+    const activeWorkItems = useMemo(() => {
+        const itemMap = new Map<number, WorkItem>();
+
+        slices.forEach(slice => {
+            if (!itemMap.has(slice.work_item_id)) {
+                itemMap.set(slice.work_item_id, {
+                    id: slice.work_item_id,
+                    description: slice.work_item_description || "Unknown Work Item",
+                    jira_key: slice.jira_key,
+                    connection_name: slice.connection_name
+                } as WorkItem);
+            }
+        });
+
+        return Array.from(itemMap.values()).sort((a, b) =>
+            (a.jira_key || "").localeCompare(b.jira_key || "") ||
+            a.description.localeCompare(b.description)
+        );
+    }, [slices]);
 
     // Data aggregation
     // Map: workItemId -> dayOfMonth -> seconds
@@ -70,10 +84,7 @@ export function MonthView() {
         return data;
     }, [slices]);
 
-    // Filter work items that have at least one slice in this month
-    const activeWorkItems = useMemo(() => {
-        return workItems.filter(wi => aggregation[wi.id]);
-    }, [workItems, aggregation]);
+    const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
     const formatHours = (seconds: number) => {
         if (!seconds) return "";
