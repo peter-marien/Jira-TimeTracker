@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { FolderOpen, Moon, Sun, Monitor, Trash2 } from "lucide-react"
+import { FolderOpen, Moon, Sun, Monitor, Trash2, Upload, Loader2 } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
     AlertDialog,
@@ -39,6 +39,7 @@ export function SettingsView() {
     const [clearSlices, setClearSlices] = React.useState(false);
     const [clearWorkItems, setClearWorkItems] = React.useState(false);
     const [message, setMessage] = React.useState<{ title: string, description: string } | null>(null);
+    const [isImporting, setIsImporting] = React.useState(false);
 
     React.useEffect(() => {
         api.getDatabasePath().then(setDbPath).catch(() => setDbPath("Error fetching path"));
@@ -86,6 +87,30 @@ export function SettingsView() {
                 title: "Error",
                 description: "Failed to clear the database. Please try again or check the logs."
             });
+        }
+    };
+
+    const handleCsvImport = async () => {
+        try {
+            const filePath = await api.selectCsvFile();
+            if (!filePath) return;
+
+            setIsImporting(true);
+            const csvContent = await api.readFile(filePath);
+            const result = await api.importCsv(csvContent);
+
+            setMessage({
+                title: "Import Completed",
+                description: `Successfully imported ${result.importedSlices} time slices.\nCreated ${result.createdWorkItems} new work items.\nReused ${result.reusedWorkItems} existing work items.`
+            });
+        } catch (error) {
+            console.error("Failed to import CSV:", error);
+            setMessage({
+                title: "Import Failed",
+                description: `Failed to import CSV file. ${error instanceof Error ? error.message : 'Please check the file format.'}`
+            });
+        } finally {
+            setIsImporting(false);
         }
     };
 
@@ -157,6 +182,30 @@ export function SettingsView() {
                                     </Button>
                                 </div>
                                 <p className="text-xs text-muted-foreground">Restart required after changing location.</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Upload className="h-5 w-5" /> Import Data
+                            </CardTitle>
+                            <CardDescription>Import time slices from a CSV file exported from Grindstone.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="grid gap-2">
+                                <p className="text-sm text-muted-foreground">
+                                    Expected CSV format: Start of timeslice, End of timeslice, timeslice notes, WorkItem, Jira key<br />
+                                    <span className="text-xs">Times should be in UTC format (e.g., 2025-12-01 07:30:00)</span>
+                                </p>
+                                <Button onClick={handleCsvImport} disabled={isImporting} className="w-fit">
+                                    {isImporting ? (
+                                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Importing...</>
+                                    ) : (
+                                        <><Upload className="h-4 w-4 mr-2" /> Select CSV File...</>
+                                    )}
+                                </Button>
                             </div>
                         </CardContent>
                     </Card>

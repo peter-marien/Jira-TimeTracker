@@ -331,4 +331,137 @@ export function registerIpcHandlers() {
 
         return result.filePaths[0];
     });
+
+    // CSV Import
+    ipcMain.handle('database:select-csv', async () => {
+        const result = await dialog.showOpenDialog({
+            properties: ['openFile'],
+            title: 'Select CSV File to Import',
+            filters: [{ name: 'CSV Files', extensions: ['csv'] }]
+        });
+
+        if (result.canceled || result.filePaths.length === 0) {
+            return null;
+        }
+
+        return result.filePaths[0];
+    });
+
+    ipcMain.handle('database:import-csv', async (_, csvContent: string) => {
+        const lines = csvContent.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+        if (lines.length < 2) {
+            throw new Error('CSV file must have a header row and at least one data row');
+        }
+
+        // Skip header row
+        const dataLines = lines.slice(1);
+
+        let importedSlices = 0;
+        let createdWorkItems = 0;
+        let reusedWorkItems = 0;
+
+        // Get default connection for assigning to work items with jira keys
+        const defaultConn = db.prepare('SELECT id FROM jira_connections WHERE is_default = 1 LIMIT 1').get() as { id: number } | undefined;
+
+        for (const line of dataLines) {
+            // Parse CSV line (handle commas in quoted fields)
+            const fields = parseCSVLine(line);
+
+            if (fields.length < 5) continue;
+
+            const [startTimeStr, endTimeStr, notes, description, jiraKey] = fields;
+
+            // Convert UTC times to ISO format (the times are already in UTC)
+            const startTime = startTimeStr.replace(' ', 'T') + 'Z';
+            const endTime = endTimeStr ? endTimeStr.replace(' ', 'T') + 'Z' : null;
+
+            // Find or create work item
+            let workItem: { id: number } | undefined;
+
+            // Check for existing work item by description and jira_key
+            if (jiraKey && jiraKey.trim()) {
+                workItem = db.prepare(
+                    'SELECT id FROM work_items WHERE jira_key = ? AND description = ?'
+                ).get(jiraKey.trim(), description.trim()) as { id: number } | undefined;
+            }
+
+            if (!workItem) {
+                // Also check by description only if no jira key match
+                workItem = db.prepare(
+                    'SELECT id FROM work_items WHERE description = ? AND (jira_key IS NULL OR jira_key = ?)'
+                ).get(description.trim(), jiraKey?.trim() || null) as { id: number } | undefined;
+            }
+
+            if (workItem) {
+                reusedWorkItems++;
+            } else {
+                // Create new work item
+                const stmt = db.prepare(`
+                    INSERT INTO work_items (jira_connection_id, jira_key, description)
+                    VALUES (@jira_connection_id, @jira_key, @description)
+                `);
+                const info = stmt.run({
+                    jira_connection_id: jiraKey?.trim() ? (defaultConn?.id || null) : null,
+                    jira_key: jiraKey?.trim() || null,
+                    description: description.trim()
+                });
+                workItem = { id: info.lastInsertRowid as number };
+                createdWorkItems++;
+            }
+
+            // Create time slice
+            const sliceStmt = db.prepare(`
+                INSERT INTO time_slices (work_item_id, start_time, end_time, notes)
+                VALUES (@work_item_id, @start_time, @end_time, @notes)
+            `);
+            sliceStmt.run({
+                work_item_id: workItem.id,
+                start_time: startTime,
+                end_time: endTime,
+                notes: notes?.trim() || ''
+            });
+            importedSlices++;
+        }
+
+        return {
+            importedSlices,
+            createdWorkItems,
+            reusedWorkItems
+        };
+    });
+
+    // File System
+    ipcMain.handle('fs:read-file', async (_, filePath: string) => {
+        const fs = await import('node:fs/promises');
+        return await fs.readFile(filePath, 'utf-8');
+    });
+}
+
+// Helper function to parse CSV line handling quoted fields
+function parseCSVLine(line: string): string[] {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+
+        if (char === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+                current += '"';
+                i++; // Skip next quote
+            } else {
+                inQuotes = !inQuotes;
+            }
+        } else if (char === ',' && !inQuotes) {
+            result.push(current);
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+
+    result.push(current);
+    return result;
 }

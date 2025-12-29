@@ -81,4 +81,9 @@ export const api = {
     // System
     setTrayTooltip: (text: string) => ipc.invoke('tray:set-tooltip', text),
     setTrayIcon: (type: 'active' | 'idle', description?: string) => ipc.invoke('tray:set-icon', type, description),
+
+    // CSV Import
+    selectCsvFile: () => ipc.invoke('database:select-csv') as Promise<string | null>,
+    importCsv: (csvContent: string) => ipc.invoke('database:import-csv', csvContent) as Promise<{ importedSlices: number, createdWorkItems: number, reusedWorkItems: number }>,
+    readFile: (filePath: string) => ipc.invoke('fs:read-file', filePath) as Promise<string>,
 };
