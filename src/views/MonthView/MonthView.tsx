@@ -100,9 +100,7 @@ export function MonthView() {
     const stats = useMemo(() => {
         const workingDays = daysInMonth.filter(d => !isWeekend(d)).length;
 
-        // Days with actual activity
-        const uniqueDaysWorked = new Set(slices.map(s => getDate(new Date(s.start_time)))).size;
-
+        // Total hours calculation
         const totalSeconds = slices.reduce((acc, s) => {
             const start = new Date(s.start_time);
             const end = s.end_time ? new Date(s.end_time) : new Date();
@@ -110,16 +108,33 @@ export function MonthView() {
         }, 0);
         const totalHours = totalSeconds / 3600;
 
-        // Use unique days worked for the average
-        const avgHours = uniqueDaysWorked > 0 ? totalHours / uniqueDaysWorked : 0;
+        // Calculate workdays until the last day with logged time
+        let avgHours = 0;
+        let workdaysUntilLastLog = 0;
+
+        if (slices.length > 0) {
+            const lastLoggedTime = Math.max(...slices.map(s => new Date(s.start_time).getTime()));
+            const lastLoggedDate = new Date(lastLoggedTime);
+
+            // Set to start of day for accurate comparison if needed, 
+            // but since daysInMonth are start-of-day, simple <= works
+            workdaysUntilLastLog = daysInMonth.filter(d =>
+                !isWeekend(d) && d <= lastLoggedDate
+            ).length;
+
+            if (workdaysUntilLastLog > 0) {
+                avgHours = totalHours / workdaysUntilLastLog;
+            }
+        }
+
         const overtime = totalHours - (workingDays * 8);
 
         return {
             workingDays,
-            uniqueDaysWorked,
             totalHours,
             avgHours,
-            overtime
+            overtime,
+            workdaysUntilLastLog
         };
     }, [daysInMonth, slices]);
 
