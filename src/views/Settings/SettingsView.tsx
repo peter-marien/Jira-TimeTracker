@@ -101,7 +101,7 @@ export function SettingsView() {
 
             setMessage({
                 title: "Import Completed",
-                description: `Successfully imported ${result.importedSlices} time slices.\nCreated ${result.createdWorkItems} new work items.\nReused ${result.reusedWorkItems} existing work items.`
+                description: `Successfully imported ${result.importedSlices} time slices.\nCreated ${result.createdWorkItems} new work items.\nReused ${result.reusedWorkItems} existing work items.${result.skippedLines > 0 ? `\nSkipped ${result.skippedLines} invalid lines.` : ''}`
             });
         } catch (error) {
             console.error("Failed to import CSV:", error);

@@ -111,7 +111,7 @@ export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete, onRe
                             <div className="flex flex-col gap-1 min-w-0 py-1">
                                 <span className="font-medium truncate">{slice.work_item_description}</span>
                                 {slice.notes && (
-                                    <p className="text-xs text-muted-foreground break-words max-w-[500px]">
+                                    <p className="text-xs text-muted-foreground break-words max-w-[500px] whitespace-pre-wrap">
                                         {slice.notes}
                                     </p>
                                 )}

@@ -348,33 +348,48 @@ export function registerIpcHandlers() {
     });
 
     ipcMain.handle('database:import-csv', async (_, csvContent: string) => {
-        const lines = csvContent.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+        // Parse CSV with proper handling of multi-line quoted fields
+        const rows = parseCSV(csvContent);
 
-        if (lines.length < 2) {
+        console.log(`CSV Import: Found ${rows.length} rows`);
+
+        if (rows.length < 2) {
             throw new Error('CSV file must have a header row and at least one data row');
         }
 
         // Skip header row
-        const dataLines = lines.slice(1);
+        const dataRows = rows.slice(1);
 
         let importedSlices = 0;
         let createdWorkItems = 0;
         let reusedWorkItems = 0;
+        let skippedLines = 0;
 
         // Get default connection for assigning to work items with jira keys
         const defaultConn = db.prepare('SELECT id FROM jira_connections WHERE is_default = 1 LIMIT 1').get() as { id: number } | undefined;
 
-        for (const line of dataLines) {
-            // Parse CSV line (handle commas in quoted fields)
-            const fields = parseCSVLine(line);
+        for (let rowIndex = 0; rowIndex < dataRows.length; rowIndex++) {
+            const fields = dataRows[rowIndex];
 
-            if (fields.length < 5) continue;
+            // Need at least 4 fields: start, end, notes, description (jira key optional)
+            if (fields.length < 4) {
+                console.log(`CSV Import: Skipping row ${rowIndex + 2} - only ${fields.length} fields found`);
+                skippedLines++;
+                continue;
+            }
 
             const [startTimeStr, endTimeStr, notes, description, jiraKey] = fields;
 
+            // Validate required fields
+            if (!startTimeStr?.trim() || !description?.trim()) {
+                console.log(`CSV Import: Skipping row ${rowIndex + 2} - missing start time or description`);
+                skippedLines++;
+                continue;
+            }
+
             // Convert UTC times to ISO format (the times are already in UTC)
-            const startTime = startTimeStr.replace(' ', 'T') + 'Z';
-            const endTime = endTimeStr ? endTimeStr.replace(' ', 'T') + 'Z' : null;
+            const startTime = startTimeStr.trim().replace(' ', 'T') + 'Z';
+            const endTime = endTimeStr?.trim() ? endTimeStr.trim().replace(' ', 'T') + 'Z' : null;
 
             // Find or create work item
             let workItem: { id: number } | undefined;
@@ -415,19 +430,31 @@ export function registerIpcHandlers() {
                 INSERT INTO time_slices (work_item_id, start_time, end_time, notes)
                 VALUES (@work_item_id, @start_time, @end_time, @notes)
             `);
+
+            // Normalize notes: handle real \r\n and literal \r \n strings
+            const normalizedNotes = (notes || '')
+                .replace(/\r\n/g, '\n')
+                .replace(/\r/g, '\n')
+                .replace(/\\n/g, '\n')
+                .replace(/\\r/g, '\n')
+                .trim();
+
             sliceStmt.run({
                 work_item_id: workItem.id,
                 start_time: startTime,
                 end_time: endTime,
-                notes: notes?.trim() || ''
+                notes: normalizedNotes
             });
             importedSlices++;
         }
 
+        console.log(`CSV Import: Completed - ${importedSlices} slices imported, ${createdWorkItems} work items created, ${reusedWorkItems} reused, ${skippedLines} lines skipped`);
+
         return {
             importedSlices,
             createdWorkItems,
-            reusedWorkItems
+            reusedWorkItems,
+            skippedLines
         };
     });
 
@@ -438,30 +465,58 @@ export function registerIpcHandlers() {
     });
 }
 
-// Helper function to parse CSV line handling quoted fields
-function parseCSVLine(line: string): string[] {
-    const result: string[] = [];
-    let current = '';
+// Helper function to parse entire CSV content handling multi-line quoted fields
+function parseCSV(content: string): string[][] {
+    const rows: string[][] = [];
+    let currentRow: string[] = [];
+    let currentField = '';
     let inQuotes = false;
 
-    for (let i = 0; i < line.length; i++) {
-        const char = line[i];
+    for (let i = 0; i < content.length; i++) {
+        const char = content[i];
+        const nextChar = content[i + 1];
 
         if (char === '"') {
-            if (inQuotes && line[i + 1] === '"') {
-                current += '"';
+            if (inQuotes && nextChar === '"') {
+                // Escaped quote inside quoted field
+                currentField += '"';
                 i++; // Skip next quote
             } else {
+                // Toggle quote mode
                 inQuotes = !inQuotes;
             }
         } else if (char === ',' && !inQuotes) {
-            result.push(current);
-            current = '';
+            // Field separator
+            currentRow.push(currentField);
+            currentField = '';
+        } else if ((char === '\n' || (char === '\r' && nextChar === '\n')) && !inQuotes) {
+            // Row separator (outside quotes)
+            if (char === '\r') i++; // Skip \n after \r
+            currentRow.push(currentField);
+            if (currentRow.some(f => f.trim().length > 0)) {
+                rows.push(currentRow);
+            }
+            currentRow = [];
+            currentField = '';
+        } else if (char === '\r' && !inQuotes) {
+            // Standalone \r as row separator
+            currentRow.push(currentField);
+            if (currentRow.some(f => f.trim().length > 0)) {
+                rows.push(currentRow);
+            }
+            currentRow = [];
+            currentField = '';
         } else {
-            current += char;
+            // Regular character (including newlines inside quotes)
+            currentField += char;
         }
     }
 
-    result.push(current);
-    return result;
+    // Don't forget the last field and row
+    currentRow.push(currentField);
+    if (currentRow.some(f => f.trim().length > 0)) {
+        rows.push(currentRow);
+    }
+
+    return rows;
 }
