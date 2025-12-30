@@ -174,7 +174,77 @@ async function checkIdleState() {
     }
 }
 
-export function initializeAwayDetector(win: BrowserWindow) {
+// Update heartbeat in settings
+async function updateHeartbeat() {
+    try {
+        const db = getDatabase();
+        const now = Math.floor(Date.now() / 1000);
+        db.prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, ?)')
+            .run('last_heartbeat', String(now), now);
+    } catch (err) {
+        console.error('[AwayDetector] Failed to update heartbeat:', err);
+    }
+}
+
+// Get last heartbeat from settings
+async function getLastHeartbeat(): Promise<number | null> {
+    try {
+        const db = getDatabase();
+        const result = db.prepare('SELECT value FROM settings WHERE key = ?').get('last_heartbeat') as { value: string } | undefined;
+        return result ? parseInt(result.value, 10) : null;
+    } catch {
+        return null;
+    }
+}
+
+// Check for away time on startup
+async function checkAwayOnStartup() {
+    const isTracking = checkTrackingActive();
+    if (!isTracking) {
+        console.log('[AwayDetector] Startup: No active tracking, skipping check');
+        return;
+    }
+
+    const lastHeartbeat = await getLastHeartbeat();
+    if (!lastHeartbeat) {
+        console.log('[AwayDetector] Startup: No last heartbeat found, skipping check');
+        return;
+    }
+
+    const lastHeartbeatDate = new Date(lastHeartbeat * 1000);
+    const now = new Date();
+    const gapSeconds = Math.floor((now.getTime() - lastHeartbeatDate.getTime()) / 1000);
+    const thresholdSeconds = await getThresholdSeconds();
+
+    console.log(`[AwayDetector] Startup check: Gap is ${gapSeconds}s (threshold: ${thresholdSeconds}s)`);
+
+    if (gapSeconds >= thresholdSeconds && mainWindow) {
+        console.log('[AwayDetector] Startup: Gap exceeds threshold, triggering away detection');
+
+        // Wait for renderer to be ready before sending
+        // The App component in the renderer might not have attached the listener yet
+        // if we send immediately after initializeAwayDetector.
+        // We can check if webContents is loading or just use a small delay/did-finish-load listener.
+        const sendStartupAway = () => {
+            if (mainWindow) {
+                mainWindow.webContents.send('away:detected', {
+                    awayStartTime: lastHeartbeatDate.toISOString(),
+                    awayDurationSeconds: gapSeconds
+                });
+                console.log('[AwayDetector] Startup: Sent away:detected to renderer');
+            }
+        };
+
+        if (mainWindow.webContents.isLoading()) {
+            mainWindow.webContents.once('did-finish-load', sendStartupAway);
+        } else {
+            // Small delay to ensure React effects have run
+            setTimeout(sendStartupAway, 3000);
+        }
+    }
+}
+
+export async function initializeAwayDetector(win: BrowserWindow) {
     mainWindow = win;
 
     // Lock/Unlock events (Windows, macOS, Linux)
@@ -199,9 +269,16 @@ export function initializeAwayDetector(win: BrowserWindow) {
         handleAwayEnd('resume');
     });
 
+    // Run startup check BEFORE starting new heartbeats so we don't overwrite the last one
+    await checkAwayOnStartup();
+
+    // Start heartbeat interval (every 1 minute)
+    setInterval(updateHeartbeat, 60000);
+    updateHeartbeat(); // Initial heartbeat
+    console.log('[AwayDetector] Started heartbeat interval (1m)');
+
     // Start idle check polling (every 5 seconds for responsive detection)
     setInterval(checkIdleState, 5000);
-    console.log('[AwayDetector] Started idle check interval (5s)');
 
     // IPC handlers for settings
     ipcMain.handle('away:get-threshold', async () => {
