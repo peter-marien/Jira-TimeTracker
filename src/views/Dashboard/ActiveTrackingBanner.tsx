@@ -1,12 +1,12 @@
 import { useTrackingStore } from "@/stores/useTrackingStore"
 import { Button } from "@/components/ui/button"
-import { StopCircle } from "lucide-react"
+import { StopCircle, Clock } from "lucide-react"
 import { DurationDisplay } from "@/components/shared/DurationDisplay"
 import { useEffect } from "react"
 import { api } from "@/lib/api"
 
 export function ActiveTrackingBanner() {
-    const { activeWorkItem, activeTimeSliceId, elapsedSeconds, stopTracking, tick, startTime, setElapsedSeconds } = useTrackingStore();
+    const { activeWorkItem, activeTimeSliceId, elapsedSeconds, totalTimeSpent, stopTracking, tick, startTime, setElapsedSeconds } = useTrackingStore();
 
     // Timer tick effect
     useEffect(() => {
@@ -78,7 +78,13 @@ export function ActiveTrackingBanner() {
             </div>
 
             <div className="flex items-center gap-6">
-                <DurationDisplay seconds={elapsedSeconds} className="text-2xl font-bold font-mono tracking-widest" />
+                <div className="flex flex-col items-end">
+                    <DurationDisplay seconds={elapsedSeconds} className="text-2xl font-bold font-mono tracking-widest leading-none" />
+                    <div className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider opacity-70 mt-1">
+                        <Clock className="w-3 h-3" />
+                        Total: <DurationDisplay seconds={totalTimeSpent} showSeconds={false} />
+                    </div>
+                </div>
 
                 <Button
                     onClick={() => stopTracking()}

@@ -3,7 +3,7 @@ import { api, WorkItem } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Search, Trash2, Edit2, Download, MoreHorizontal, History } from "lucide-react"
+import { Plus, Search, Trash2, Edit2, Download, MoreHorizontal, History, Clock } from "lucide-react"
 import { JiraBadge } from "@/components/shared/JiraBadge"
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog"
 import { ImportFromJiraDialog } from "@/components/WorkItem/ImportFromJiraDialog"
@@ -17,6 +17,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { MessageDialog } from "@/components/shared/MessageDialog"
+import { Badge } from "@/components/ui/badge"
 
 export function WorkItemsView() {
     const [items, setItems] = useState<WorkItem[]>([]);
@@ -72,6 +73,15 @@ export function WorkItemsView() {
         }
     }
 
+    const formatTotalTime = (seconds: number | undefined) => {
+        if (!seconds || seconds === 0) return "0m";
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+
+        if (hours === 0) return `${minutes}m`;
+        return `${hours}h ${minutes}m`;
+    };
+
     return (
         <div className="flex flex-col h-full bg-background p-6 space-y-6">
             <div className="flex items-center justify-between">
@@ -104,6 +114,7 @@ export function WorkItemsView() {
                                 <TableHead className="w-[150px]">Jira Key</TableHead>
                                 <TableHead>Description</TableHead>
                                 <TableHead className="w-[150px]">Connection</TableHead>
+                                <TableHead className="w-[120px]">Total Time</TableHead>
                                 <TableHead className="w-[100px] text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -127,6 +138,12 @@ export function WorkItemsView() {
                                     <TableCell className="font-medium">{item.description}</TableCell>
                                     <TableCell className="text-muted-foreground text-sm">
                                         {item.connection_name || '-'}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant="secondary" className="font-mono">
+                                            <Clock className="w-3 h-3 mr-1 opacity-70" />
+                                            {formatTotalTime(item.total_seconds)}
+                                        </Badge>
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <DropdownMenu>

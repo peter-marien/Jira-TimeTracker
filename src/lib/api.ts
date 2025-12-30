@@ -10,6 +10,7 @@ export interface WorkItem {
 
     // Joined fields
     connection_name?: string;
+    total_seconds?: number;
 }
 
 export interface TimeSlice {

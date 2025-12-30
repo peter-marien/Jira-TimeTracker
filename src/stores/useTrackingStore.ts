@@ -7,6 +7,8 @@ interface TrackingStore {
     activeTimeSliceId: number | null;
     startTime: string | null; // ISO string
     elapsedSeconds: number;
+    totalTimeSpent: number; // Historical + current session
+    historicalBase: number; // For internal calculation
 
     startTracking: (workItem: WorkItem) => Promise<void>;
     stopTracking: () => Promise<void>;
@@ -23,6 +25,8 @@ export const useTrackingStore = create<TrackingStore>((set, get) => ({
     activeTimeSliceId: null,
     startTime: null,
     elapsedSeconds: 0,
+    totalTimeSpent: 0,
+    historicalBase: 0,
 
     setElapsedSeconds: (seconds) => set({ elapsedSeconds: seconds }),
 
@@ -41,11 +45,18 @@ export const useTrackingStore = create<TrackingStore>((set, get) => ({
             end_time: null // Open-ended
         });
 
+        // 3. Fetch initial total seconds from DB (historical)
+        const workItems = await api.getWorkItems({ query: workItem.jira_key || workItem.description });
+        const freshWorkItem = workItems.find(wi => wi.id === workItem.id);
+        const historicalSeconds = freshWorkItem?.total_seconds || 0;
+
         set({
             activeWorkItem: workItem,
             activeTimeSliceId: slice.id,
             startTime: now,
-            elapsedSeconds: 0
+            elapsedSeconds: 0,
+            totalTimeSpent: historicalSeconds,
+            historicalBase: historicalSeconds
         });
 
         // Notify main process for tray update
@@ -73,7 +84,9 @@ export const useTrackingStore = create<TrackingStore>((set, get) => ({
             activeWorkItem: null,
             activeTimeSliceId: null,
             startTime: null,
-            elapsedSeconds: 0
+            elapsedSeconds: 0,
+            totalTimeSpent: 0,
+            historicalBase: 0
         });
     },
 
@@ -82,7 +95,23 @@ export const useTrackingStore = create<TrackingStore>((set, get) => ({
         if (startTime) {
             const start = new Date(startTime).getTime();
             const now = Date.now();
-            set({ elapsedSeconds: Math.floor((now - start) / 1000) });
+            const elapsed = Math.floor((now - start) / 1000);
+
+            // We need to know the historical time to add to elapsed
+            // But totalTimeSpent in state is actually already updated if we do it right.
+            // Actually, let's keep totalTimeSpent as the "running total" including current session.
+            // To do that, we need to know the historical base.
+            set((state) => {
+                const historicalBase = state.activeWorkItem?.total_seconds || 0;
+                // If the freshWorkItem above already included the current slice (which it might as it's open-ended),
+                // we need to be careful not to double count.
+                // Actually, the freshWorkItem fetch in startTracking happens right after saveTimeSlice.
+                // The SQL sum(now - start) for an open slice will be roughly 0 at that moment.
+                return {
+                    elapsedSeconds: elapsed,
+                    totalTimeSpent: historicalBase + elapsed
+                };
+            });
         }
     },
 
@@ -95,11 +124,17 @@ export const useTrackingStore = create<TrackingStore>((set, get) => ({
             const workItem = workItems.find(wi => wi.id === activeSlice.work_item_id);
 
             if (workItem) {
+                const elapsed = Math.floor((Date.now() - new Date(activeSlice.start_time).getTime()) / 1000);
+                const totalIncludingActive = workItem.total_seconds || 0;
+                const historicalBase = Math.max(0, totalIncludingActive - elapsed);
+
                 set({
                     activeWorkItem: workItem,
                     activeTimeSliceId: activeSlice.id,
                     startTime: activeSlice.start_time,
-                    elapsedSeconds: Math.floor((Date.now() - new Date(activeSlice.start_time).getTime()) / 1000)
+                    elapsedSeconds: elapsed,
+                    totalTimeSpent: historicalBase + elapsed,
+                    historicalBase: historicalBase
                 });
 
                 // Update tray

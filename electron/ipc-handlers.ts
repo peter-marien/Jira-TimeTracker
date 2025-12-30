@@ -35,12 +35,15 @@ export function registerIpcHandlers() {
 
     // Work Items
     ipcMain.handle('db:get-work-items', (_, { query = '', limit = 50, offset = 0 } = {}) => {
-        // Basic search by description or jira_key
+        // Basic search by description or jira_key with total time calculation
         const sql = `
-        SELECT wi.*, jc.name as connection_name 
+        SELECT wi.*, jc.name as connection_name,
+               COALESCE(SUM(strftime('%s', COALESCE(ts.end_time, 'now')) - strftime('%s', ts.start_time)), 0) as total_seconds
         FROM work_items wi
         LEFT JOIN jira_connections jc ON wi.jira_connection_id = jc.id
+        LEFT JOIN time_slices ts ON wi.id = ts.work_item_id
         WHERE wi.description LIKE @query OR wi.jira_key LIKE @query
+        GROUP BY wi.id
         ORDER BY wi.jira_key ASC, wi.description ASC
         LIMIT @limit OFFSET @offset
       `
