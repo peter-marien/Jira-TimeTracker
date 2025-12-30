@@ -5,6 +5,7 @@ import { initializeDatabase } from '../src/database/db'
 import { registerIpcHandlers } from './ipc-handlers'
 import { initializeTray } from './tray'
 import { initializeAutoUpdater } from './auto-updater'
+import { initializeAwayDetector } from './away-detector'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -52,6 +53,7 @@ function createWindow() {
   if (win) {
     initializeTray(win)
     initializeAutoUpdater(win)
+    initializeAwayDetector(win)
   }
 }
 

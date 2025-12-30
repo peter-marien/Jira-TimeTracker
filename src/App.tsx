@@ -4,17 +4,13 @@ import { Dashboard } from "@/views/Dashboard/Dashboard"
 import { WorkItemsView } from "@/views/WorkItems/WorkItemsView"
 import { SettingsView } from "@/views/Settings/SettingsView"
 import { MonthView } from "@/views/MonthView/MonthView"
-// import { SyncView } from "@/views/Sync/SyncView"
-
-// function SettingsPlaceholder() {
-//   return <div className="p-8">Settings View (Coming Soon)</div>
-// }
+import { AwayTimeDialog } from "@/components/Tracking/AwayTimeDialog"
 
 import { useTrayEvents } from "@/hooks/useTrayEvents"
 
 import { useTrackingStore } from "@/stores/useTrackingStore"
-import { useEffect } from "react"
-import { api } from "@/lib/api"
+import { useEffect, useState } from "react"
+import { api, WorkItem } from "@/lib/api"
 
 function applyTheme(theme: 'light' | 'dark' | 'system') {
   const root = document.documentElement;
@@ -29,6 +25,12 @@ function applyTheme(theme: 'light' | 'dark' | 'system') {
 function App() {
   useTrayEvents();
   const checkActiveTracking = useTrackingStore(state => state.checkActiveTracking);
+  const activeWorkItem = useTrackingStore(state => state.activeWorkItem);
+  const handleAwayTime = useTrackingStore(state => state.handleAwayTime);
+
+  // Away detection state
+  const [awayDialogOpen, setAwayDialogOpen] = useState(false);
+  const [awayData, setAwayData] = useState<{ awayStartTime: string; awayDurationSeconds: number } | null>(null);
 
   useEffect(() => {
     checkActiveTracking();
@@ -39,17 +41,51 @@ function App() {
     });
   }, [checkActiveTracking]);
 
+  // Listen for away:detected events from main process
+  useEffect(() => {
+    const handleAwayDetected = (_event: unknown, data: { awayStartTime: string; awayDurationSeconds: number }) => {
+      console.log('[App] Away detected:', data);
+      setAwayData(data);
+      setAwayDialogOpen(true);
+    };
+
+    window.ipcRenderer.on('away:detected', handleAwayDetected);
+
+    return () => {
+      window.ipcRenderer.removeListener('away:detected', handleAwayDetected);
+    };
+  }, []);
+
+  const handleAwayAction = async (action: 'discard' | 'keep' | 'reassign', targetWorkItem?: WorkItem) => {
+    if (awayData) {
+      await handleAwayTime(action, awayData.awayStartTime, targetWorkItem);
+    }
+    setAwayDialogOpen(false);
+    setAwayData(null);
+  };
+
   return (
-    <Router>
-      <Routes>
-        <Route element={<AppLayout />}>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/work-items" element={<WorkItemsView />} />
-          <Route path="/month" element={<MonthView />} />
-          <Route path="/settings" element={<SettingsView />} />
-        </Route>
-      </Routes>
-    </Router>
+    <>
+      <Router>
+        <Routes>
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/work-items" element={<WorkItemsView />} />
+            <Route path="/month" element={<MonthView />} />
+            <Route path="/settings" element={<SettingsView />} />
+          </Route>
+        </Routes>
+      </Router>
+
+      <AwayTimeDialog
+        open={awayDialogOpen}
+        onOpenChange={setAwayDialogOpen}
+        awayDurationSeconds={awayData?.awayDurationSeconds || 0}
+        awayStartTime={awayData?.awayStartTime || ''}
+        currentWorkItem={activeWorkItem}
+        onAction={handleAwayAction}
+      />
+    </>
   )
 }
 

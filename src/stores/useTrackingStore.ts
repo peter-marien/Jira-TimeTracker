@@ -14,6 +14,7 @@ interface TrackingStore {
     stopTracking: () => Promise<void>;
     tick: () => void; // Update elapsed time
     setElapsedSeconds: (seconds: number) => void;
+    handleAwayTime: (action: 'discard' | 'keep' | 'reassign', awayStartTime: string, targetWorkItem?: WorkItem) => Promise<void>;
 
     // Initialize from DB if possible? 
     // We'll need a way to check if tracking is active on load.
@@ -111,6 +112,86 @@ export const useTrackingStore = create<TrackingStore>((set, get) => ({
                     elapsedSeconds: elapsed,
                     totalTimeSpent: historicalBase + elapsed
                 };
+            });
+        }
+    },
+
+    handleAwayTime: async (action, awayStartTime, targetWorkItem) => {
+        const { activeTimeSliceId, activeWorkItem, startTime } = get();
+        if (!activeTimeSliceId || !activeWorkItem || !startTime) return;
+
+        if (action === 'keep') {
+            // Do nothing - time is already included in the current slice
+            return;
+        }
+
+        if (action === 'discard') {
+            // End the current slice at awayStartTime, then start a new one from now
+            await api.saveTimeSlice({
+                id: activeTimeSliceId,
+                work_item_id: activeWorkItem.id,
+                start_time: startTime,
+                end_time: awayStartTime
+            });
+
+            // Start a new slice from now
+            const now = formatISO(new Date());
+            const newSlice = await api.saveTimeSlice({
+                work_item_id: activeWorkItem.id,
+                start_time: now,
+                end_time: null
+            });
+
+            // Fetch updated historical seconds
+            const workItems = await api.getWorkItems({ query: activeWorkItem.jira_key || activeWorkItem.description });
+            const freshWorkItem = workItems.find(wi => wi.id === activeWorkItem.id);
+            const historicalSeconds = freshWorkItem?.total_seconds || 0;
+
+            set({
+                activeTimeSliceId: newSlice.id,
+                startTime: now,
+                elapsedSeconds: 0,
+                totalTimeSpent: historicalSeconds,
+                historicalBase: historicalSeconds
+            });
+            return;
+        }
+
+        if (action === 'reassign' && targetWorkItem) {
+            // End the current slice at awayStartTime
+            await api.saveTimeSlice({
+                id: activeTimeSliceId,
+                work_item_id: activeWorkItem.id,
+                start_time: startTime,
+                end_time: awayStartTime
+            });
+
+            // Create a new slice for the away time assigned to targetWorkItem
+            const now = formatISO(new Date());
+            await api.saveTimeSlice({
+                work_item_id: targetWorkItem.id,
+                start_time: awayStartTime,
+                end_time: now
+            });
+
+            // Start a new slice from now for the original work item
+            const newSlice = await api.saveTimeSlice({
+                work_item_id: activeWorkItem.id,
+                start_time: now,
+                end_time: null
+            });
+
+            // Fetch updated historical seconds
+            const workItems = await api.getWorkItems({ query: activeWorkItem.jira_key || activeWorkItem.description });
+            const freshWorkItem = workItems.find(wi => wi.id === activeWorkItem.id);
+            const historicalSeconds = freshWorkItem?.total_seconds || 0;
+
+            set({
+                activeTimeSliceId: newSlice.id,
+                startTime: now,
+                elapsedSeconds: 0,
+                totalTimeSpent: historicalSeconds,
+                historicalBase: historicalSeconds
             });
         }
     },

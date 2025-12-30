@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { FolderOpen, Moon, Sun, Monitor, Trash2, Upload, Loader2 } from "lucide-react"
+import { FolderOpen, Moon, Sun, Monitor, Trash2, Upload, Loader2, Clock } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Switch } from "@/components/ui/switch"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -40,6 +41,8 @@ export function SettingsView() {
     const [clearWorkItems, setClearWorkItems] = React.useState(false);
     const [message, setMessage] = React.useState<{ title: string, description: string } | null>(null);
     const [isImporting, setIsImporting] = React.useState(false);
+    const [awayThreshold, setAwayThreshold] = React.useState(5);
+    const [awayEnabled, setAwayEnabled] = React.useState(true);
 
     React.useEffect(() => {
         api.getDatabasePath().then(setDbPath).catch(() => setDbPath("Error fetching path"));
@@ -48,6 +51,10 @@ export function SettingsView() {
             const savedTheme = (settings.theme as Theme) || 'dark';
             setTheme(savedTheme);
             applyTheme(savedTheme);
+            // Load away detection settings
+            const threshold = settings.away_threshold_minutes ? parseInt(settings.away_threshold_minutes, 10) : 5;
+            setAwayThreshold(threshold);
+            setAwayEnabled(settings.away_detection_enabled !== 'false');
         });
     }, []);
 
@@ -161,6 +168,57 @@ export function SettingsView() {
                                     <Monitor className="h-6 w-6" />
                                     <span>System</span>
                                 </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="mt-6">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Clock className="h-5 w-5" />
+                                Away Detection
+                            </CardTitle>
+                            <CardDescription>Configure how the app handles time when you're away.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <Label htmlFor="away-enabled">Enable Away Detection</Label>
+                                    <p className="text-xs text-muted-foreground">
+                                        Show a dialog when you return after being away.
+                                    </p>
+                                </div>
+                                <Switch
+                                    id="away-enabled"
+                                    checked={awayEnabled}
+                                    onCheckedChange={async (checked) => {
+                                        setAwayEnabled(checked);
+                                        await api.saveSetting('away_detection_enabled', String(checked));
+                                    }}
+                                />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="away-threshold">Away Threshold (minutes)</Label>
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        id="away-threshold"
+                                        type="number"
+                                        min="1"
+                                        max="60"
+                                        value={awayThreshold}
+                                        onChange={(e) => setAwayThreshold(parseInt(e.target.value, 10) || 5)}
+                                        onBlur={async () => {
+                                            await api.saveSetting('away_threshold_minutes', String(awayThreshold));
+                                        }}
+                                        className="w-24"
+                                        disabled={!awayEnabled}
+                                    />
+                                    <span className="text-sm text-muted-foreground">minutes</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    How long you need to be away before the dialog appears.
+                                </p>
                             </div>
                         </CardContent>
                     </Card>
