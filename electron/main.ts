@@ -9,7 +9,10 @@ import { initializeAwayDetector } from './away-detector'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-// The built directory structure
+app.name = 'Jira Time Tracker'
+if (process.platform === 'win32') {
+  app.setAppUserModelId('com.pmarien.jira-timetracker')
+}
 //
 // ├─┬─┬ dist
 // │ │ └── index.html

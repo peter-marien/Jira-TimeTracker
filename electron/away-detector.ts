@@ -1,4 +1,4 @@
-import { powerMonitor, BrowserWindow, ipcMain } from 'electron';
+import { powerMonitor, BrowserWindow, ipcMain, Notification } from 'electron';
 import { getDatabase } from '../src/database/db';
 
 let mainWindow: BrowserWindow | null = null;
@@ -40,6 +40,37 @@ function checkTrackingActive(): boolean {
     }
 }
 
+// Check if notification sound is enabled
+async function isSoundEnabled(): Promise<boolean> {
+    try {
+        const db = getDatabase();
+        const result = db.prepare('SELECT value FROM settings WHERE key = ?').get('away_notification_sound') as { value: string } | undefined;
+        return result ? result.value === 'true' : true; // Enabled by default
+    } catch {
+        return true;
+    }
+}
+
+// Get work item description for the active time slice
+function getActiveWorkItemDescription(): string {
+    try {
+        const db = getDatabase();
+        const result = db.prepare(`
+            SELECT wi.description, wi.jira_key 
+            FROM time_slices ts 
+            JOIN work_items wi ON ts.work_item_id = wi.id 
+            WHERE ts.end_time IS NULL 
+            LIMIT 1
+        `).get() as { description: string; jira_key: string | null } | undefined;
+        if (result) {
+            return result.jira_key ? `${result.jira_key} - ${result.description}` : result.description;
+        }
+        return 'Unknown task';
+    } catch {
+        return 'Unknown task';
+    }
+}
+
 function handleAwayStart(reason: string) {
     isTrackingActive = checkTrackingActive();
     if (isTrackingActive && !awayStartTime) {
@@ -69,10 +100,44 @@ async function handleAwayEnd(reason: string) {
     console.log(`[AwayDetector] User returned (${reason}). Away for ${awayDurationSeconds}s (threshold: ${thresholdSeconds}s)`);
 
     if (awayDurationSeconds >= thresholdSeconds && mainWindow) {
-        // Notify renderer about away time
+        // Capture values for the click handler closure
+        const capturedAwayStartTime = awayStartTime;
+        const capturedAwayDurationSeconds = awayDurationSeconds;
+
+        // Get work item description for notification
+        const workItemDescription = getActiveWorkItemDescription();
+        const soundEnabled = await isSoundEnabled();
+
+        // Format duration for notification
+        const minutes = Math.floor(awayDurationSeconds / 60);
+        const durationText = minutes > 0 ? `${minutes}m` : `${awayDurationSeconds}s`;
+
+        // Show system notification
+        const notification = new Notification({
+            title: 'You Were Away',
+            body: `Away for ${durationText} from "${workItemDescription}". Click to handle.`,
+            silent: !soundEnabled
+        });
+
+        notification.on('click', () => {
+            if (mainWindow && capturedAwayStartTime) {
+                mainWindow.show();
+                mainWindow.focus();
+                // Send the event to open the dialog
+                mainWindow.webContents.send('away:detected', {
+                    awayStartTime: capturedAwayStartTime.toISOString(),
+                    awayDurationSeconds: capturedAwayDurationSeconds
+                });
+            }
+        });
+
+        notification.show();
+        console.log('[AwayDetector] Showed notification for away time');
+
+        // Also send to renderer in case user is already looking at the app
         mainWindow.webContents.send('away:detected', {
-            awayStartTime: awayStartTime.toISOString(),
-            awayDurationSeconds
+            awayStartTime: capturedAwayStartTime.toISOString(),
+            awayDurationSeconds: capturedAwayDurationSeconds
         });
         console.log('[AwayDetector] Sent away:detected event to renderer');
     }

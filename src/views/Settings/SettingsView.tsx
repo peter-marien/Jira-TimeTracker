@@ -43,6 +43,7 @@ export function SettingsView() {
     const [isImporting, setIsImporting] = React.useState(false);
     const [awayThreshold, setAwayThreshold] = React.useState(5);
     const [awayEnabled, setAwayEnabled] = React.useState(true);
+    const [awaySoundEnabled, setAwaySoundEnabled] = React.useState(true);
 
     React.useEffect(() => {
         api.getDatabasePath().then(setDbPath).catch(() => setDbPath("Error fetching path"));
@@ -55,6 +56,7 @@ export function SettingsView() {
             const threshold = settings.away_threshold_minutes ? parseInt(settings.away_threshold_minutes, 10) : 5;
             setAwayThreshold(threshold);
             setAwayEnabled(settings.away_detection_enabled !== 'false');
+            setAwaySoundEnabled(settings.away_notification_sound !== 'false');
         });
     }, []);
 
@@ -219,6 +221,24 @@ export function SettingsView() {
                                 <p className="text-xs text-muted-foreground">
                                     How long you need to be away before the dialog appears.
                                 </p>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <Label htmlFor="away-sound">Notification Sound</Label>
+                                    <p className="text-xs text-muted-foreground">
+                                        Play a sound when the notification appears.
+                                    </p>
+                                </div>
+                                <Switch
+                                    id="away-sound"
+                                    checked={awaySoundEnabled}
+                                    onCheckedChange={async (checked) => {
+                                        setAwaySoundEnabled(checked);
+                                        await api.saveSetting('away_notification_sound', String(checked));
+                                    }}
+                                    disabled={!awayEnabled}
+                                />
                             </div>
                         </CardContent>
                     </Card>
