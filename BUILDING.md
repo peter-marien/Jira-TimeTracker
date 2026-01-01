@@ -37,9 +37,9 @@ Packaging is configured in `electron-builder.json5`.
 ## Database Location
 
 By default, the database is stored in the user's application data folder:
-- **Windows**: `%APPDATA%/temp-app/timetracker.db`
-- **Linux**: `~/.config/temp-app/timetracker.db`
-- **macOS**: `~/Library/Application Support/temp-app/timetracker.db`
+- **Windows**: `%APPDATA%/temp-app/jira-timetracker.db`
+- **Linux**: `~/.config/temp-app/jira-timetracker.db`
+- **macOS**: `~/Library/Application Support/temp-app/jira-timetracker.db`
 
 You can change this location in **Settings -> Database**.
 

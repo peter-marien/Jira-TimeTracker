@@ -10,7 +10,7 @@ export interface AppConfig {
 }
 
 const DEFAULT_CONFIG: AppConfig = {
-    databasePath: path.join(app.getPath('userData'), 'timetracker.db')
+    databasePath: path.join(app.getPath('userData'), 'jira-timetracker.db')
 };
 
 export function getAppConfig(): AppConfig {

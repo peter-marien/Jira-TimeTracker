@@ -327,7 +327,7 @@ export function registerIpcHandlers() {
     });
 
     ipcMain.handle('database:save-path', async (_, newFolderPath: string) => {
-        const fullPath = path.join(newFolderPath, 'timetracker.db');
+        const fullPath = path.join(newFolderPath, 'jira-timetracker.db');
         saveAppConfig({ databasePath: fullPath });
         return fullPath;
     });
