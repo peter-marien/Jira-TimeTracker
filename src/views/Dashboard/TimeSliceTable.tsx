@@ -1,7 +1,6 @@
 import { TimeSlice } from "@/lib/api"
 import { TimeDisplay } from "@/components/shared/TimeDisplay"
 import { DurationDisplay } from "@/components/shared/DurationDisplay"
-import { JiraBadge } from "@/components/shared/JiraBadge"
 import { TimeSliceContextMenu } from "./TimeSliceContextMenu"
 import { differenceInSeconds } from "date-fns"
 import { cn } from "@/lib/utils"

@@ -71,20 +71,35 @@ export function Dashboard() {
         }
     }
 
+    // Keep track of "now" to update active durations
+    const [now, setNow] = useState(new Date());
+
+    useEffect(() => {
+        const interval = setInterval(() => setNow(new Date()), 60000); // Update every minute
+        return () => clearInterval(interval);
+    }, []);
+
     // Calculate total time for the day
     const totalTime = useMemo(() => {
         let totalMinutes = 0;
         for (const slice of slices) {
-            if (slice.start_time && slice.end_time) {
+            if (slice.start_time) {
                 const start = new Date(slice.start_time).getTime();
-                const end = new Date(slice.end_time).getTime();
-                totalMinutes += (end - start) / (1000 * 60);
+                const end = slice.end_time ? new Date(slice.end_time).getTime() : now.getTime();
+                // Avoid negative durations if start is in future (unlikely but safe)
+                const duration = Math.max(0, end - start);
+                totalMinutes += duration / (1000 * 60);
             }
         }
         const hours = Math.floor(totalMinutes / 60);
         const minutes = Math.round(totalMinutes % 60);
-        return { hours, minutes, formatted: `${hours}h ${minutes.toString().padStart(2, '0')}m` };
-    }, [slices]);
+        return {
+            hours,
+            minutes,
+            totalMinutes,
+            formatted: `${hours}h ${minutes.toString().padStart(2, '0')}m`
+        };
+    }, [slices, now]);
 
     return (
         <div className="flex flex-col h-full bg-background">
@@ -94,10 +109,6 @@ export function Dashboard() {
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-                        <div className="flex items-center gap-1.5 text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-md">
-                            <Clock className="h-4 w-4" />
-                            <span className="text-sm font-medium">{totalTime.formatted}</span>
-                        </div>
                     </div>
                     <div className="flex items-center gap-2">
                         <Button
@@ -112,7 +123,7 @@ export function Dashboard() {
                     </div>
                 </div>
 
-                <QuickStartBar />
+                <QuickStartBar totalMinutes={totalTime.totalMinutes} />
 
                 <Timeline date={selectedDate} slices={slices} onSliceClick={handleEdit} />
 
