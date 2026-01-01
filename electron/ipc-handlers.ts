@@ -99,6 +99,23 @@ export function registerIpcHandlers() {
         return stmt.run(completed ? 1 : 0, ...ids);
     })
 
+    ipcMain.handle('db:get-recent-work-items', (_) => {
+        const sql = `
+            SELECT wi.*, jc.name as connection_name
+            FROM work_items wi
+            LEFT JOIN jira_connections jc ON wi.jira_connection_id = jc.id
+            JOIN (
+                SELECT work_item_id, MAX(start_time) as last_start
+                FROM time_slices
+                GROUP BY work_item_id
+            ) recent ON wi.id = recent.work_item_id
+            WHERE wi.is_completed = 0
+            ORDER BY recent.last_start DESC
+            LIMIT 5
+        `;
+        return db.prepare(sql).all();
+    });
+
     // Time Slices
     ipcMain.handle('db:get-time-slices', (_, { startStr, endStr }) => {
         const stmt = db.prepare(`

@@ -1,12 +1,12 @@
 import { WorkItemSearchBar } from "@/components/shared/WorkItemSearchBar"
 import { useTrackingStore } from "@/stores/useTrackingStore"
-import { WorkItem } from "@/lib/api"
+import { api, WorkItem } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ImportFromJiraDialog } from "@/components/WorkItem/ImportFromJiraDialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-
+import { Badge } from "@/components/ui/badge"
 import { DailyProgressRing } from "@/components/Dashboard/DailyProgressRing"
 
 interface QuickStartBarProps {
@@ -14,9 +14,23 @@ interface QuickStartBarProps {
 }
 
 export function QuickStartBar({ totalMinutes = 0 }: QuickStartBarProps) {
-    const { startTracking } = useTrackingStore();
+    const { startTracking, activeTimeSliceId } = useTrackingStore();
     const [importOpen, setImportOpen] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
+    const [recentItems, setRecentItems] = useState<WorkItem[]>([]);
+
+    const fetchRecentItems = async () => {
+        try {
+            const items = await api.getRecentWorkItems();
+            setRecentItems(items);
+        } catch (err) {
+            console.error("Failed to fetch recent items", err);
+        }
+    };
+
+    useEffect(() => {
+        fetchRecentItems();
+    }, [activeTimeSliceId]);
 
     const handleSelect = (item: WorkItem) => {
         startTracking(item);
@@ -24,6 +38,7 @@ export function QuickStartBar({ totalMinutes = 0 }: QuickStartBarProps) {
 
     const handleImportSuccess = () => {
         setRefreshKey(prev => prev + 1);
+        fetchRecentItems();
     };
 
     return (
@@ -31,33 +46,52 @@ export function QuickStartBar({ totalMinutes = 0 }: QuickStartBarProps) {
             {/* Left Spacer to balance grid */}
             <div className="hidden lg:block" />
 
-            {/* Center: Search Bar */}
-            <div className="flex items-center gap-2 w-full max-w-2xl">
-                <div className="flex-1">
-                    <WorkItemSearchBar
-                        key={refreshKey}
-                        onSelect={handleSelect}
-                        placeholder="Search work item to start tracking..."
-                        className="h-12 text-lg shadow-sm"
-                    />
+            {/* Center: Search Bar & Recent Badges */}
+            <div className="flex flex-col gap-3 w-full max-w-2xl">
+                <div className="flex items-center gap-2 w-full">
+                    <div className="flex-1">
+                        <WorkItemSearchBar
+                            key={refreshKey}
+                            onSelect={handleSelect}
+                            placeholder="Search work item to start tracking..."
+                            className="h-12 text-lg shadow-sm"
+                        />
+                    </div>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    size="icon"
+                                    variant="outline"
+                                    className="h-12 w-12 shrink-0"
+                                    onClick={() => setImportOpen(true)}
+                                >
+                                    <Plus className="h-5 w-5" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Import from Jira</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                 </div>
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                size="icon"
-                                variant="outline"
-                                className="h-12 w-12 shrink-0"
-                                onClick={() => setImportOpen(true)}
+
+                {recentItems.length > 0 && (
+                    <div className="flex flex-wrap gap-2 px-1">
+                        {recentItems.map(item => (
+                            <Badge
+                                key={item.id}
+                                variant={item.jira_key ? "default" : "secondary"}
+                                className="cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all font-medium py-1 px-3"
+                                onClick={() => handleSelect(item)}
                             >
-                                <Plus className="h-5 w-5" />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Import from Jira</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
+                                {item.jira_key ? item.jira_key : (
+                                    <span className="max-w-[150px] truncate">{item.description}</span>
+                                )}
+                            </Badge>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Right: Progress Ring */}
