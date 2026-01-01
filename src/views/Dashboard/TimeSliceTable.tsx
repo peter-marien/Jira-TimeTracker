@@ -77,7 +77,9 @@ export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete, onRe
                             <div className="flex items-center gap-1.5">
                                 {slice.jira_key ? (
                                     <>
-                                        <JiraBadge jiraKey={slice.jira_key} className="scale-90" />
+                                        <span className="text-xs font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded flex-shrink-0">
+                                            {slice.jira_key}
+                                        </span>
                                         {isOutOfSync ? (
                                             <TooltipProvider>
                                                 <Tooltip>
