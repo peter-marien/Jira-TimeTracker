@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { ChevronsUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { api, WorkItem } from "@/lib/api"
-import { JiraBadge } from "./JiraBadge"
 
 interface WorkItemSearchBarProps {
     onSelect: (workItem: WorkItem) => void;
@@ -46,7 +45,7 @@ export function WorkItemSearchBar({ onSelect, className, placeholder = "Search w
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[400px] p-0" align="start">
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                 <Command shouldFilter={false}>
                     <CommandInput placeholder="Search work items (key or description)..." value={query} onValueChange={setQuery} />
                     <CommandList>
@@ -63,10 +62,12 @@ export function WorkItemSearchBar({ onSelect, className, placeholder = "Search w
                                     }}
                                     className="flex flex-col items-start gap-1 py-3"
                                 >
-                                    <div className="flex items-center w-full gap-2">
-                                        <span className="font-medium truncate">{item.description}</span>
-                                    </div>
-                                    {item.jira_key && <JiraBadge jiraKey={item.jira_key} />}
+                                    <span className="font-bold truncate w-full">{item.description}</span>
+                                    {item.jira_key && (
+                                        <span className="text-xs text-muted-foreground font-mono">
+                                            {item.jira_key}
+                                        </span>
+                                    )}
                                 </CommandItem>
                             ))}
                         </CommandGroup>
