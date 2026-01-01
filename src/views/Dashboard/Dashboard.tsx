@@ -14,7 +14,7 @@ import { SplitTimeSliceDialog } from "@/components/TimeSlice/SplitTimeSliceDialo
 import { MoveTimeSliceDialog } from "@/components/TimeSlice/MoveTimeSliceDialog"
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog"
 import { SyncToJiraDialog } from "@/components/Sync/SyncToJiraDialog"
-import { ArrowLeftRight, Plus, Clock } from "lucide-react"
+import { ArrowLeftRight, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export function Dashboard() {

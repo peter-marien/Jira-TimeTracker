@@ -190,7 +190,7 @@ export function MonthView() {
                                     key={day.toISOString()}
                                     className={cn(
                                         "w-8 border-r border-b text-center font-medium",
-                                        isWeekend(day) ? "bg-muted text-muted-foreground" : "bg-primary/5"
+                                        isWeekend(day) ? "bg-muted/60 text-muted-foreground" : "bg-primary/5"
                                     )}
                                 >
                                     {getDate(day)}
@@ -215,7 +215,7 @@ export function MonthView() {
                                                 key={day.toISOString()}
                                                 className={cn(
                                                     "border-r border-b text-center p-0 h-8",
-                                                    isWeekend(day) && "bg-muted/30"
+                                                    isWeekend(day) && "bg-muted/40"
                                                 )}
                                             >
                                                 {seconds > 0 && formatHours(seconds)}
@@ -242,7 +242,7 @@ export function MonthView() {
                                         key={day.toISOString()}
                                         className={cn(
                                             "border-r border-t text-center h-10",
-                                            isWeekend(day) && "bg-muted/50"
+                                            isWeekend(day) && "bg-muted/60"
                                         )}
                                     >
                                         {dayTotal > 0 && formatHours(dayTotal)}
