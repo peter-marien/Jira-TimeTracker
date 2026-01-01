@@ -60,6 +60,7 @@ function initSchema(database: Database.Database) {
       jira_connection_id INTEGER,
       jira_key TEXT,
       description TEXT NOT NULL,
+      is_completed INTEGER DEFAULT 0,
       created_at INTEGER DEFAULT (unixepoch()),
       updated_at INTEGER DEFAULT (unixepoch()),
       FOREIGN KEY (jira_connection_id) REFERENCES jira_connections(id) ON DELETE SET NULL
@@ -104,6 +105,17 @@ function runMigrations(database: Database.Database) {
     database.exec(`
       ALTER TABLE time_slices ADD COLUMN synced_start_time TEXT;
       ALTER TABLE time_slices ADD COLUMN synced_end_time TEXT;
+    `);
+    console.log('Migration completed successfully');
+  }
+
+  // Migration: Add is_completed column to work_items
+  try {
+    database.prepare('SELECT is_completed FROM work_items LIMIT 1').get();
+  } catch (error) {
+    console.log('Running migration: Adding is_completed column to work_items');
+    database.exec(`
+      ALTER TABLE work_items ADD COLUMN is_completed INTEGER DEFAULT 0;
     `);
     console.log('Migration completed successfully');
   }

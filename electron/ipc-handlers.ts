@@ -34,29 +34,30 @@ export function registerIpcHandlers() {
     })
 
     // Work Items
-    ipcMain.handle('db:get-work-items', (_, { query = '', limit = 50, offset = 0 } = {}) => {
-        // Basic search by description or jira_key with total time calculation
+    ipcMain.handle('db:get-work-items', (_, { query = '', limit = 50, offset = 0, showCompleted = false } = {}) => {
         const sql = `
         SELECT wi.*, jc.name as connection_name,
                COALESCE(SUM(strftime('%s', COALESCE(ts.end_time, 'now')) - strftime('%s', ts.start_time)), 0) as total_seconds
         FROM work_items wi
         LEFT JOIN jira_connections jc ON wi.jira_connection_id = jc.id
         LEFT JOIN time_slices ts ON wi.id = ts.work_item_id
-        WHERE wi.description LIKE @query OR wi.jira_key LIKE @query
+        WHERE (wi.description LIKE @query OR wi.jira_key LIKE @query)
+        AND (@showCompleted = 1 OR wi.is_completed = 0)
         GROUP BY wi.id
         ORDER BY wi.jira_key ASC, wi.description ASC
         LIMIT @limit OFFSET @offset
       `
-        return db.prepare(sql).all({ query: `%${query}%`, limit, offset })
+        return db.prepare(sql).all({ query: `%${query}%`, limit, offset, showCompleted: showCompleted ? 1 : 0 })
     })
 
-    ipcMain.handle('db:get-work-items-count', (_, { query = '' } = {}) => {
+    ipcMain.handle('db:get-work-items-count', (_, { query = '', showCompleted = false } = {}) => {
         const sql = `
         SELECT COUNT(*) as count
         FROM work_items
-        WHERE description LIKE @query OR jira_key LIKE @query
+        WHERE (description LIKE @query OR jira_key LIKE @query)
+        AND (@showCompleted = 1 OR is_completed = 0)
       `
-        const result = db.prepare(sql).get({ query: `%${query}%` }) as { count: number };
+        const result = db.prepare(sql).get({ query: `%${query}%`, showCompleted: showCompleted ? 1 : 0 }) as { count: number };
         return result.count;
     })
 
@@ -90,6 +91,12 @@ export function registerIpcHandlers() {
             throw new Error('Cannot delete work item with existing time slices.');
         }
         return db.prepare('DELETE FROM work_items WHERE id = ?').run(id);
+    })
+
+    ipcMain.handle('db:update-work-item-completion', (_, { ids, completed }) => {
+        const placeholders = ids.map(() => '?').join(',');
+        const stmt = db.prepare(`UPDATE work_items SET is_completed = ?, updated_at = unixepoch() WHERE id IN (${placeholders})`);
+        return stmt.run(completed ? 1 : 0, ...ids);
     })
 
     // Time Slices

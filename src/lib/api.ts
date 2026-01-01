@@ -11,6 +11,7 @@ export interface WorkItem {
     // Joined fields
     connection_name?: string;
     total_seconds?: number;
+    is_completed: number;
 }
 
 export interface TimeSlice {
@@ -50,12 +51,13 @@ export const api = {
     deleteJiraConnection: (id: number) => ipc.invoke('db:delete-connection', id),
 
     // Work Items
-    getWorkItems: (params: { query?: string, limit?: number, offset?: number } = {}) =>
+    getWorkItems: (params: { query?: string, limit?: number, offset?: number, showCompleted?: boolean } = {}) =>
         ipc.invoke('db:get-work-items', params) as Promise<WorkItem[]>,
-    getWorkItemsCount: (params: { query?: string } = {}) =>
+    getWorkItemsCount: (params: { query?: string, showCompleted?: boolean } = {}) =>
         ipc.invoke('db:get-work-items-count', params) as Promise<number>,
     saveWorkItem: (item: Partial<WorkItem>) => ipc.invoke('db:save-work-item', item) as Promise<WorkItem>,
     deleteWorkItem: (id: number) => ipc.invoke('db:delete-work-item', id),
+    updateWorkItemCompletion: (ids: number[], completed: boolean) => ipc.invoke('db:update-work-item-completion', { ids, completed }),
 
     // Time Slices
     getTimeSlices: (startStr: string, endStr: string) => ipc.invoke('db:get-time-slices', { startStr, endStr }),
