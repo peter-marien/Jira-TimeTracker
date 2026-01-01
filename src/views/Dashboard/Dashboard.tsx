@@ -114,7 +114,7 @@ export function Dashboard() {
 
                 <QuickStartBar />
 
-                <Timeline date={selectedDate} slices={slices} />
+                <Timeline date={selectedDate} slices={slices} onSliceClick={handleEdit} />
 
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">

@@ -7,9 +7,10 @@ interface TimelineProps {
     date: Date;
     slices: TimeSlice[];
     className?: string;
+    onSliceClick?: (slice: TimeSlice) => void;
 }
 
-export function Timeline({ date, slices, className }: TimelineProps) {
+export function Timeline({ date, slices, className, onSliceClick }: TimelineProps) {
     const dayStart = startOfDay(date);
     const dayEnd = endOfDay(date);
 
@@ -66,6 +67,20 @@ export function Timeline({ date, slices, className }: TimelineProps) {
     const startHour = new Date(timelineStart).getHours();
     const hoursCount = Math.ceil((timelineEnd - timelineStart) / (60 * 60 * 1000));
 
+    // Helper to check for overlaps
+    const getOverlapStatus = (currentSlice: TimeSlice) => {
+        const currentStart = new Date(currentSlice.start_time).getTime();
+        const currentEnd = currentSlice.end_time ? new Date(currentSlice.end_time).getTime() : Date.now();
+
+        return slices.some(other => {
+            if (other.id === currentSlice.id) return false;
+            const otherStart = new Date(other.start_time).getTime();
+            const otherEnd = other.end_time ? new Date(other.end_time).getTime() : Date.now();
+            // Check if dates overlap
+            return (currentStart < otherEnd && otherStart < currentEnd);
+        });
+    };
+
     return (
         <div className={cn("relative h-20 w-full bg-secondary/10 rounded-xl overflow-hidden border shadow-inner group/timeline", className)}>
             {/* Hour markers */}
@@ -94,6 +109,7 @@ export function Timeline({ date, slices, className }: TimelineProps) {
                     const leftPercent = ((start - timelineStart) / totalMs) * 100;
                     const widthPercent = ((end - start) / totalMs) * 100;
                     const isActive = !slice.end_time;
+                    const hasOverlap = getOverlapStatus(slice);
 
                     // Text display logic: only show if block is wide enough
                     const showDetails = widthPercent > 4;
@@ -103,11 +119,13 @@ export function Timeline({ date, slices, className }: TimelineProps) {
                         <Tooltip key={slice.id}>
                             <TooltipTrigger asChild>
                                 <div
+                                    onDoubleClick={() => onSliceClick?.(slice)}
                                     className={cn(
-                                        "absolute top-3 bottom-5 rounded-md cursor-pointer transition-all border border-white/10 flex flex-col justify-center items-center px-1 overflow-hidden",
+                                        "absolute top-3 bottom-5 rounded-md cursor-pointer transition-all flex flex-col justify-center items-center px-1 overflow-hidden",
                                         isActive
-                                            ? "bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)] animate-pulse border-emerald-400/30"
-                                            : "bg-primary/90 hover:bg-primary shadow-sm"
+                                            ? "bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)] animate-pulse border-emerald-400/30 border"
+                                            : "bg-primary/90 hover:bg-primary shadow-sm border border-white/10",
+                                        hasOverlap && "border-2 border-red-500 z-10"
                                     )}
                                     style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
                                 >
@@ -135,6 +153,7 @@ export function Timeline({ date, slices, className }: TimelineProps) {
                                         {format(new Date(startRaw), "HH:mm")} - {slice.end_time ? format(new Date(endRaw), "HH:mm") : 'Active Now'}
                                     </p>
                                     {slice.notes && <p className="italic border-t pt-1 mt-1">{slice.notes}</p>}
+                                    {hasOverlap && <p className="text-red-500 font-bold border-t pt-1 mt-1">⚠️ Overlapping Time Segment</p>}
                                 </div>
                             </TooltipContent>
                         </Tooltip>

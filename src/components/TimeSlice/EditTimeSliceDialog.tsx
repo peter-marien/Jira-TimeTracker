@@ -26,17 +26,25 @@ export function EditTimeSliceDialog({ slice, open, onOpenChange, onSave }: EditT
     const [startDateTime, setStartDateTime] = useState<Date | undefined>(undefined)
     const [endDateTime, setEndDateTime] = useState<Date | undefined>(undefined)
     const [notes, setNotes] = useState("");
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (slice && open) {
             setStartDateTime(new Date(slice.start_time))
             setEndDateTime(slice.end_time ? new Date(slice.end_time) : undefined)
             setNotes(slice.notes || "");
+            setError(null);
         }
     }, [slice, open]);
 
     const handleSave = async () => {
         if (!slice || !startDateTime) return;
+        setError(null);
+
+        if (endDateTime && endDateTime <= startDateTime) {
+            setError("End time must be after start time");
+            return;
+        }
 
         await api.saveTimeSlice({
             id: slice.id,
@@ -71,18 +79,38 @@ export function EditTimeSliceDialog({ slice, open, onOpenChange, onSave }: EditT
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
+                    {slice && (
+                        <div className="bg-muted/50 p-3 rounded-md space-y-1">
+                            <div className="flex items-center gap-2">
+                                {slice.jira_key && (
+                                    <span className="text-xs font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                                        {slice.jira_key}
+                                    </span>
+                                )}
+                                <span className="text-sm font-medium leading-none">
+                                    {slice.work_item_description || "No description"}
+                                </span>
+                            </div>
+                        </div>
+                    )}
                     <div className="grid gap-2">
                         <Label htmlFor="start">Start Date & Time</Label>
                         <DateTimePicker
                             value={startDateTime}
-                            onChange={setStartDateTime}
+                            onChange={(date) => {
+                                setStartDateTime(date);
+                                setError(null);
+                            }}
                         />
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="end">End Date & Time</Label>
                         <DateTimePicker
                             value={endDateTime}
-                            onChange={setEndDateTime}
+                            onChange={(date) => {
+                                setEndDateTime(date);
+                                setError(null);
+                            }}
                             disabled={!slice?.end_time}
                             placeholder="No end time (active)"
                         />
@@ -97,6 +125,11 @@ export function EditTimeSliceDialog({ slice, open, onOpenChange, onSave }: EditT
                             rows={3}
                         />
                     </div>
+                    {error && (
+                        <div className="text-red-500 text-sm font-medium">
+                            {error}
+                        </div>
+                    )}
                 </div>
                 <DialogFooter>
                     <Button type="button" onClick={handleSave}>Save changes</Button>
