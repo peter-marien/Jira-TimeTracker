@@ -14,6 +14,7 @@ import { SplitTimeSliceDialog } from "@/components/TimeSlice/SplitTimeSliceDialo
 import { MoveTimeSliceDialog } from "@/components/TimeSlice/MoveTimeSliceDialog"
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog"
 import { SyncToJiraDialog } from "@/components/Sync/SyncToJiraDialog"
+import { CopyTimeSliceDialog } from "@/components/TimeSlice/CopyTimeSliceDialog"
 import { ArrowLeftRight, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -29,6 +30,7 @@ export function Dashboard() {
     const [splitSlice, setSplitSlice] = useState<TimeSlice | null>(null);
     const [moveSlice, setMoveSlice] = useState<TimeSlice | null>(null);
     const [deleteSlice, setDeleteSlice] = useState<TimeSlice | null>(null);
+    const [copySlice, setCopySlice] = useState<TimeSlice | null>(null);
     const [syncOpen, setSyncOpen] = useState(false);
 
     // Refresh list when tracking starts/stops
@@ -50,6 +52,7 @@ export function Dashboard() {
     const handleSplit = (slice: TimeSlice) => setSplitSlice(slice);
     const handleMove = (slice: TimeSlice) => setMoveSlice(slice);
     const handleDelete = (slice: TimeSlice) => setDeleteSlice(slice);
+    const handleCopy = (slice: TimeSlice) => setCopySlice(slice);
     const handleResume = async (slice: TimeSlice) => {
         const { startTracking } = useTrackingStore.getState();
         // Since the slice has the work item info, we can just pass it as a work item
@@ -148,6 +151,7 @@ export function Dashboard() {
                             onSplit={handleSplit}
                             onMove={handleMove}
                             onResume={handleResume}
+                            onCopy={handleCopy}
                         />
                     )}
                 </div>
@@ -175,6 +179,12 @@ export function Dashboard() {
                 open={!!moveSlice}
                 onOpenChange={(open) => !open && setMoveSlice(null)}
                 slice={moveSlice}
+                onSave={refresh}
+            />
+            <CopyTimeSliceDialog
+                open={!!copySlice}
+                onOpenChange={(open) => !open && setCopySlice(null)}
+                slice={copySlice}
                 onSave={refresh}
             />
             <ConfirmDialog

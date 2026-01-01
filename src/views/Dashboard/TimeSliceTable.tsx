@@ -12,7 +12,7 @@ import {
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, Pencil, Split, ArrowRightLeft, Trash2, CheckCircle2, AlertTriangle, Play } from "lucide-react"
+import { MoreHorizontal, Pencil, Split, ArrowRightLeft, Trash2, CheckCircle2, AlertTriangle, Play, Copy } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface TimeSliceTableProps {
@@ -22,9 +22,10 @@ interface TimeSliceTableProps {
     onMove: (slice: TimeSlice) => void;
     onDelete: (slice: TimeSlice) => void;
     onResume: (slice: TimeSlice) => void;
+    onCopy: (slice: TimeSlice) => void;
 }
 
-export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete, onResume }: TimeSliceTableProps) {
+export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete, onResume, onCopy }: TimeSliceTableProps) {
     if (slices.length === 0) {
         return <div className="text-center py-10 text-muted-foreground">No time tracked for this day.</div>
     }
@@ -152,6 +153,10 @@ export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete, onRe
                                             <ArrowRightLeft className="mr-2 h-4 w-4" />
                                             Move
                                         </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => onCopy(slice)}>
+                                            <Copy className="mr-2 h-4 w-4" />
+                                            Copy to other days
+                                        </DropdownMenuItem>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem onClick={() => onDelete(slice)} className="text-destructive focus:text-destructive">
                                             <Trash2 className="mr-2 h-4 w-4" />
@@ -172,6 +177,7 @@ export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete, onRe
                             onMove={onMove}
                             onDelete={onDelete}
                             onResume={onResume}
+                            onCopy={onCopy}
                         >
                             {Content}
                         </TimeSliceContextMenu>

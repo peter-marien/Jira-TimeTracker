@@ -6,7 +6,7 @@ import {
     ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import { TimeSlice } from "@/lib/api"
-import { Edit2, Trash2, SplitSquareHorizontal, MoveRight, Play } from "lucide-react"
+import { Edit2, Trash2, SplitSquareHorizontal, MoveRight, Play, Copy } from "lucide-react"
 
 interface TimeSliceContextMenuProps {
     children: React.ReactNode;
@@ -16,9 +16,10 @@ interface TimeSliceContextMenuProps {
     onMove: (slice: TimeSlice) => void;
     onDelete: (slice: TimeSlice) => void;
     onResume: (slice: TimeSlice) => void;
+    onCopy: (slice: TimeSlice) => void;
 }
 
-export function TimeSliceContextMenu({ children, slice, onEdit, onSplit, onMove, onDelete, onResume }: TimeSliceContextMenuProps) {
+export function TimeSliceContextMenu({ children, slice, onEdit, onSplit, onMove, onDelete, onResume, onCopy }: TimeSliceContextMenuProps) {
     return (
         <ContextMenu>
             <ContextMenuTrigger asChild>
@@ -41,6 +42,10 @@ export function TimeSliceContextMenu({ children, slice, onEdit, onSplit, onMove,
                 <ContextMenuItem onClick={() => onMove(slice)}>
                     <MoveRight className="mr-2 h-4 w-4" />
                     Move to Work Item...
+                </ContextMenuItem>
+                <ContextMenuItem onClick={() => onCopy(slice)}>
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copy to other days...
                 </ContextMenuItem>
                 <ContextMenuSeparator />
                 <ContextMenuItem onClick={() => onDelete(slice)} className="text-destructive focus:text-destructive">
