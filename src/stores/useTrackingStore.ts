@@ -66,15 +66,49 @@ export const useTrackingStore = create<TrackingStore>((set, get) => ({
     },
 
     stopTracking: async () => {
-        const { activeTimeSliceId, activeWorkItem } = get();
-        if (!activeTimeSliceId) return;
+        const { activeTimeSliceId, activeWorkItem, startTime } = get();
+        if (!activeTimeSliceId || !startTime) return;
 
-        const now = formatISO(new Date());
+        let finalStartTime = startTime;
+        let finalEndTime = formatISO(new Date());
+
+        // Apply time rounding if enabled
+        try {
+            const settings = await api.getSettings();
+            if (settings.rounding_enabled === 'true') {
+                const intervalMinutes = parseInt(settings.rounding_interval || '15', 10);
+                const intervalMs = intervalMinutes * 60 * 1000;
+
+                if (intervalMs > 0) {
+                    const originalStart = new Date(startTime);
+                    const originalEnd = new Date();
+
+                    // Round Start Down
+                    const roundedStartMs = Math.floor(originalStart.getTime() / intervalMs) * intervalMs;
+                    // Round End Up
+                    let roundedEndMs = Math.ceil(originalEnd.getTime() / intervalMs) * intervalMs;
+
+                    // Ensure minimum duration is 1 interval
+                    if (roundedEndMs - roundedStartMs < intervalMs) {
+                        roundedEndMs = roundedStartMs + intervalMs;
+                    }
+
+                    finalStartTime = formatISO(new Date(roundedStartMs));
+                    finalEndTime = formatISO(new Date(roundedEndMs));
+
+                    console.log(`[TimeRounding] Original: ${startTime} - ${formatISO(originalEnd)}`);
+                    console.log(`[TimeRounding] Rounded:  ${finalStartTime} - ${finalEndTime} (Interval: ${intervalMinutes}m)`);
+                }
+            }
+        } catch (err) {
+            console.error('[TimeRounding] Failed to apply rounding:', err);
+        }
+
         await api.saveTimeSlice({
             id: activeTimeSliceId,
             work_item_id: activeWorkItem!.id,
-            start_time: get().startTime!,
-            end_time: now
+            start_time: finalStartTime,
+            end_time: finalEndTime
         });
 
         // Reset tray

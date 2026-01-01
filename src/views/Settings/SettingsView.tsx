@@ -44,6 +44,8 @@ export function SettingsView() {
     const [awayThreshold, setAwayThreshold] = React.useState(5);
     const [awayEnabled, setAwayEnabled] = React.useState(true);
     const [awaySoundEnabled, setAwaySoundEnabled] = React.useState(true);
+    const [roundingEnabled, setRoundingEnabled] = React.useState(false);
+    const [roundingInterval, setRoundingInterval] = React.useState(15);
 
     React.useEffect(() => {
         api.getDatabasePath().then(setDbPath).catch(() => setDbPath("Error fetching path"));
@@ -57,6 +59,10 @@ export function SettingsView() {
             setAwayThreshold(threshold);
             setAwayEnabled(settings.away_detection_enabled !== 'false');
             setAwaySoundEnabled(settings.away_notification_sound !== 'false');
+            // Load rounding settings
+            setRoundingEnabled(settings.rounding_enabled === 'true');
+            const rInterval = settings.rounding_interval ? parseInt(settings.rounding_interval, 10) : 15;
+            setRoundingInterval(rInterval);
         });
     }, []);
 
@@ -239,6 +245,61 @@ export function SettingsView() {
                                     }}
                                     disabled={!awayEnabled}
                                 />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="mt-6">
+                        <CardHeader>
+                            <CardTitle>Time Rounding</CardTitle>
+                            <CardDescription>
+                                Automatically round start and end times when stopping a timer.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <Label htmlFor="rounding-enabled">Enable Rounding</Label>
+                                    <p className="text-xs text-muted-foreground">
+                                        Round start times down and end times up.
+                                    </p>
+                                </div>
+                                <Switch
+                                    id="rounding-enabled"
+                                    checked={roundingEnabled}
+                                    onCheckedChange={async (checked) => {
+                                        setRoundingEnabled(checked);
+                                        await api.saveSetting('rounding_enabled', String(checked));
+                                    }}
+                                />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="rounding-interval">Rounding Interval (minutes)</Label>
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        id="rounding-interval"
+                                        type="text"
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
+                                        value={roundingInterval}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/[^0-9]/g, '');
+                                            setRoundingInterval(val ? parseInt(val, 10) : 15);
+                                        }}
+                                        onBlur={async () => {
+                                            const freshVal = roundingInterval || 15;
+                                            setRoundingInterval(freshVal);
+                                            await api.saveSetting('rounding_interval', String(freshVal));
+                                        }}
+                                        className="w-24"
+                                        disabled={!roundingEnabled}
+                                    />
+                                    <span className="text-sm text-muted-foreground">minutes</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Example: 15m interval. 09:07 → 09:00 (Start), 09:23 → 09:30 (End).
+                                </p>
                             </div>
                         </CardContent>
                     </Card>
