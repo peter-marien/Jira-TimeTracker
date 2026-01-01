@@ -31,7 +31,7 @@ export function DateNavigation({ className }: { className?: string }) {
                 </Button>
                 <Popover>
                     <PopoverTrigger asChild>
-                        <Button variant="outline" className={cn("min-w-[200px] justify-start text-left font-normal", !selectedDate && "text-muted-foreground")}>
+                        <Button variant="outline" className={cn("w-[280px] justify-start text-left font-normal", !selectedDate && "text-muted-foreground")}>
                             <Calendar className="mr-2 h-4 w-4" />
                             {selectedDate ? format(selectedDate, "PPPP") : <span>Pick a date</span>}
                         </Button>
