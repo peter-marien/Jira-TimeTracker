@@ -45,7 +45,7 @@ export function DateNavigation({ className }: { className?: string }) {
                         />
                     </PopoverContent>
                 </Popover>
-                <Button variant="ghost" size="icon" onClick={nextDay} disabled={isToday(selectedDate)}>
+                <Button variant="ghost" size="icon" onClick={nextDay}>
                     <ChevronRight className="h-4 w-4" />
                 </Button>
             </div>
