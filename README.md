@@ -1,30 +1,63 @@
-# React + TypeScript + Vite
+# Jira Time Tracker
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A powerful, high-performance desktop application for tracking time and syncing worklogs to Jira. Built with Electron, React, and Vite, it offers a premium user experience with advanced features designed for professional workflows.
 
-Currently, two official plugins are available:
+## 🚀 Key Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Intuitive Dashboard**: Real-time tracking with an interactive timeline and visual overlap detection.
+- **Quick Start Bar**: Rapidly search and track work items, with one-click access to your 5 most recently used tasks.
+- **Jira Integration**: Native support for Jira connections with easy worklog synchronization.
+- **Smart Away Detection**: Automatically detects system lock, sleep, and idle periods, allowing you to discard, keep, or reassign away time.
+- **Advanced Work Item Management**: Paginated overview with total time spent calculation, sorting, and completion status.
+- **Precision Tracking**: Configurable time rounding (e.g., to the nearest 15 minutes) and minimum duration enforcement.
+- **Multi-Day Copy**: Effortlessly duplicate time slices to multiple future or past dates.
+- **Clean Visuals**: Modern UI built with ShadCN/UI, featuring smooth animations, dark mode support, and a high-contrast Month View.
+- **System Tray Integration**: Background tracking with status-aware tray icons and tooltips.
 
-## Expanding the ESLint configuration
+## 🛠️ Tech Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+- **Frontend**: React, TypeScript, Tailwind CSS
+- **Framework**: Electron, Vite
+- **UI Components**: ShadCN/UI, Lucide Icons
+- **Database**: SQLite (via `better-sqlite3`)
+- **State Management**: Zustand
+- **Date Handling**: date-fns
 
-- Configure the top-level `parserOptions` property like this:
+## 📦 Getting Started
 
-```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-  },
-}
+### Prerequisites
+
+- Node.js (Latest LTS recommended)
+- npm or pnpm
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/jira-timetracker.git
+
+# Install dependencies
+npm install
 ```
 
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+### Development
+
+```bash
+# Start the development server
+npm run dev
+```
+
+### Building
+
+```bash
+# Build for production
+npm run build
+```
+
+## 📂 Data & Configuration
+
+The application stores its data in a local SQLite database named `jira-timetracker.db`. You can find and configure the database path within the application settings.
+
+## 📄 License
+
+This project is personal software. All rights reserved.
