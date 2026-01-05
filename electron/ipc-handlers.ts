@@ -1,4 +1,4 @@
-import { ipcMain, dialog } from 'electron'
+import { ipcMain, dialog, BrowserWindow } from 'electron'
 import path from 'node:path'
 import { getDatabase } from '../src/database/db'
 import { updateTrayTooltip, updateTrayIcon } from './tray'
@@ -472,6 +472,32 @@ export function registerIpcHandlers() {
     ipcMain.handle('fs:read-file', async (_, filePath: string) => {
         const fs = await import('node:fs/promises');
         return await fs.readFile(filePath, 'utf-8');
+    });
+
+    // Window Controls
+    ipcMain.on('window:minimize', (event) => {
+        const win = BrowserWindow.fromWebContents(event.sender);
+        win?.minimize();
+    });
+
+    ipcMain.on('window:maximize', (event) => {
+        const win = BrowserWindow.fromWebContents(event.sender);
+        win?.maximize();
+    });
+
+    ipcMain.on('window:unmaximize', (event) => {
+        const win = BrowserWindow.fromWebContents(event.sender);
+        win?.unmaximize();
+    });
+
+    ipcMain.on('window:close', (event) => {
+        const win = BrowserWindow.fromWebContents(event.sender);
+        win?.close();
+    });
+
+    ipcMain.handle('window:is-maximized', (event) => {
+        const win = BrowserWindow.fromWebContents(event.sender);
+        return win?.isMaximized() || false;
     });
 }
 

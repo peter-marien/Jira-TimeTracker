@@ -94,4 +94,11 @@ export const api = {
     selectCsvFile: () => ipc.invoke('database:select-csv') as Promise<string | null>,
     importCsv: (csvContent: string) => ipc.invoke('database:import-csv', csvContent) as Promise<{ importedSlices: number, createdWorkItems: number, reusedWorkItems: number, skippedLines: number }>,
     readFile: (filePath: string) => ipc.invoke('fs:read-file', filePath) as Promise<string>,
+
+    // Window Controls
+    minimizeWindow: () => ipc.send('window:minimize'),
+    maximizeWindow: () => ipc.send('window:maximize'),
+    unmaximizeWindow: () => ipc.send('window:unmaximize'),
+    closeWindow: () => ipc.send('window:close'),
+    isWindowMaximized: () => ipc.invoke('window:is-maximized') as Promise<boolean>,
 };
