@@ -101,4 +101,7 @@ export const api = {
     unmaximizeWindow: () => ipc.send('window:unmaximize'),
     closeWindow: () => ipc.send('window:close'),
     isWindowMaximized: () => ipc.invoke('window:is-maximized') as Promise<boolean>,
+
+    // App Info
+    getAppVersion: () => ipc.invoke('app:get-version') as Promise<string>,
 };

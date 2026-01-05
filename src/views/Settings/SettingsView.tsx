@@ -46,9 +46,11 @@ export function SettingsView() {
     const [awaySoundEnabled, setAwaySoundEnabled] = React.useState(true);
     const [roundingEnabled, setRoundingEnabled] = React.useState(false);
     const [roundingInterval, setRoundingInterval] = React.useState(15);
+    const [appVersion, setAppVersion] = React.useState<string>("");
 
     React.useEffect(() => {
         api.getDatabasePath().then(setDbPath).catch(() => setDbPath("Error fetching path"));
+        api.getAppVersion().then(setAppVersion).catch(() => setAppVersion("Unknown"));
         // Load saved theme
         api.getSettings().then(settings => {
             const savedTheme = (settings.theme as Theme) || 'dark';
@@ -431,6 +433,12 @@ export function SettingsView() {
                     </Card>
                 </TabsContent>
             </Tabs>
+
+            <div className="mt-6 pt-4 border-t text-center">
+                <p className="text-xs text-muted-foreground">
+                    Version {appVersion || "..."}
+                </p>
+            </div>
 
             <MessageDialog
                 open={!!message}

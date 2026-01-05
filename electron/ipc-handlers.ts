@@ -1,4 +1,4 @@
-import { ipcMain, dialog, BrowserWindow } from 'electron'
+import { ipcMain, dialog, BrowserWindow, app } from 'electron'
 import path from 'node:path'
 import { getDatabase } from '../src/database/db'
 import { updateTrayTooltip, updateTrayIcon } from './tray'
@@ -498,6 +498,24 @@ export function registerIpcHandlers() {
     ipcMain.handle('window:is-maximized', (event) => {
         const win = BrowserWindow.fromWebContents(event.sender);
         return win?.isMaximized() || false;
+    });
+
+    // App Info
+    ipcMain.handle('app:get-version', async () => {
+        try {
+            const version = app.getVersion();
+            // In dev mode, app.getVersion() may return wrong value
+            if (version && version !== '0.0.0') {
+                return version;
+            }
+            // Fallback: read from package.json
+            const fs = await import('node:fs/promises');
+            const pkgPath = path.join(process.env.APP_ROOT || '.', 'package.json');
+            const pkg = JSON.parse(await fs.readFile(pkgPath, 'utf-8'));
+            return pkg.version || 'Unknown';
+        } catch {
+            return 'Unknown';
+        }
     });
 }
 
