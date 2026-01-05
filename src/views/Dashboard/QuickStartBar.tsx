@@ -8,7 +8,6 @@ import { ImportFromJiraDialog } from "@/components/WorkItem/ImportFromJiraDialog
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Badge } from "@/components/ui/badge"
 import { DailyProgressRing } from "@/components/Dashboard/DailyProgressRing"
-import { cn } from "@/lib/utils"
 
 interface QuickStartBarProps {
     totalMinutes?: number;
