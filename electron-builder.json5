@@ -1,9 +1,9 @@
 // @see - https://www.electron.build/configuration/configuration
 {
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
-  "appId": "YourAppID",
+  "appId": "com.pmarien.jira-timetracker",
   "asar": true,
-  "productName": "YourAppName",
+  "productName": "Jira Time Tracker",
   "directories": {
     "output": "release/${version}"
   },
@@ -11,6 +11,11 @@
     "dist",
     "dist-electron"
   ],
+  "publish": {
+    "provider": "github",
+    "owner": "peter-marien",
+    "repo": "Jira-TimeTracker"
+  },
   "mac": {
     "target": [
       "dmg"
