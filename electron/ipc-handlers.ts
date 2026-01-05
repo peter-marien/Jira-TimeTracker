@@ -61,6 +61,19 @@ export function registerIpcHandlers() {
         return result.count;
     })
 
+    ipcMain.handle('db:get-work-item', (_, id: number) => {
+        const sql = `
+            SELECT wi.*, jc.name as connection_name,
+                   COALESCE(SUM(strftime('%s', COALESCE(ts.end_time, 'now')) - strftime('%s', ts.start_time)), 0) as total_seconds
+            FROM work_items wi
+            LEFT JOIN jira_connections jc ON wi.jira_connection_id = jc.id
+            LEFT JOIN time_slices ts ON wi.id = ts.work_item_id
+            WHERE wi.id = ?
+            GROUP BY wi.id
+        `
+        return db.prepare(sql).get(id);
+    })
+
     ipcMain.handle('db:save-work-item', (_, item) => {
         if (item.id) {
             const stmt = db.prepare(`
@@ -80,12 +93,6 @@ export function registerIpcHandlers() {
     })
 
     ipcMain.handle('db:delete-work-item', (_, id) => {
-        // Check for time slices first? 
-        // Schema has ON DELETE SET NULL for connection, but ON DELETE CASCADE for time slices? No, I defined ON DELETE CASCADE for time slices.
-        // So deleting work item deletes time slices.
-        // Wait, user requirement: "If there are time-slices attached to a work itme, this should be prevented"
-        // So I must check first.
-
         const count = db.prepare('SELECT COUNT(*) as count FROM time_slices WHERE work_item_id = ?').get(id) as { count: number };
         if (count.count > 0) {
             throw new Error('Cannot delete work item with existing time slices.');
@@ -147,7 +154,6 @@ export function registerIpcHandlers() {
             SET work_item_id = @work_item_id, start_time = @start_time, end_time = @end_time, notes = @notes, synced_to_jira = @synced_to_jira, jira_worklog_id = @jira_worklog_id, synced_start_time = @synced_start_time, synced_end_time = @synced_end_time, updated_at = unixepoch()
             WHERE id = @id
         `)
-            // Ensure all parameters are present, even if optional
             const params = {
                 id: slice.id,
                 work_item_id: slice.work_item_id,
@@ -165,7 +171,6 @@ export function registerIpcHandlers() {
                 INSERT INTO time_slices (work_item_id, start_time, end_time, notes, synced_to_jira, jira_worklog_id, synced_start_time, synced_end_time)
                 VALUES (@work_item_id, @start_time, @end_time, @notes, @synced_to_jira, @jira_worklog_id, @synced_start_time, @synced_end_time)
             `)
-            // Ensure all parameters are present, even if optional
             const params = {
                 work_item_id: slice.work_item_id,
                 start_time: slice.start_time,
@@ -202,10 +207,7 @@ export function registerIpcHandlers() {
     });
 
     ipcMain.handle('db:clear-data', (_, { clearTimeSlices, clearWorkItems }: { clearTimeSlices: boolean, clearWorkItems: boolean }) => {
-        // Order matters if foreign keys are enforced, but here we use CASCADE for work_items -> time_slices
-        // However, if we only want to clear slices, we do just that.
         if (clearWorkItems) {
-            // This will also clear time_slices due to ON DELETE CASCADE
             return db.prepare('DELETE FROM work_items').run();
         } else if (clearTimeSlices) {
             return db.prepare('DELETE FROM time_slices').run();
@@ -227,7 +229,6 @@ export function registerIpcHandlers() {
 
     // Jira API
     ipcMain.handle('jira:search-issues', async (_, query: string) => {
-        // Find default connection
         const stmt = db.prepare('SELECT * FROM jira_connections WHERE is_default = 1 LIMIT 1');
         const conn = stmt.get() as any;
 
@@ -242,12 +243,9 @@ export function registerIpcHandlers() {
             apiToken: conn.api_token
         });
 
-        // Smart JQL construction if it's not already JQL
         let jql = query.trim();
         if (jql && !jql.includes('=') && !jql.includes('~')) {
-            // Clean query of characters that might break JQL
             const sanitized = jql.replace(/["\\]/g, '');
-            // Search by key directly if it matches the pattern, otherwise search summary
             if (/^[A-Za-z]+-[0-9]+$/.test(sanitized)) {
                 jql = `key = "${sanitized}" OR summary ~ "${sanitized}*"`;
             } else {
@@ -261,7 +259,6 @@ export function registerIpcHandlers() {
     ipcMain.handle('jira:add-worklog', async (_, { issueKey, timeSpentSeconds, comment, started }) => {
         const stmt = db.prepare('SELECT * FROM jira_connections WHERE is_default = 1 LIMIT 1');
         const conn = stmt.get() as any;
-
         if (!conn) throw new Error("No connection");
 
         const { JiraClient } = await import('../src/services/jira/jira-client');
@@ -274,7 +271,7 @@ export function registerIpcHandlers() {
         return await client.addWorklog(issueKey, {
             timeSpentSeconds,
             comment,
-            started // ISO string
+            started
         });
     });
 
@@ -312,7 +309,6 @@ export function registerIpcHandlers() {
                 started
             });
         } catch (error: any) {
-            // Return error info so frontend can handle it (e.g., 404 = worklog deleted)
             throw error;
         }
     });
@@ -385,53 +381,36 @@ export function registerIpcHandlers() {
     });
 
     ipcMain.handle('database:import-csv', async (_, csvContent: string) => {
-        // Parse CSV with proper handling of multi-line quoted fields
         const rows = parseCSV(csvContent);
-
-        console.log(`CSV Import: Found ${rows.length} rows`);
-
         if (rows.length < 2) {
             throw new Error('CSV file must have a header row and at least one data row');
         }
 
-        // Skip header row
         const dataRows = rows.slice(1);
-
         let importedSlices = 0;
         let createdWorkItems = 0;
         let reusedWorkItems = 0;
         let skippedLines = 0;
 
-        // Get default connection for assigning to work items with jira keys
         const defaultConn = db.prepare('SELECT id FROM jira_connections WHERE is_default = 1 LIMIT 1').get() as { id: number } | undefined;
 
         for (let rowIndex = 0; rowIndex < dataRows.length; rowIndex++) {
             const fields = dataRows[rowIndex];
-
-            // Need at least 4 fields: start, end, notes, description (jira key optional)
             if (fields.length < 4) {
-                console.log(`CSV Import: Skipping row ${rowIndex + 2} - only ${fields.length} fields found`);
                 skippedLines++;
                 continue;
             }
 
             const [startTimeStr, endTimeStr, notes, description, jiraKey] = fields;
-
-            // Validate required fields
             if (!startTimeStr?.trim() || !description?.trim()) {
-                console.log(`CSV Import: Skipping row ${rowIndex + 2} - missing start time or description`);
                 skippedLines++;
                 continue;
             }
 
-            // Convert UTC times to ISO format (the times are already in UTC)
             const startTime = startTimeStr.trim().replace(' ', 'T') + 'Z';
             const endTime = endTimeStr?.trim() ? endTimeStr.trim().replace(' ', 'T') + 'Z' : null;
 
-            // Find or create work item
             let workItem: { id: number } | undefined;
-
-            // Check for existing work item by description and jira_key
             if (jiraKey && jiraKey.trim()) {
                 workItem = db.prepare(
                     'SELECT id FROM work_items WHERE jira_key = ? AND description = ?'
@@ -439,7 +418,6 @@ export function registerIpcHandlers() {
             }
 
             if (!workItem) {
-                // Also check by description only if no jira key match
                 workItem = db.prepare(
                     'SELECT id FROM work_items WHERE description = ? AND (jira_key IS NULL OR jira_key = ?)'
                 ).get(description.trim(), jiraKey?.trim() || null) as { id: number } | undefined;
@@ -448,7 +426,6 @@ export function registerIpcHandlers() {
             if (workItem) {
                 reusedWorkItems++;
             } else {
-                // Create new work item
                 const stmt = db.prepare(`
                     INSERT INTO work_items (jira_connection_id, jira_key, description)
                     VALUES (@jira_connection_id, @jira_key, @description)
@@ -462,13 +439,11 @@ export function registerIpcHandlers() {
                 createdWorkItems++;
             }
 
-            // Create time slice
             const sliceStmt = db.prepare(`
                 INSERT INTO time_slices (work_item_id, start_time, end_time, notes)
                 VALUES (@work_item_id, @start_time, @end_time, @notes)
             `);
 
-            // Normalize notes: handle real \r\n and literal \r \n strings
             const normalizedNotes = (notes || '')
                 .replace(/\r\n/g, '\n')
                 .replace(/\r/g, '\n')
@@ -485,8 +460,6 @@ export function registerIpcHandlers() {
             importedSlices++;
         }
 
-        console.log(`CSV Import: Completed - ${importedSlices} slices imported, ${createdWorkItems} work items created, ${reusedWorkItems} reused, ${skippedLines} lines skipped`);
-
         return {
             importedSlices,
             createdWorkItems,
@@ -502,7 +475,6 @@ export function registerIpcHandlers() {
     });
 }
 
-// Helper function to parse entire CSV content handling multi-line quoted fields
 function parseCSV(content: string): string[][] {
     const rows: string[][] = [];
     let currentRow: string[] = [];
@@ -515,20 +487,16 @@ function parseCSV(content: string): string[][] {
 
         if (char === '"') {
             if (inQuotes && nextChar === '"') {
-                // Escaped quote inside quoted field
                 currentField += '"';
-                i++; // Skip next quote
+                i++;
             } else {
-                // Toggle quote mode
                 inQuotes = !inQuotes;
             }
         } else if (char === ',' && !inQuotes) {
-            // Field separator
             currentRow.push(currentField);
             currentField = '';
         } else if ((char === '\n' || (char === '\r' && nextChar === '\n')) && !inQuotes) {
-            // Row separator (outside quotes)
-            if (char === '\r') i++; // Skip \n after \r
+            if (char === '\r') i++;
             currentRow.push(currentField);
             if (currentRow.some(f => f.trim().length > 0)) {
                 rows.push(currentRow);
@@ -536,7 +504,6 @@ function parseCSV(content: string): string[][] {
             currentRow = [];
             currentField = '';
         } else if (char === '\r' && !inQuotes) {
-            // Standalone \r as row separator
             currentRow.push(currentField);
             if (currentRow.some(f => f.trim().length > 0)) {
                 rows.push(currentRow);
@@ -544,12 +511,10 @@ function parseCSV(content: string): string[][] {
             currentRow = [];
             currentField = '';
         } else {
-            // Regular character (including newlines inside quotes)
             currentField += char;
         }
     }
 
-    // Don't forget the last field and row
     currentRow.push(currentField);
     if (currentRow.some(f => f.trim().length > 0)) {
         rows.push(currentRow);

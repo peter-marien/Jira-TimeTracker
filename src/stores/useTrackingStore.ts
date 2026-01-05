@@ -234,9 +234,8 @@ export const useTrackingStore = create<TrackingStore>((set, get) => ({
         const activeSlice = await api.getActiveTimeSlice();
 
         if (activeSlice) {
-            // Need to get work item details too
-            const workItems = await api.getWorkItems({});
-            const workItem = workItems.find(wi => wi.id === activeSlice.work_item_id);
+            // Guaranteed to find it even if it's completed or not in first search results
+            const workItem = await api.getWorkItem(activeSlice.work_item_id);
 
             if (workItem) {
                 const elapsed = Math.floor((Date.now() - new Date(activeSlice.start_time).getTime()) / 1000);

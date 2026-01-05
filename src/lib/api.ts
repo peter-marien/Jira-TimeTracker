@@ -55,6 +55,7 @@ export const api = {
         ipc.invoke('db:get-work-items', params) as Promise<WorkItem[]>,
     getWorkItemsCount: (params: { query?: string, showCompleted?: boolean } = {}) =>
         ipc.invoke('db:get-work-items-count', params) as Promise<number>,
+    getWorkItem: (id: number) => ipc.invoke('db:get-work-item', id) as Promise<WorkItem>,
     saveWorkItem: (item: Partial<WorkItem>) => ipc.invoke('db:save-work-item', item) as Promise<WorkItem>,
     deleteWorkItem: (id: number) => ipc.invoke('db:delete-work-item', id),
     updateWorkItemCompletion: (ids: number[], completed: boolean) => ipc.invoke('db:update-work-item-completion', { ids, completed }),
