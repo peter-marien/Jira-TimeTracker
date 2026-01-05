@@ -11,6 +11,7 @@ import { useTrayEvents } from "@/hooks/useTrayEvents"
 import { useTrackingStore } from "@/stores/useTrackingStore"
 import { useEffect, useState } from "react"
 import { api, WorkItem } from "@/lib/api"
+import { TooltipProvider } from "@/components/ui/tooltip"
 
 function applyTheme(theme: 'light' | 'dark' | 'system') {
   const root = document.documentElement;
@@ -65,7 +66,7 @@ function App() {
   };
 
   return (
-    <>
+    <TooltipProvider delayDuration={300}>
       <Router>
         <Routes>
           <Route element={<AppLayout />}>
@@ -85,7 +86,7 @@ function App() {
         currentWorkItem={activeWorkItem}
         onAction={handleAwayAction}
       />
-    </>
+    </TooltipProvider>
   )
 }
 

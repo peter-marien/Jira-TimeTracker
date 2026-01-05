@@ -12,8 +12,8 @@ import {
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, Pencil, Split, ArrowRightLeft, Trash2, CheckCircle2, AlertTriangle, Play, Copy } from "lucide-react"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { AlertCircle, CheckCircle2, Copy, Pencil, Play, Trash2, ArrowRightLeft, MoreHorizontal, Split } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface TimeSliceTableProps {
     slices: TimeSlice[];
@@ -81,27 +81,23 @@ export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete, onRe
                                             {slice.jira_key}
                                         </span>
                                         {isOutOfSync ? (
-                                            <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        <p>Time changed after sync - re-sync to Jira</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>Out of sync with Jira</p>
+                                                </TooltipContent>
+                                            </Tooltip>
                                         ) : isSynced ? (
-                                            <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        <p>Synced to Jira</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>Synced to Jira</p>
+                                                </TooltipContent>
+                                            </Tooltip>
                                         ) : null}
                                     </>
                                 ) : (

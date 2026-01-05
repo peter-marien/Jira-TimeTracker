@@ -3,10 +3,9 @@ import { Button } from "@/components/ui/button"
 import { StopCircle, Clock } from "lucide-react"
 import { DurationDisplay } from "@/components/shared/DurationDisplay"
 import { useEffect } from "react"
-import { api } from "@/lib/api"
 
 export function ActiveTrackingBanner() {
-    const { activeWorkItem, activeTimeSliceId, elapsedSeconds, totalTimeSpent, stopTracking, tick, startTime, setElapsedSeconds } = useTrackingStore();
+    const { activeWorkItem, activeTimeSliceId, elapsedSeconds, totalTimeSpent, stopTracking, tick } = useTrackingStore();
 
     // Timer tick effect
     useEffect(() => {
@@ -14,43 +13,10 @@ export function ActiveTrackingBanner() {
         if (activeTimeSliceId) {
             interval = setInterval(tick, 1000);
         }
-        return () => clearInterval(interval);
-    }, [activeTimeSliceId, tick]);
-
-    // Tray update effect
-    useEffect(() => {
-        if (!activeWorkItem) return;
-
-        // Set tray tooltip
-        // Assuming 'api' is globally available or imported elsewhere for Electron context
-        // If not, this line will cause a ReferenceError.
-        // For the purpose of this edit, we assume 'api' is available.
-        if (typeof api !== 'undefined' && api.setTrayTooltip && api.setTrayIcon) {
-            api.setTrayTooltip(`Tracking: ${activeWorkItem.description}`);
-            api.setTrayIcon('active');
-        }
-
-
-        // This interval logic seems to duplicate the 'tick' logic from the store.
-        // If 'tick' already updates elapsedSeconds, this might be redundant or conflicting.
-        // For faithful application of the change, it's included as requested.
-        const interval = setInterval(() => {
-            if (startTime) { // Ensure startTime is not null/undefined
-                const now = new Date();
-                const start = new Date(startTime);
-                const seconds = Math.floor((now.getTime() - start.getTime()) / 1000);
-                setElapsedSeconds(seconds);
-            }
-        }, 1000);
-
         return () => {
-            clearInterval(interval);
-            if (typeof api !== 'undefined' && api.setTrayTooltip && api.setTrayIcon) {
-                api.setTrayTooltip('Jira Time Tracker');
-                api.setTrayIcon('idle');
-            }
+            if (interval) clearInterval(interval);
         };
-    }, [activeWorkItem, startTime, setElapsedSeconds]); // Dependencies for the new effect
+    }, [activeTimeSliceId, tick]);
 
     if (!activeWorkItem) return null;
 

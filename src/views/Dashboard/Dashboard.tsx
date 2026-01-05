@@ -55,14 +55,14 @@ export function Dashboard() {
     const handleCopy = (slice: TimeSlice) => setCopySlice(slice);
     const handleResume = async (slice: TimeSlice) => {
         const { startTracking } = useTrackingStore.getState();
-        // Since the slice has the work item info, we can just pass it as a work item
-        // startTracking expects a WorkItem object. We have the id and description.
-        // We might need to fetch the full WorkItem but usually descriptions/keys are enough for starting tracking.
-        const workItems = await api.getWorkItems({});
-        const workItem = workItems.find(wi => wi.id === slice.work_item_id);
-        if (workItem) {
-            await startTracking(workItem);
-            refresh();
+        try {
+            const workItem = await api.getWorkItem(slice.work_item_id);
+            if (workItem) {
+                await startTracking(workItem);
+                refresh();
+            }
+        } catch (err) {
+            console.error("Failed to resume tracking", err);
         }
     };
 

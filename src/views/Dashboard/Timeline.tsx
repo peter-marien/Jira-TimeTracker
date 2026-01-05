@@ -1,7 +1,7 @@
 import { TimeSlice } from "@/lib/api"
 import { startOfDay, setHours, endOfDay, format } from "date-fns"
 import { cn } from "@/lib/utils"
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface TimelineProps {
     date: Date;
@@ -95,71 +95,69 @@ export function Timeline({ date, slices, className, onSliceClick }: TimelineProp
             </div>
 
             {/* Slices */}
-            <TooltipProvider>
-                {slices.map(slice => {
-                    const startRaw = new Date(slice.start_time).getTime();
-                    const endRaw = slice.end_time ? new Date(slice.end_time).getTime() : Date.now();
+            {slices.map(slice => {
+                const startRaw = new Date(slice.start_time).getTime();
+                const endRaw = slice.end_time ? new Date(slice.end_time).getTime() : Date.now();
 
-                    // Clamp to visible timeline
-                    const start = Math.max(startRaw, timelineStart);
-                    const end = Math.min(endRaw, timelineEnd);
+                // Clamp to visible timeline
+                const start = Math.max(startRaw, timelineStart);
+                const end = Math.min(endRaw, timelineEnd);
 
-                    if (end <= start) return null;
+                if (end <= start) return null;
 
-                    const leftPercent = ((start - timelineStart) / totalMs) * 100;
-                    const widthPercent = ((end - start) / totalMs) * 100;
-                    const isActive = !slice.end_time;
-                    const hasOverlap = getOverlapStatus(slice);
+                const leftPercent = ((start - timelineStart) / totalMs) * 100;
+                const widthPercent = ((end - start) / totalMs) * 100;
+                const isActive = !slice.end_time;
+                const hasOverlap = getOverlapStatus(slice);
 
-                    // Text display logic: only show if block is wide enough
-                    const showDetails = widthPercent > 4;
-                    const showTimes = widthPercent > 15;
+                // Text display logic: only show if block is wide enough
+                const showDetails = widthPercent > 4;
+                const showTimes = widthPercent > 15;
 
-                    return (
-                        <Tooltip key={slice.id}>
-                            <TooltipTrigger asChild>
-                                <div
-                                    onDoubleClick={() => onSliceClick?.(slice)}
-                                    className={cn(
-                                        "absolute top-3 bottom-5 rounded-md cursor-pointer transition-all flex flex-col justify-center items-center px-1 overflow-hidden",
-                                        isActive
-                                            ? "bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)] animate-pulse border-emerald-400/30 border"
-                                            : "bg-primary/90 hover:bg-primary shadow-sm border border-white/10",
-                                        hasOverlap && "border-2 border-red-500 z-10"
-                                    )}
-                                    style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
-                                >
-                                    {showDetails && (
-                                        <span className="text-[10px] font-bold text-white truncate w-full text-center">
-                                            {slice.jira_key || 'Manual'}
-                                        </span>
-                                    )}
+                return (
+                    <Tooltip key={slice.id}>
+                        <TooltipTrigger asChild>
+                            <div
+                                onDoubleClick={() => onSliceClick?.(slice)}
+                                className={cn(
+                                    "absolute top-3 bottom-5 rounded-md cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col justify-center items-center px-1 overflow-hidden",
+                                    isActive
+                                        ? "bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)] animate-pulse border-emerald-400/30 border"
+                                        : "bg-primary/90 hover:bg-primary shadow-sm border border-white/10",
+                                    hasOverlap && "border-2 border-red-500 z-10"
+                                )}
+                                style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
+                            >
+                                {showDetails && (
+                                    <span className="text-[10px] font-bold text-white truncate w-full text-center">
+                                        {slice.jira_key || 'Manual'}
+                                    </span>
+                                )}
 
-                                    {showTimes && (
-                                        <div className="flex justify-between w-full px-1 text-[8px] text-white/70 font-mono absolute bottom-0.5">
-                                            <span>{format(new Date(startRaw), "HH:mm")}</span>
-                                            <span>{slice.end_time ? format(new Date(endRaw), "HH:mm") : "Now"}</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </TooltipTrigger>
-                            <TooltipContent className="text-xs p-3">
-                                <div className="space-y-1">
-                                    <p className="font-bold flex items-center gap-2">
-                                        {slice.jira_key && <span className="text-primary font-mono bg-primary/10 px-1 rounded">{slice.jira_key}</span>}
-                                        {slice.work_item_description}
-                                    </p>
-                                    <p className="text-muted-foreground">
-                                        {format(new Date(startRaw), "HH:mm")} - {slice.end_time ? format(new Date(endRaw), "HH:mm") : 'Active Now'}
-                                    </p>
-                                    {slice.notes && <p className="italic border-t pt-1 mt-1">{slice.notes}</p>}
-                                    {hasOverlap && <p className="text-red-500 font-bold border-t pt-1 mt-1">⚠️ Overlapping Time Segment</p>}
-                                </div>
-                            </TooltipContent>
-                        </Tooltip>
-                    )
-                })}
-            </TooltipProvider>
+                                {showTimes && (
+                                    <div className="flex justify-between w-full px-1 text-[8px] text-white/70 font-mono absolute bottom-0.5">
+                                        <span>{format(new Date(startRaw), "HH:mm")}</span>
+                                        <span>{slice.end_time ? format(new Date(endRaw), "HH:mm") : "Now"}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent className="text-xs p-3">
+                            <div className="space-y-1">
+                                <p className="font-bold flex items-center gap-2">
+                                    {slice.jira_key && <span className="text-primary font-mono bg-primary/10 px-1 rounded">{slice.jira_key}</span>}
+                                    {slice.work_item_description}
+                                </p>
+                                <p className="text-muted-foreground">
+                                    {format(new Date(startRaw), "HH:mm")} - {slice.end_time ? format(new Date(endRaw), "HH:mm") : 'Active Now'}
+                                </p>
+                                {slice.notes && <p className="italic border-t pt-1 mt-1">{slice.notes}</p>}
+                                {hasOverlap && <p className="text-red-500 font-bold border-t pt-1 mt-1">⚠️ Overlapping Time Segment</p>}
+                            </div>
+                        </TooltipContent>
+                    </Tooltip>
+                )
+            })}
         </div>
     )
 }

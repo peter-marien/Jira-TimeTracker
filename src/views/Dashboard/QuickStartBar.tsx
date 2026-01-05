@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import { useState, useEffect } from "react"
 import { ImportFromJiraDialog } from "@/components/WorkItem/ImportFromJiraDialog"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Badge } from "@/components/ui/badge"
 import { DailyProgressRing } from "@/components/Dashboard/DailyProgressRing"
+import { cn } from "@/lib/utils"
 
 interface QuickStartBarProps {
     totalMinutes?: number;
@@ -57,38 +58,49 @@ export function QuickStartBar({ totalMinutes = 0 }: QuickStartBarProps) {
                             className="h-12 text-lg shadow-sm"
                         />
                     </div>
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    size="icon"
-                                    variant="outline"
-                                    className="h-12 w-12 shrink-0"
-                                    onClick={() => setImportOpen(true)}
-                                >
-                                    <Plus className="h-5 w-5" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>Import from Jira</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                size="icon"
+                                variant="outline"
+                                className="h-12 w-12 shrink-0"
+                                onClick={() => setImportOpen(true)}
+                            >
+                                <Plus className="h-5 w-5" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Import from Jira</p>
+                        </TooltipContent>
+                    </Tooltip>
                 </div>
 
                 {recentItems.length > 0 && (
                     <div className="flex flex-wrap gap-2 px-1">
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground/50 w-full mb-1 tracking-widest">Recent Activity</span>
                         {recentItems.map(item => (
-                            <Badge
-                                key={item.id}
-                                variant={item.jira_key ? "default" : "secondary"}
-                                className="cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all font-medium py-1 px-3"
-                                onClick={() => handleSelect(item)}
-                            >
-                                {item.jira_key ? item.jira_key : (
-                                    <span className="max-w-[150px] truncate">{item.description}</span>
-                                )}
-                            </Badge>
+                            <Tooltip key={item.id}>
+                                <TooltipTrigger asChild>
+                                    <Badge
+                                        key={item.id}
+                                        variant={item.jira_key ? "default" : "secondary"}
+                                        className="cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all font-medium py-1 px-3"
+                                        onClick={() => handleSelect(item)}
+                                    >
+                                        {item.jira_key ? item.jira_key : (
+                                            <span className="max-w-[150px] truncate">{item.description}</span>
+                                        )}
+                                    </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" className="p-3">
+                                    <div className="space-y-1">
+                                        {item.jira_key && <p className="text-[10px] font-black text-primary uppercase tracking-tighter">{item.jira_key}</p>}
+                                        <p className="max-w-[300px] text-xs font-semibold leading-snug">
+                                            {item.description}
+                                        </p>
+                                    </div>
+                                </TooltipContent>
+                            </Tooltip>
                         ))}
                     </div>
                 )}
