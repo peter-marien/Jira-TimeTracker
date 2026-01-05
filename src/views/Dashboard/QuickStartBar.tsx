@@ -42,12 +42,12 @@ export function QuickStartBar({ totalMinutes = 0 }: QuickStartBarProps) {
     };
 
     return (
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 w-full p-4">
-            {/* Left Spacer to balance grid */}
-            <div className="hidden lg:block" />
+        <div className="grid grid-cols-[1fr_auto_1fr] items-start w-full px-4 py-2">
+            {/* Left Column: Spacer to center the search bar */}
+            <div className="hidden lg:block w-full" />
 
-            {/* Center: Search Bar & Recent Badges */}
-            <div className="flex flex-col gap-3 w-full max-w-2xl">
+            {/* Center Column: Search Bar & Recent Badges */}
+            <div className="flex flex-col gap-3 w-full max-w-5xl min-w-[300px] md:min-w-[600px]">
                 <div className="flex items-center gap-2 w-full">
                     <div className="flex-1">
                         <WorkItemSearchBar
@@ -94,9 +94,11 @@ export function QuickStartBar({ totalMinutes = 0 }: QuickStartBarProps) {
                 )}
             </div>
 
-            {/* Right: Progress Ring */}
-            <div className="flex justify-center hidden lg:flex">
-                <DailyProgressRing totalMinutes={totalMinutes} size={80} />
+            {/* Right Column: Centered Progress Ring */}
+            <div className="hidden sm:flex items-start justify-center w-full min-w-[120px]">
+                <div className="py-1">
+                    <DailyProgressRing totalMinutes={totalMinutes} size={88} />
+                </div>
             </div>
 
             <ImportFromJiraDialog
