@@ -71,7 +71,7 @@ export function EditTimeSliceDialog({ slice, open, onOpenChange, onSave }: EditT
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[600px]">
                 <DialogHeader>
                     <DialogTitle>Edit Time Slice</DialogTitle>
                     <DialogDescription>
