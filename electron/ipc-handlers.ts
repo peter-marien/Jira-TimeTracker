@@ -503,6 +503,11 @@ export function registerIpcHandlers() {
         win?.close();
     });
 
+    ipcMain.on('window:open-dev-tools', (event) => {
+        const win = BrowserWindow.fromWebContents(event.sender);
+        win?.webContents.openDevTools();
+    });
+
     ipcMain.handle('window:is-maximized', (event) => {
         const win = BrowserWindow.fromWebContents(event.sender);
         return win?.isMaximized() || false;

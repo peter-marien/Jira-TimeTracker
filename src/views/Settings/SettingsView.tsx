@@ -136,10 +136,11 @@ export function SettingsView() {
             <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
 
             <Tabs defaultValue="connections" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
-                    <TabsTrigger value="connections">Connections</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-4 lg:w-[500px]">
                     <TabsTrigger value="general">General</TabsTrigger>
+                    <TabsTrigger value="connections">Connections</TabsTrigger>
                     <TabsTrigger value="database">Database</TabsTrigger>
+                    <TabsTrigger value="developer">Developer</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="connections" className="mt-6">
@@ -429,6 +430,28 @@ export function SettingsView() {
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="developer" className="mt-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Developer Tools</CardTitle>
+                            <CardDescription>Advanced tools for debugging and development.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex items-center justify-between border rounded-lg p-4">
+                                <div className="space-y-0.5">
+                                    <Label className="text-base">Electron DevTools</Label>
+                                    <p className="text-sm text-muted-foreground">
+                                        Open the Electron Developer Tools window.
+                                    </p>
+                                </div>
+                                <Button onClick={() => api.openDevTools()}>
+                                    Open DevTools
+                                </Button>
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
