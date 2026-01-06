@@ -23,9 +23,10 @@ interface TimeSliceTableProps {
     onDelete: (slice: TimeSlice) => void;
     onResume: (slice: TimeSlice) => void;
     onCopy: (slice: TimeSlice) => void;
+    onDoubleClick?: (slice: TimeSlice) => void;
 }
 
-export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete, onResume, onCopy }: TimeSliceTableProps) {
+export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete, onResume, onCopy, onDoubleClick }: TimeSliceTableProps) {
     if (slices.length === 0) {
         return <div className="text-center py-10 text-muted-foreground">No time tracked for this day.</div>
     }
@@ -57,7 +58,7 @@ export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete, onRe
                     const Content = (
                         <div
                             className={cn("grid grid-cols-[6rem_6rem_8rem_1fr_6rem_3rem] gap-4 p-4 items-center hover:bg-accent/50 transition-colors cursor-default select-none", isActive && "bg-emerald-500/5 hover:bg-emerald-500/10 border-l-2 border-l-emerald-500")}
-                            onDoubleClick={() => onEdit(slice)}
+                            onDoubleClick={() => onDoubleClick ? onDoubleClick(slice) : onEdit(slice)}
                         >
                             {/* Start Column */}
                             <div className="flex flex-col text-sm">
