@@ -41,7 +41,7 @@ export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete, onRe
                 <div className="text-right">Actions</div>
             </div>
             <div className="divide-y divide-border">
-                {slices.map(slice => {
+                {[...slices].sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()).map(slice => {
                     const start = new Date(slice.start_time);
                     const end = slice.end_time ? new Date(slice.end_time) : null;
                     const duration = end ? differenceInSeconds(end, start) : 0;
