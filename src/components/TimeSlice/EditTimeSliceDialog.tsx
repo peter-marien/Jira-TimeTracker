@@ -10,10 +10,11 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { TimeSlice, api } from "@/lib/api"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { DateTimePicker } from "@/components/shared/DateTimePicker"
 import { useTrackingStore } from "@/stores/useTrackingStore"
-import { formatISO } from "date-fns"
+import { formatISO, differenceInSeconds } from "date-fns"
+import { Clock } from "lucide-react"
 
 interface EditTimeSliceDialogProps {
     slice: TimeSlice | null;
@@ -37,6 +38,19 @@ export function EditTimeSliceDialog({ slice, open, onOpenChange, onSave }: EditT
         }
     }, [slice, open]);
 
+    const durationString = useMemo(() => {
+        if (!startDateTime || !endDateTime) return null;
+        if (endDateTime <= startDateTime) return "Invalid duration";
+
+        const seconds = differenceInSeconds(endDateTime, startDateTime);
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60; // meaningful? maybe not for edit dialog, but accurate.
+
+        if (h > 0) return `${h}h ${m}m`;
+        return `${m}m` + (s > 0 ? ` ${s}s` : "");
+    }, [startDateTime, endDateTime]);
+
     const handleSave = async () => {
         if (!slice || !startDateTime) return;
         setError(null);
@@ -59,7 +73,7 @@ export function EditTimeSliceDialog({ slice, open, onOpenChange, onSave }: EditT
             synced_end_time: slice.synced_end_time
         });
 
-        // If this was the active slice, refresh the tracking store too
+        // active slice check
         const activeTimeSliceId = useTrackingStore.getState().activeTimeSliceId;
         if (activeTimeSliceId === slice.id) {
             useTrackingStore.getState().checkActiveTracking();
@@ -73,10 +87,20 @@ export function EditTimeSliceDialog({ slice, open, onOpenChange, onSave }: EditT
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[600px]">
                 <DialogHeader>
-                    <DialogTitle>Edit Time Slice</DialogTitle>
-                    <DialogDescription>
-                        Modify date, start/end times or notes.
-                    </DialogDescription>
+                    <div className="flex justify-between items-center pr-8">
+                        <div>
+                            <DialogTitle>Edit Time Slice</DialogTitle>
+                            <DialogDescription>
+                                Modify date, start/end times or notes.
+                            </DialogDescription>
+                        </div>
+                        {durationString && (
+                            <div className="flex items-center gap-1.5 text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full text-sm font-mono border">
+                                <Clock className="h-3.5 w-3.5" />
+                                <span>{durationString}</span>
+                            </div>
+                        )}
+                    </div>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                     {slice && (
