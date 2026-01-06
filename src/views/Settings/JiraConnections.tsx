@@ -1,8 +1,21 @@
 import { useState, useEffect } from "react"
 import { api, JiraConnection } from "@/lib/api"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Edit2, Trash2 } from "lucide-react"
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Plus, Edit2, Trash2, MoreHorizontal } from "lucide-react"
 import { JiraConnectionDialog } from "@/components/Settings/JiraConnectionDialog"
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog"
 import { Badge } from "@/components/ui/badge"
@@ -55,38 +68,66 @@ export function JiraConnections() {
                 </Button>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {connections.map(conn => (
-                    <Card key={conn.id} className="relative group hover:border-primary/50 transition-colors">
-                        <CardHeader className="pb-3">
-                            <div className="flex justify-between items-start">
-                                <CardTitle className="text-base font-semibold truncate pr-6">{conn.name}</CardTitle>
-                                {!!conn.is_default && (
-                                    <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 absolute top-4 right-4">
-                                        Default
-                                    </Badge>
-                                )}
-                            </div>
-                            <CardDescription className="truncate">{conn.base_url}</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-sm text-muted-foreground truncate mb-4">{conn.email}</div>
-                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button size="icon" variant="ghost" onClick={() => handleEdit(conn)}>
-                                    <Edit2 className="h-4 w-4" />
-                                </Button>
-                                <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setDeleteConn(conn)}>
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
-                {connections.length === 0 && !loading && (
-                    <div className="col-span-full text-center py-8 text-muted-foreground bg-muted/20 rounded-md border border-dashed">
-                        No connections configured. Add one to get started.
-                    </div>
-                )}
+            <div className="rounded-md border bg-card overflow-hidden">
+                <Table>
+                    <TableHeader className="bg-secondary/50">
+                        <TableRow>
+                            <TableHead className="w-[200px]">Name</TableHead>
+                            <TableHead>Base URL</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead className="w-[100px]">Status</TableHead>
+                            <TableHead className="w-[100px] text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {connections.map(conn => (
+                            <TableRow key={conn.id} className="group hover:bg-accent/50 transition-colors">
+                                <TableCell className="font-medium whitespace-nowrap">
+                                    {conn.name}
+                                </TableCell>
+                                <TableCell className="text-muted-foreground truncate max-w-[300px]" title={conn.base_url}>
+                                    {conn.base_url}
+                                </TableCell>
+                                <TableCell className="text-muted-foreground truncate max-w-[200px]" title={conn.email}>
+                                    {conn.email}
+                                </TableCell>
+                                <TableCell>
+                                    {!!conn.is_default && (
+                                        <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20">
+                                            Default
+                                        </Badge>
+                                    )}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                <MoreHorizontal className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem onClick={() => handleEdit(conn)}>
+                                                <Edit2 className="mr-2 h-4 w-4" />
+                                                Edit
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => setDeleteConn(conn)} className="text-destructive focus:text-destructive">
+                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                Delete
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                        {connections.length === 0 && !loading && (
+                            <TableRow>
+                                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground italic">
+                                    No connections configured. Add one to get started.
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
             </div>
 
             <JiraConnectionDialog
