@@ -119,6 +119,64 @@ function runMigrations(database: Database.Database) {
     `);
     console.log('Migration completed successfully');
   }
+
+  // Migration: Add unique index on (jira_connection_id, jira_key) - only where jira_key is not null
+  try {
+    // Check if index exists
+    const indexExists = database.prepare(`
+      SELECT name FROM sqlite_master 
+      WHERE type='index' AND name='idx_work_items_jira_unique'
+    `).get();
+
+    if (!indexExists) {
+      console.log('Running migration: Adding unique index on (jira_connection_id, jira_key)');
+
+      // First, find and remove duplicates (keep the one with time slices, or the oldest)
+      const duplicates = database.prepare(`
+        SELECT jira_connection_id, jira_key, COUNT(*) as cnt
+        FROM work_items
+        WHERE jira_key IS NOT NULL
+        GROUP BY jira_connection_id, jira_key
+        HAVING COUNT(*) > 1
+      `).all() as { jira_connection_id: number, jira_key: string, cnt: number }[];
+
+      for (const dup of duplicates) {
+        console.log(`Found duplicate: ${dup.jira_key} (${dup.cnt} occurrences)`);
+
+        // Get all work items for this duplicate, ordered by: has time slices first, then by id
+        const workItems = database.prepare(`
+          SELECT wi.id, 
+                 (SELECT COUNT(*) FROM time_slices ts WHERE ts.work_item_id = wi.id) as slice_count
+          FROM work_items wi
+          WHERE wi.jira_connection_id = ? AND wi.jira_key = ?
+          ORDER BY slice_count DESC, wi.id ASC
+        `).all(dup.jira_connection_id, dup.jira_key) as { id: number, slice_count: number }[];
+
+        // Keep the first one (has most time slices or is oldest), delete the rest
+        const [keep, ...remove] = workItems;
+        console.log(`Keeping work item ${keep.id} (${keep.slice_count} time slices)`);
+
+        for (const item of remove) {
+          if (item.slice_count === 0) {
+            database.prepare('DELETE FROM work_items WHERE id = ?').run(item.id);
+            console.log(`Deleted duplicate work item ${item.id}`);
+          } else {
+            console.warn(`Cannot delete work item ${item.id} - has ${item.slice_count} time slices`);
+          }
+        }
+      }
+
+      // Now create the unique index
+      database.exec(`
+        CREATE UNIQUE INDEX idx_work_items_jira_unique 
+        ON work_items(jira_connection_id, jira_key) 
+        WHERE jira_key IS NOT NULL;
+      `);
+      console.log('Migration completed successfully');
+    }
+  } catch (error) {
+    console.error('Failed to create unique index:', error);
+  }
 }
 
 export function getDatabase(): Database.Database {

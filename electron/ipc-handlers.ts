@@ -75,20 +75,28 @@ export function registerIpcHandlers() {
     })
 
     ipcMain.handle('db:save-work-item', (_, item) => {
-        if (item.id) {
-            const stmt = db.prepare(`
-        UPDATE work_items 
-        SET jira_connection_id = @jira_connection_id, jira_key = @jira_key, description = @description, updated_at = unixepoch()
-        WHERE id = @id
-      `)
-            return stmt.run(item)
-        } else {
-            const stmt = db.prepare(`
-        INSERT INTO work_items (jira_connection_id, jira_key, description)
-        VALUES (@jira_connection_id, @jira_key, @description)
-      `)
-            const info = stmt.run(item)
-            return { id: info.lastInsertRowid, ...item }
+        try {
+            if (item.id) {
+                const stmt = db.prepare(`
+                    UPDATE work_items 
+                    SET jira_connection_id = @jira_connection_id, jira_key = @jira_key, description = @description, updated_at = unixepoch()
+                    WHERE id = @id
+                `)
+                return stmt.run(item)
+            } else {
+                const stmt = db.prepare(`
+                    INSERT INTO work_items (jira_connection_id, jira_key, description)
+                    VALUES (@jira_connection_id, @jira_key, @description)
+                `)
+                const info = stmt.run(item)
+                return { id: info.lastInsertRowid, ...item }
+            }
+        } catch (error: any) {
+            // Check for unique constraint violation
+            if (error.code === 'SQLITE_CONSTRAINT_UNIQUE' || error.message?.includes('UNIQUE constraint failed')) {
+                throw new Error('A work item with this Jira key already exists.');
+            }
+            throw error;
         }
     })
 

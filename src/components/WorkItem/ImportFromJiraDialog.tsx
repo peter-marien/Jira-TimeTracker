@@ -96,8 +96,12 @@ export function ImportFromJiraDialog({ open, onOpenChange, onImport }: ImportFro
 
             onImport();
             onOpenChange(false);
-        } catch (err) {
-            setError("Failed to import issue.");
+        } catch (err: any) {
+            // Clean up IPC error message (remove "Error invoking remote method..." prefix)
+            let msg = err.message || "Failed to import issue.";
+            const match = msg.match(/Error: (.+)$/);
+            if (match) msg = match[1];
+            setError(msg);
             setImporting(false);
         }
     };
