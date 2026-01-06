@@ -122,7 +122,7 @@ export function Timeline({ date, slices, className, onSliceClick }: TimelineProp
                                 className={cn(
                                     "absolute top-3 bottom-5 rounded-md cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col justify-center items-center px-1 overflow-hidden",
                                     isActive
-                                        ? "bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)] animate-pulse border-emerald-400/30 border"
+                                        ? "bg-primary shadow-[0_0_15px_hsl(var(--primary))_0.3] animate-pulse border-primary/30 border"
                                         : "bg-primary/90 hover:bg-primary shadow-sm border border-white/10",
                                     hasOverlap && "border-2 border-red-500 z-10"
                                 )}

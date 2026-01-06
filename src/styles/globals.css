@@ -33,14 +33,6 @@
     --border: 214 32% 91%;
     --input: 214 32% 91%;
     --ring: 160 84% 39%;
-
-    --radius: 0.3rem;
-
-    /* Custom Semantic Colors */
-    --warning: 45 93% 47%;
-    /* Amber 500 */
-    --jira: 217 91% 60%;
-    /* Blue 500 */
   }
 
   .dark {

@@ -56,7 +56,7 @@ export function ActiveTrackingBanner() {
                     onClick={() => stopTracking()}
                     variant="secondary"
                     size="sm"
-                    className="gap-2 font-semibold shadow-none border-0 hover:bg-white hover:text-emerald-900 transition-colors"
+                    className="gap-2 font-semibold shadow-none border-0 hover:bg-white hover:text-primary transition-colors"
                 >
                     <StopCircle className="h-4 w-4 fill-current" />
                     Stop

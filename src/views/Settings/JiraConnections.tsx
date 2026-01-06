@@ -93,7 +93,7 @@ export function JiraConnections() {
                                 </TableCell>
                                 <TableCell>
                                     {!!conn.is_default && (
-                                        <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20">
+                                        <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20">
                                             Default
                                         </Badge>
                                     )}

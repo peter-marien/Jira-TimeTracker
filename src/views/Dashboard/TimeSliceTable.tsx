@@ -57,7 +57,7 @@ export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete, onRe
 
                     const Content = (
                         <div
-                            className={cn("grid grid-cols-[6rem_6rem_8rem_1fr_6rem_3rem] gap-4 p-4 items-center hover:bg-accent/50 transition-colors cursor-default select-none", isActive && "bg-emerald-500/5 hover:bg-emerald-500/10 border-l-2 border-l-emerald-500")}
+                            className={cn("grid grid-cols-[6rem_6rem_8rem_1fr_6rem_3rem] gap-4 p-4 items-center hover:bg-accent/50 transition-colors cursor-default select-none", isActive && "bg-primary/5 hover:bg-primary/10 border-l-2 border-l-primary")}
                             onDoubleClick={() => onDoubleClick ? onDoubleClick(slice) : onEdit(slice)}
                         >
                             {/* Start Column */}
@@ -70,7 +70,7 @@ export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete, onRe
                                 {end ? (
                                     <TimeDisplay date={end} className="text-foreground/70" />
                                 ) : (
-                                    <span className="text-emerald-500 font-medium animate-pulse text-xs">Now</span>
+                                    <span className="text-primary font-medium animate-pulse text-xs">Now</span>
                                 )}
                             </div>
 
@@ -119,7 +119,7 @@ export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete, onRe
                             {/* Duration Column */}
                             <div className="text-right font-mono text-sm">
                                 {isActive ? (
-                                    <span className="text-emerald-500 font-medium">Tracking</span>
+                                    <span className="text-primary font-medium">Tracking</span>
                                 ) : (
                                     <DurationDisplay seconds={duration} />
                                 )}
@@ -139,7 +139,7 @@ export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete, onRe
                                             Edit
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => onResume(slice)}>
-                                            <Play className="mr-2 h-4 w-4 text-emerald-500" />
+                                            <Play className="mr-2 h-4 w-4 text-primary" />
                                             Resume
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => onSplit(slice)}>

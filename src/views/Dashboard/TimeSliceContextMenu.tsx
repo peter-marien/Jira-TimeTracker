@@ -31,7 +31,7 @@ export function TimeSliceContextMenu({ children, slice, onEdit, onSplit, onMove,
                     Edit Time / Notes
                 </ContextMenuItem>
                 <ContextMenuItem onClick={() => onResume(slice)}>
-                    <Play className="mr-2 h-4 w-4" />
+                    <Play className="mr-2 h-4 w-4 text-primary" />
                     Resume Tracking
                 </ContextMenuItem>
                 <ContextMenuSeparator />

@@ -214,7 +214,7 @@ export function AwayTimeDialog({
                             <RadioGroupItem value="importJira" id="importJira" className="mt-0.5" />
                             <div className="flex-1">
                                 <Label htmlFor="importJira" className="font-medium cursor-pointer flex items-center gap-2">
-                                    <Download className="h-4 w-4 text-jira" />
+                                    <Download className="h-4 w-4 text-blue-500" />
                                     Import from Jira
                                 </Label>
                                 <p className="text-sm text-muted-foreground mt-1">

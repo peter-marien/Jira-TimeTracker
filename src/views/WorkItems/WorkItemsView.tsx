@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Plus, Search, Trash2, Edit2, Download, MoreHorizontal, History, Clock, CheckCircle2, XCircle } from "lucide-react"
-import { JiraBadge } from "@/components/shared/JiraBadge"
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog"
 import { ImportFromJiraDialog } from "@/components/WorkItem/ImportFromJiraDialog"
 import { CreateWorkItemDialog } from "@/components/WorkItem/CreateWorkItemDialog"
@@ -187,7 +186,13 @@ export function WorkItemsView() {
                                         />
                                     </TableCell>
                                     <TableCell>
-                                        {item.jira_key ? <JiraBadge jiraKey={item.jira_key} /> : <span className="text-muted-foreground text-xs italic">Manual</span>}
+                                        {item.jira_key ? (
+                                            <span className="text-xs font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded flex-shrink-0">
+                                                {item.jira_key}
+                                            </span>
+                                        ) : (
+                                            <span className="text-muted-foreground text-xs italic">Manual</span>
+                                        )}
                                     </TableCell>
                                     <TableCell className={cn("font-medium", item.is_completed === 1 && "line-through text-muted-foreground")}>
                                         {item.description}
