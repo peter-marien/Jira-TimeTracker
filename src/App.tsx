@@ -12,6 +12,7 @@ import { useTrackingStore } from "@/stores/useTrackingStore"
 import { useEffect, useState } from "react"
 import { api, WorkItem } from "@/lib/api"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { Toaster } from "@/components/ui/sonner"
 
 function applyTheme(theme: 'light' | 'dark' | 'system') {
   const root = document.documentElement;
@@ -86,6 +87,7 @@ function App() {
         currentWorkItem={activeWorkItem}
         onAction={handleAwayAction}
       />
+      <Toaster position="top-center" />
     </TooltipProvider>
   )
 }

@@ -126,7 +126,7 @@ export function registerIpcHandlers() {
     // Time Slices
     ipcMain.handle('db:get-time-slices', (_, { startStr, endStr }) => {
         const stmt = db.prepare(`
-            SELECT ts.*, wi.description as work_item_description, wi.jira_key, jc.name as connection_name
+            SELECT ts.*, wi.description as work_item_description, wi.jira_key, jc.name as connection_name, wi.jira_connection_id
             FROM time_slices ts 
             LEFT JOIN work_items wi ON ts.work_item_id = wi.id 
             LEFT JOIN jira_connections jc ON wi.jira_connection_id = jc.id
@@ -138,7 +138,7 @@ export function registerIpcHandlers() {
 
     ipcMain.handle('db:get-time-slice', (_, id: number) => {
         const stmt = db.prepare(`
-            SELECT ts.*, wi.description as work_item_description, wi.jira_key, jc.name as connection_name
+            SELECT ts.*, wi.description as work_item_description, wi.jira_key, jc.name as connection_name, wi.jira_connection_id
             FROM time_slices ts 
             LEFT JOIN work_items wi ON ts.work_item_id = wi.id 
             LEFT JOIN jira_connections jc ON wi.jira_connection_id = jc.id
@@ -196,7 +196,7 @@ export function registerIpcHandlers() {
 
     ipcMain.handle('db:get-work-item-time-slices', (_, workItemId: number) => {
         const stmt = db.prepare(`
-            SELECT ts.*, wi.description as work_item_description, wi.jira_key, jc.name as connection_name
+            SELECT ts.*, wi.description as work_item_description, wi.jira_key, jc.name as connection_name, wi.jira_connection_id
             FROM time_slices ts 
             LEFT JOIN work_items wi ON ts.work_item_id = wi.id 
             LEFT JOIN jira_connections jc ON wi.jira_connection_id = jc.id

@@ -31,6 +31,7 @@ export interface TimeSlice {
     jira_key?: string;
     work_item_description?: string;
     connection_name?: string;
+    jira_connection_id?: number | null;
 }
 
 export interface JiraConnection {
