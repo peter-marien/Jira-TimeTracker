@@ -1,4 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { JiraConnections } from "./JiraConnections"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -46,6 +47,7 @@ export function SettingsView() {
     const [awaySoundEnabled, setAwaySoundEnabled] = React.useState(true);
     const [roundingEnabled, setRoundingEnabled] = React.useState(false);
     const [roundingInterval, setRoundingInterval] = React.useState(15);
+    const [updateInterval, setUpdateInterval] = React.useState(60);
     const [appVersion, setAppVersion] = React.useState<string>("");
 
     React.useEffect(() => {
@@ -65,6 +67,9 @@ export function SettingsView() {
             setRoundingEnabled(settings.rounding_enabled === 'true');
             const rInterval = settings.rounding_interval ? parseInt(settings.rounding_interval, 10) : 15;
             setRoundingInterval(rInterval);
+            // Load update settings
+            const uInterval = settings.update_check_interval ? parseInt(settings.update_check_interval, 10) : 60;
+            setUpdateInterval(uInterval);
         });
     }, []);
 
@@ -302,6 +307,41 @@ export function SettingsView() {
                                 </div>
                                 <p className="text-xs text-muted-foreground">
                                     Example: 15m interval. 09:07 → 09:00 (Start), 09:23 → 09:30 (End).
+                                </p>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="mt-6">
+                        <CardHeader>
+                            <CardTitle>Updates</CardTitle>
+                            <CardDescription>Configure automatic update checks.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="grid gap-2">
+                                <Label>Check for updates</Label>
+                                <Select
+                                    value={String(updateInterval)}
+                                    onValueChange={async (value) => {
+                                        const newVal = parseInt(value, 10);
+                                        setUpdateInterval(newVal);
+                                        await api.saveSetting('update_check_interval', String(newVal));
+                                    }}
+                                >
+                                    <SelectTrigger className="w-[200px]">
+                                        <SelectValue placeholder="Select interval" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="15">Every 15 minutes</SelectItem>
+                                        <SelectItem value="30">Every 30 minutes</SelectItem>
+                                        <SelectItem value="60">Every hour</SelectItem>
+                                        <SelectItem value="240">Every 4 hours</SelectItem>
+                                        <SelectItem value="1440">Daily</SelectItem>
+                                        <SelectItem value="0">Never (Manual only)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-xs text-muted-foreground">
+                                    The application will check for updates in the background.
                                 </p>
                             </div>
                         </CardContent>

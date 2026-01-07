@@ -3,9 +3,20 @@ import path from 'node:path'
 import { getDatabase } from '../src/database/db'
 import { updateTrayTooltip, updateTrayIcon } from './tray'
 import { getAppConfig, saveAppConfig } from './config-service'
+import { startUpdateInterval } from './auto-updater'
 
 export function registerIpcHandlers() {
     const db = getDatabase()
+
+    // Initialize auto-update interval
+    try {
+        const stmt = db.prepare('SELECT value FROM settings WHERE key = ?');
+        const setting = stmt.get('update_check_interval') as { value: string } | undefined;
+        const interval = setting ? parseInt(setting.value, 10) : 60; // Default 60 mins
+        startUpdateInterval(interval);
+    } catch (e) {
+        console.error('Failed to initialize update interval:', e);
+    }
 
     // Jira Connections
     ipcMain.handle('db:get-all-connections', () => {
@@ -232,6 +243,12 @@ export function registerIpcHandlers() {
     ipcMain.handle('db:save-setting', (_, { key, value }: { key: string, value: string }) => {
         const stmt = db.prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, ?)');
         stmt.run(key, value, Date.now());
+
+        if (key === 'update_check_interval') {
+            const interval = parseInt(value, 10);
+            startUpdateInterval(interval);
+        }
+
         return { success: true };
     });
 

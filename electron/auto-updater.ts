@@ -31,3 +31,24 @@ export function initializeAutoUpdater(window: BrowserWindow) {
         log.error('Auto-update error:', err);
     });
 }
+
+let updateIntervalId: NodeJS.Timeout | null = null;
+
+export function startUpdateInterval(minutes: number) {
+    if (updateIntervalId) {
+        clearInterval(updateIntervalId);
+        updateIntervalId = null;
+    }
+
+    if (minutes <= 0) {
+        log.info('Auto-update interval disabled.');
+        return;
+    }
+
+    log.info(`Starting auto-update check every ${minutes} minutes.`);
+    // Run immediately? No, we already check on startup. Wait for interval.
+    updateIntervalId = setInterval(() => {
+        log.info('Running periodic update check...');
+        autoUpdater.checkForUpdatesAndNotify();
+    }, minutes * 60 * 1000);
+}
