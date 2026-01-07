@@ -70,6 +70,10 @@ export const api = {
     saveTimeSlice: (slice: Partial<TimeSlice>) => ipc.invoke('db:save-time-slice', slice) as Promise<TimeSlice>,
     deleteTimeSlice: (id: number) => ipc.invoke('db:delete-time-slice', id),
     getActiveTimeSlice: () => ipc.invoke('db:get-active-time-slice') as Promise<TimeSlice | undefined>,
+    searchTimeSlices: (params: { query?: string, limit?: number, offset?: number } = {}) =>
+        ipc.invoke('db:search-time-slices', params) as Promise<TimeSlice[]>,
+    searchTimeSlicesCount: (params: { query?: string } = {}) =>
+        ipc.invoke('db:search-time-slices-count', params) as Promise<number>,
 
     // Settings
     getSettings: () => ipc.invoke('db:get-settings'),

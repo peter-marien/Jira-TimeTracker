@@ -225,6 +225,34 @@ export function registerIpcHandlers() {
         return stmt.all(workItemId);
     });
 
+    ipcMain.handle('db:search-time-slices', (_, { query = '', limit = 50, offset = 0 } = {}) => {
+        const sql = `
+            SELECT ts.*, wi.description as work_item_description, wi.jira_key, jc.name as connection_name, wi.jira_connection_id
+            FROM time_slices ts 
+            LEFT JOIN work_items wi ON ts.work_item_id = wi.id 
+            LEFT JOIN jira_connections jc ON wi.jira_connection_id = jc.id
+            WHERE ts.notes LIKE @query
+               OR wi.description LIKE @query
+               OR wi.jira_key LIKE @query
+            ORDER BY ts.start_time DESC
+            LIMIT @limit OFFSET @offset
+        `;
+        return db.prepare(sql).all({ query: `%${query}%`, limit, offset });
+    });
+
+    ipcMain.handle('db:search-time-slices-count', (_, { query = '' } = {}) => {
+        const sql = `
+            SELECT COUNT(*) as count
+            FROM time_slices ts 
+            LEFT JOIN work_items wi ON ts.work_item_id = wi.id 
+            WHERE ts.notes LIKE @query
+               OR wi.description LIKE @query
+               OR wi.jira_key LIKE @query
+        `;
+        const result = db.prepare(sql).get({ query: `%${query}%` }) as { count: number };
+        return result.count;
+    });
+
     ipcMain.handle('db:clear-data', (_, { clearTimeSlices, clearWorkItems }: { clearTimeSlices: boolean, clearWorkItems: boolean }) => {
         if (clearWorkItems) {
             return db.prepare('DELETE FROM work_items').run();

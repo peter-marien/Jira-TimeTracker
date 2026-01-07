@@ -1,5 +1,5 @@
 import { Outlet, NavLink } from "react-router-dom"
-import { LayoutDashboard, Briefcase, Settings, CalendarDays } from "lucide-react"
+import { LayoutDashboard, Briefcase, Settings, CalendarDays, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { TitleBar } from "./TitleBar"
 
@@ -32,6 +32,13 @@ export function AppLayout() {
                             title="Month View"
                         >
                             <CalendarDays className="h-6 w-6" />
+                        </NavLink>
+                        <NavLink
+                            to="/search"
+                            className={({ isActive }) => cn("p-3 rounded-md transition-colors hover:bg-accent", isActive && "bg-accent/80 text-accent-foreground")}
+                            title="Search"
+                        >
+                            <Search className="h-6 w-6" />
                         </NavLink>
                     </nav>
 

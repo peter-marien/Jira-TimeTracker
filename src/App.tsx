@@ -4,6 +4,7 @@ import { Dashboard } from "@/views/Dashboard/Dashboard"
 import { WorkItemsView } from "@/views/WorkItems/WorkItemsView"
 import { SettingsView } from "@/views/Settings/SettingsView"
 import { MonthView } from "@/views/MonthView/MonthView"
+import { SearchView } from "@/views/Search/SearchView"
 import { AwayTimeDialog } from "@/components/Tracking/AwayTimeDialog"
 
 import { useTrayEvents } from "@/hooks/useTrayEvents"
@@ -74,6 +75,7 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/work-items" element={<WorkItemsView />} />
             <Route path="/month" element={<MonthView />} />
+            <Route path="/search" element={<SearchView />} />
             <Route path="/settings" element={<SettingsView />} />
           </Route>
         </Routes>
