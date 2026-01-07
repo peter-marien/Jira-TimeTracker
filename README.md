@@ -34,7 +34,7 @@ A powerful, high-performance desktop application for tracking time and syncing w
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/jira-timetracker.git
+git clone https://github.com/peter-marien/jira-timetracker.git
 
 # Install dependencies
 npm install
@@ -54,9 +54,27 @@ npm run dev
 npm run build
 ```
 
+### Deploy new version to GitHub
+
+Update version number in package.json and run:
+
+```bash
+# Release new version to GitHub
+npm run release 
+```
+
+New draft release will created in Github and a new tag tag is set in Git.
+
 ## 📂 Data & Configuration
 
 The application stores its data in a local SQLite database named `jira-timetracker.db`. You can find and configure the database path within the application settings.
+
+By default, the database is stored in the user's application data folder:
+- **Windows**: `%APPDATA%/Roaming/jira-timetracker-app/jira-timetracker.db`
+- **Linux**: `~/.config/jira-timetracker-app/jira-timetracker.db`
+- **macOS**: `~/Library/Application Support/jira-timetracker-app/jira-timetracker.db`
+
+You can change this location in **Settings -> Database**.
 
 ## 📄 License
 
