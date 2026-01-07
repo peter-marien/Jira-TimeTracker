@@ -1,4 +1,5 @@
 import { app, BrowserWindow } from 'electron'
+import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { initializeDatabase } from '../src/database/db'
@@ -8,10 +9,16 @@ import { initializeAutoUpdater } from './auto-updater'
 import { initializeAwayDetector } from './away-detector'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+process.env.APP_ROOT = path.join(__dirname, '..')
 
-app.name = 'Jira Time Tracker'
+// Dynamic App ID
+const pkgPath = path.join(process.env.APP_ROOT, 'package.json');
+const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+const appId = pkg.build?.appId || 'com.jira-timetracker.app';
+
+app.name = pkg.productName || 'Jira Time Tracker';
 if (process.platform === 'win32') {
-  app.setAppUserModelId('com.pmarien.jira-timetracker')
+  app.setAppUserModelId(appId)
 }
 //
 // ├─┬─┬ dist
@@ -21,7 +28,6 @@ if (process.platform === 'win32') {
 // │ │ ├── main.js
 // │ │ └── preload.mjs
 // │
-process.env.APP_ROOT = path.join(__dirname, '..')
 
 // 🚧 Use ['ENV_NAME'] avoid vite:define plugin - Vite@2.x
 export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
