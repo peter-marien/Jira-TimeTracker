@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 
 export function TitleBar() {
     const [isMaximized, setIsMaximized] = useState(false)
+    const [isDark, setIsDark] = useState(false)
 
     useEffect(() => {
         const checkMaximized = async () => {
@@ -19,6 +20,18 @@ export function TitleBar() {
         return () => clearInterval(interval)
     }, [])
 
+    // Detect dark theme
+    useEffect(() => {
+        const checkDark = () => {
+            setIsDark(document.documentElement.classList.contains('dark'))
+        }
+        checkDark()
+
+        const observer = new MutationObserver(checkDark)
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+        return () => observer.disconnect()
+    }, [])
+
     const handleMaximizeToggle = async () => {
         if (isMaximized) {
             await api.unmaximizeWindow()
@@ -28,10 +41,12 @@ export function TitleBar() {
         setIsMaximized(!isMaximized)
     }
 
+    const logoSrc = isDark ? '/logo-dark.svg' : '/logo.svg'
+
     return (
         <div className="h-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-4 border-b select-none drag-region">
             <div className="flex items-center gap-2">
-                <img src="/app-icon.png" className="w-5 h-5" alt="Icon" />
+                <img src={logoSrc} className="w-5 h-5" alt="Icon" />
                 <span className="text-xs font-semibold text-muted-foreground tracking-tight">Jira Time Tracker</span>
             </div>
 

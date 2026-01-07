@@ -40,7 +40,7 @@ let win: BrowserWindow | null
 
 function createWindow() {
   win = new BrowserWindow({
-    icon: path.join(process.env.VITE_PUBLIC, 'app-icon.png'),
+    icon: path.join(process.env.VITE_PUBLIC, 'icon.ico'),
     frame: false,
     titleBarStyle: 'hidden',
     webPreferences: {
