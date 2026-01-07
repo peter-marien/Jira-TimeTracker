@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { TimeSlice, api } from "@/lib/api"
 import { useState, useMemo } from "react"
-import { Loader2, CheckCircle, AlertTriangle, XCircle, AlertCircle } from "lucide-react"
+import { Loader2, CheckCircle, AlertTriangle, XCircle } from "lucide-react"
 import { format, differenceInSeconds } from "date-fns"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { toast } from "sonner"
