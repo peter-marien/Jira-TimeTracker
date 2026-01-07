@@ -2,9 +2,20 @@ import { useState, useEffect } from "react"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
-import { ChevronsUpDown } from "lucide-react"
+import { ChevronsUpDown, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { api, WorkItem } from "@/lib/api"
+
+interface JiraSearchResult {
+    key: string;
+    summary: string;
+    connectionId: number;
+    connectionName: string;
+}
+
+type SearchItem =
+    | { type: 'local'; item: WorkItem }
+    | { type: 'jira'; item: JiraSearchResult };
 
 interface WorkItemSearchBarProps {
     onSelect: (workItem: WorkItem) => void;
@@ -12,23 +23,87 @@ interface WorkItemSearchBarProps {
     placeholder?: string;
 }
 
+// Simple Jira icon component
+function JiraIcon({ className }: { className?: string }) {
+    return (
+        <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+            <path d="M11.571 11.513H0a5.218 5.218 0 0 0 5.232 5.215h2.13v2.057A5.215 5.215 0 0 0 12.575 24V12.518a1.005 1.005 0 0 0-1.005-1.005zm5.723-5.756H5.736a5.215 5.215 0 0 0 5.213 5.214h2.129v2.058a5.218 5.218 0 0 0 5.215 5.214V6.758a1.001 1.001 0 0 0-1-1.001zM23 0H11.455a5.215 5.215 0 0 0 5.212 5.214h2.129v2.057A5.215 5.215 0 0 0 24 12.485V1a1 1 0 0 0-1-1z" />
+        </svg>
+    );
+}
+
 export function WorkItemSearchBar({ onSelect, className, placeholder = "Search work items..." }: WorkItemSearchBarProps) {
     const [open, setOpen] = useState(false)
     const [value, setValue] = useState("")
     const [query, setQuery] = useState("")
-    const [items, setItems] = useState<WorkItem[]>([])
-    const [loading, setLoading] = useState(false)
+    const [localItems, setLocalItems] = useState<WorkItem[]>([])
+    const [jiraItems, setJiraItems] = useState<JiraSearchResult[]>([])
+    const [localLoading, setLocalLoading] = useState(false)
+    const [jiraLoading, setJiraLoading] = useState(false)
 
+    // Local search
     useEffect(() => {
-        // Debounce search
         const timer = setTimeout(() => {
-            setLoading(true);
+            setLocalLoading(true);
             api.getWorkItems({ query }).then(res => {
-                setItems(res || []);
-            }).finally(() => setLoading(false));
+                setLocalItems(res || []);
+            }).finally(() => setLocalLoading(false));
         }, 300);
         return () => clearTimeout(timer);
     }, [query]);
+
+    // Jira search (all connections)
+    useEffect(() => {
+        if (!query.trim()) {
+            setJiraItems([]);
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            setJiraLoading(true);
+            api.searchJiraIssuesAllConnections(query).then(res => {
+                setJiraItems(res || []);
+            }).catch(err => {
+                console.error("Jira search failed:", err);
+                setJiraItems([]);
+            }).finally(() => setJiraLoading(false));
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [query]);
+
+    // Get set of imported Jira keys for deduplication
+    const importedKeys = new Set(localItems.filter(i => i.jira_key).map(i => i.jira_key));
+
+    // Combine and sort results: local items first, then Jira items (excluding duplicates)
+    const combinedItems: SearchItem[] = [
+        ...localItems.map(item => ({ type: 'local' as const, item })),
+        ...jiraItems
+            .filter(j => !importedKeys.has(j.key))
+            .map(item => ({ type: 'jira' as const, item }))
+    ];
+
+    const handleSelectLocal = (item: WorkItem) => {
+        setValue(item.description);
+        onSelect(item);
+        setOpen(false);
+    };
+
+    const handleSelectJira = async (jiraItem: JiraSearchResult) => {
+        try {
+            const newWorkItem = await api.saveWorkItem({
+                jira_connection_id: jiraItem.connectionId,
+                jira_key: jiraItem.key,
+                description: jiraItem.summary,
+            });
+            setValue(newWorkItem.description);
+            onSelect(newWorkItem);
+            setOpen(false);
+        } catch (err) {
+            console.error("Failed to import Jira issue:", err);
+        }
+    };
+
+    const isLoading = localLoading || jiraLoading;
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -40,7 +115,7 @@ export function WorkItemSearchBar({ onSelect, className, placeholder = "Search w
                     className={cn("w-full justify-between", className)}
                 >
                     {value
-                        ? (items.find((item) => item.description === value)?.description || value)
+                        ? (localItems.find((item) => item.description === value)?.description || value)
                         : placeholder}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
@@ -49,28 +124,62 @@ export function WorkItemSearchBar({ onSelect, className, placeholder = "Search w
                 <Command shouldFilter={false}>
                     <CommandInput placeholder="Search work items (key or description)..." value={query} onValueChange={setQuery} />
                     <CommandList>
-                        <CommandEmpty>{loading ? "Searching..." : "No work item found."}</CommandEmpty>
-                        <CommandGroup heading="Recent Work Items">
-                            {items.map((item) => (
-                                <CommandItem
-                                    key={item.id}
-                                    value={item.description}
-                                    onSelect={(currentValue) => {
-                                        setValue(currentValue)
-                                        onSelect(item)
-                                        setOpen(false)
-                                    }}
-                                    className="flex flex-col items-start gap-1 py-3"
-                                >
-                                    <span className="font-bold truncate w-full">{item.description}</span>
-                                    {item.jira_key && (
-                                        <span className="text-xs text-muted-foreground font-mono">
-                                            {item.jira_key}
-                                        </span>
-                                    )}
-                                </CommandItem>
-                            ))}
-                        </CommandGroup>
+                        <CommandEmpty>
+                            {isLoading ? (
+                                <span className="flex items-center gap-2">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Searching...
+                                </span>
+                            ) : "No work item found."}
+                        </CommandEmpty>
+
+                        {combinedItems.length > 0 && (
+                            <CommandGroup heading={
+                                <span className="flex items-center gap-2">
+                                    Results
+                                    {jiraLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+                                </span>
+                            }>
+                                {combinedItems.map((searchItem) => {
+                                    if (searchItem.type === 'local') {
+                                        const item = searchItem.item;
+                                        return (
+                                            <CommandItem
+                                                key={`local-${item.id}`}
+                                                value={item.description}
+                                                onSelect={() => handleSelectLocal(item)}
+                                                className="flex flex-col items-start gap-1 py-3"
+                                            >
+                                                <span className="font-bold truncate w-full">{item.description}</span>
+                                                {item.jira_key && (
+                                                    <span className="text-xs text-muted-foreground font-mono">
+                                                        {item.jira_key}
+                                                    </span>
+                                                )}
+                                            </CommandItem>
+                                        );
+                                    } else {
+                                        const jiraItem = searchItem.item;
+                                        return (
+                                            <CommandItem
+                                                key={`jira-${jiraItem.connectionId}-${jiraItem.key}`}
+                                                value={`${jiraItem.key} ${jiraItem.summary}`}
+                                                onSelect={() => handleSelectJira(jiraItem)}
+                                                className="flex items-center justify-between py-3"
+                                            >
+                                                <div className="flex flex-col items-start gap-1 min-w-0 flex-1">
+                                                    <span className="font-bold truncate w-full">{jiraItem.summary}</span>
+                                                    <span className="text-xs text-muted-foreground font-mono">
+                                                        {jiraItem.key}
+                                                    </span>
+                                                </div>
+                                                <JiraIcon className="h-4 w-4 text-blue-500 shrink-0 ml-2" />
+                                            </CommandItem>
+                                        );
+                                    }
+                                })}
+                            </CommandGroup>
+                        )}
                     </CommandList>
                 </Command>
             </PopoverContent>

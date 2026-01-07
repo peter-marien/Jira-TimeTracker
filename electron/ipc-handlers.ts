@@ -309,6 +309,48 @@ export function registerIpcHandlers() {
         return await client.searchIssues(jql);
     });
 
+    ipcMain.handle('jira:search-issues-all-connections', async (_, query: string) => {
+        const connections = db.prepare('SELECT * FROM jira_connections').all() as any[];
+
+        if (connections.length === 0) {
+            return [];
+        }
+
+        const { JiraClient } = await import('../src/services/jira/jira-client');
+
+        let jql = query.trim();
+        if (jql && !jql.includes('=') && !jql.includes('~')) {
+            const sanitized = jql.replace(/["\\]/g, '');
+            if (/^[A-Za-z]+-[0-9]+$/.test(sanitized)) {
+                jql = `key = "${sanitized}" OR summary ~ "${sanitized}*"`;
+            } else {
+                jql = `summary ~ "${sanitized}*"`;
+            }
+        }
+
+        const results = await Promise.allSettled(
+            connections.map(async (conn) => {
+                const client = new JiraClient({
+                    baseUrl: conn.base_url,
+                    email: conn.email,
+                    apiToken: conn.api_token
+                });
+                const issues = await client.searchIssues(jql);
+                return issues.map((issue: any) => ({
+                    key: issue.key,
+                    summary: issue.fields?.summary || '',
+                    connectionId: conn.id,
+                    connectionName: conn.name
+                }));
+            })
+        );
+
+        // Flatten successful results
+        return results
+            .filter((r): r is PromiseFulfilledResult<any[]> => r.status === 'fulfilled')
+            .flatMap(r => r.value);
+    });
+
     ipcMain.handle('jira:add-worklog', async (_, { issueKey, timeSpentSeconds, comment, started }) => {
         const stmt = db.prepare('SELECT * FROM jira_connections WHERE is_default = 1 LIMIT 1');
         const conn = stmt.get() as any;

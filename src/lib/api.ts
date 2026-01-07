@@ -81,6 +81,7 @@ export const api = {
 
     // Jira
     searchJiraIssues: (query: string) => ipc.invoke('jira:search-issues', query),
+    searchJiraIssuesAllConnections: (query: string) => ipc.invoke('jira:search-issues-all-connections', query) as Promise<Array<{ key: string; summary: string; connectionId: number; connectionName: string }>>,
     addJiraWorklog: (issueKey: string, data: { timeSpentSeconds: number, comment: string, started: string }) =>
         ipc.invoke('jira:add-worklog', { issueKey, ...data }),
     updateJiraWorklog: (issueKey: string, worklogId: string, data: { timeSpentSeconds: number, comment: string, started: string }) =>
