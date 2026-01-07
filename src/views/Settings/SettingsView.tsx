@@ -140,7 +140,7 @@ export function SettingsView() {
         <div className="flex flex-col h-full bg-background p-6 space-y-6 overflow-y-auto">
             <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
 
-            <Tabs defaultValue="connections" className="w-full">
+            <Tabs defaultValue="general" className="w-full">
                 <TabsList className="grid w-full grid-cols-4 lg:w-[500px]">
                     <TabsTrigger value="general">General</TabsTrigger>
                     <TabsTrigger value="connections">Connections</TabsTrigger>
