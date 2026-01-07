@@ -168,21 +168,25 @@ export function registerIpcHandlers() {
 
     ipcMain.handle('db:save-time-slice', (_, slice) => {
         if (slice.id) {
+            // Fetch existing record to preserve fields not provided in the update
+            const existing = db.prepare('SELECT * FROM time_slices WHERE id = ?').get(slice.id) as any;
+            const merged = { ...existing, ...slice };
+
             const stmt = db.prepare(`
             UPDATE time_slices
             SET work_item_id = @work_item_id, start_time = @start_time, end_time = @end_time, notes = @notes, synced_to_jira = @synced_to_jira, jira_worklog_id = @jira_worklog_id, synced_start_time = @synced_start_time, synced_end_time = @synced_end_time, updated_at = unixepoch()
             WHERE id = @id
         `)
             const params = {
-                id: slice.id,
-                work_item_id: slice.work_item_id,
-                start_time: slice.start_time,
-                end_time: slice.end_time || null,
-                notes: slice.notes || '',
-                synced_to_jira: slice.synced_to_jira || 0,
-                jira_worklog_id: slice.jira_worklog_id || null,
-                synced_start_time: slice.synced_start_time || null,
-                synced_end_time: slice.synced_end_time || null
+                id: merged.id,
+                work_item_id: merged.work_item_id,
+                start_time: merged.start_time,
+                end_time: merged.end_time || null,
+                notes: merged.notes || '',
+                synced_to_jira: merged.synced_to_jira || 0,
+                jira_worklog_id: merged.jira_worklog_id || null,
+                synced_start_time: merged.synced_start_time || null,
+                synced_end_time: merged.synced_end_time || null
             };
             return stmt.run(params)
         } else {
