@@ -5,6 +5,7 @@ let mainWindow: BrowserWindow | null = null;
 let awayStartTime: Date | null = null;
 let isTrackingActive = false;
 let wasIdle = false;
+let isDialogOpen = false;
 
 // Get threshold from settings (default 5 minutes)
 async function getThresholdSeconds(): Promise<number> {
@@ -142,8 +143,11 @@ async function handleAwayEnd(reason: string) {
         console.log('[AwayDetector] Sent away:detected event to renderer');
     }
 
-    awayStartTime = null;
-    isTrackingActive = false;
+    // Only reset if dialog is NOT open
+    if (!isDialogOpen) {
+        awayStartTime = null;
+        isTrackingActive = false;
+    }
     wasIdle = false;
 }
 
@@ -288,6 +292,18 @@ export async function initializeAwayDetector(win: BrowserWindow) {
 
     ipcMain.handle('away:get-enabled', async () => {
         return await isEnabled();
+    });
+
+    ipcMain.on('away:dialog-opened', () => {
+        isDialogOpen = true;
+        console.log('[AwayDetector] Dialog opened');
+    });
+
+    ipcMain.on('away:dialog-closed', () => {
+        isDialogOpen = false;
+        awayStartTime = null;
+        isTrackingActive = false;
+        console.log('[AwayDetector] Dialog closed, reset state');
     });
 
     console.log('[AwayDetector] Initialized');

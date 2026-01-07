@@ -48,8 +48,18 @@ function App() {
   useEffect(() => {
     const handleAwayDetected = (_event: unknown, data: { awayStartTime: string; awayDurationSeconds: number }) => {
       console.log('[App] Away detected:', data);
-      setAwayData(data);
-      setAwayDialogOpen(true);
+      if (awayDialogOpen) {
+        // Dialog already open - accumulate time
+        setAwayData(prev => prev ? {
+          awayStartTime: prev.awayStartTime, // Keep original start time
+          awayDurationSeconds: data.awayDurationSeconds // Update duration
+        } : data);
+      } else {
+        // New away detection
+        setAwayData(data);
+        setAwayDialogOpen(true);
+        window.ipcRenderer.send('away:dialog-opened');
+      }
     };
 
     window.ipcRenderer.on('away:detected', handleAwayDetected);
@@ -57,7 +67,7 @@ function App() {
     return () => {
       window.ipcRenderer.removeListener('away:detected', handleAwayDetected);
     };
-  }, []);
+  }, [awayDialogOpen]);
 
   const handleAwayAction = async (action: 'discard' | 'keep' | 'reassign', targetWorkItem?: WorkItem) => {
     if (awayData) {
@@ -65,6 +75,7 @@ function App() {
     }
     setAwayDialogOpen(false);
     setAwayData(null);
+    window.ipcRenderer.send('away:dialog-closed');
   };
 
   return (
