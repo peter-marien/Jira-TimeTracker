@@ -9,12 +9,10 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Search, Loader2 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
-import { useTrackingStore } from "@/stores/useTrackingStore"
 import { format, parseISO } from "date-fns"
 
 export function SearchView() {
     const navigate = useNavigate();
-    const setSelectedDate = useTrackingStore(state => state.setSelectedDate);
 
     const [query, setQuery] = useState("");
     const [slices, setSlices] = useState<TimeSlice[]>([]);
@@ -64,8 +62,8 @@ export function SearchView() {
 
     const handleDoubleClick = (slice: TimeSlice) => {
         const date = parseISO(slice.start_time);
-        setSelectedDate(date);
-        navigate('/');
+        const dateStr = format(date, 'yyyy-MM-dd');
+        navigate(`/?date=${dateStr}`);
     };
 
     const handleResume = async (slice: TimeSlice) => {
