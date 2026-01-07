@@ -110,4 +110,5 @@ export const api = {
 
     // App Info
     getAppVersion: () => ipc.invoke('app:get-version') as Promise<string>,
+    quitAndInstallUpdate: () => ipc.send('update:quit-and-install'),
 };

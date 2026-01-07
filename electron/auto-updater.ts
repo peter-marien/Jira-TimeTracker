@@ -1,5 +1,5 @@
 import { autoUpdater } from 'electron-updater';
-import { BrowserWindow, dialog } from 'electron';
+import { BrowserWindow, ipcMain } from 'electron';
 import log from 'electron-log';
 
 // Configure logging
@@ -15,20 +15,21 @@ export function initializeAutoUpdater(window: BrowserWindow) {
 
     autoUpdater.on('update-downloaded', (info) => {
         log.info('Update downloaded.');
-        dialog.showMessageBox(window, {
-            type: 'info',
-            title: 'Update Ready',
-            message: `Version ${info.version} has been downloaded and is ready to install.`,
-            buttons: ['Restart Now', 'Later']
-        }).then((result) => {
-            if (result.response === 0) {
-                autoUpdater.quitAndInstall();
-            }
+        // Notify renderer that update is ready
+        window.webContents.send('update:downloaded', {
+            version: info.version,
+            releaseNotes: info.releaseNotes
         });
     });
 
     autoUpdater.on('error', (err) => {
         log.error('Auto-update error:', err);
+    });
+
+    // Handle quit and install request from renderer
+    ipcMain.on('update:quit-and-install', () => {
+        log.info('Quit and install update requested.');
+        autoUpdater.quitAndInstall();
     });
 }
 

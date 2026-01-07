@@ -14,6 +14,16 @@ import { useEffect, useState } from "react"
 import { api, WorkItem } from "@/lib/api"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/sonner"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 function applyTheme(theme: 'light' | 'dark' | 'system') {
   const root = document.documentElement;
@@ -35,6 +45,9 @@ function App() {
   const [awayDialogOpen, setAwayDialogOpen] = useState(false);
   const [awayData, setAwayData] = useState<{ awayStartTime: string; awayDurationSeconds: number } | null>(null);
 
+  // Update state
+  const [updateInfo, setUpdateInfo] = useState<{ version: string; releaseNotes?: string } | null>(null);
+
   useEffect(() => {
     checkActiveTracking();
     // Load and apply theme on startup
@@ -43,6 +56,20 @@ function App() {
       applyTheme(savedTheme);
     });
   }, [checkActiveTracking]);
+
+  // Listen for update events
+  useEffect(() => {
+    const handleUpdateDownloaded = (_event: unknown, data: { version: string; releaseNotes?: string }) => {
+      console.log('[App] Update downloaded:', data);
+      setUpdateInfo(data);
+    };
+
+    window.ipcRenderer.on('update:downloaded', handleUpdateDownloaded);
+
+    return () => {
+      window.ipcRenderer.removeListener('update:downloaded', handleUpdateDownloaded);
+    };
+  }, []);
 
   // Listen for away:detected events from main process
   useEffect(() => {
@@ -100,6 +127,25 @@ function App() {
         currentWorkItem={activeWorkItem}
         onAction={handleAwayAction}
       />
+
+      <AlertDialog open={!!updateInfo} onOpenChange={(open) => !open && setUpdateInfo(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Update Ready</AlertDialogTitle>
+            <AlertDialogDescription>
+              Version {updateInfo?.version} has been downloaded and is ready to install.
+              Would you like to restart and install it now?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Later</AlertDialogCancel>
+            <AlertDialogAction onClick={() => api.quitAndInstallUpdate()}>
+              Restart Now
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Toaster position="top-center" />
     </TooltipProvider>
   )
