@@ -97,25 +97,25 @@ export function SearchView() {
     };
 
     return (
-        <div className="flex flex-col h-full bg-background p-6 space-y-6">
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold tracking-tight">Search Time Slices</h1>
-            </div>
+        <div className="flex flex-col h-full bg-background overflow-hidden" onWheel={(e) => e.stopPropagation()}>
+            <div className="flex-1 p-6 space-y-6 overflow-y-auto min-h-0 h-full">
+                <div className="flex items-center justify-between">
+                    <h1 className="text-2xl font-bold tracking-tight">Search Time Slices</h1>
+                </div>
 
-            <div className="flex items-center gap-2 max-w-md border rounded-md px-3 bg-muted/50">
-                <Search className="h-4 w-4 text-muted-foreground" />
-                <Input
-                    className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
-                    placeholder="Search notes, description, or Jira key..."
-                    value={query}
-                    onChange={e => setQuery(e.target.value)}
-                />
-                {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-            </div>
+                <div className="flex items-center gap-2 max-w-md border rounded-md px-3 bg-muted/50">
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                        className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                        placeholder="Search notes, description, or Jira key..."
+                        value={query}
+                        onChange={e => setQuery(e.target.value)}
+                    />
+                    {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                </div>
 
-            {query.trim() ? (
-                <>
-                    <div className="flex-1 overflow-y-auto">
+                {query.trim() ? (
+                    <>
                         <TimeSliceTable
                             slices={slices}
                             onEdit={setEditSlice}
@@ -126,42 +126,42 @@ export function SearchView() {
                             onCopy={handleCopy}
                             onDoubleClick={handleDoubleClick}
                         />
-                    </div>
 
-                    {/* Pagination */}
-                    <div className="flex items-center justify-between px-2">
-                        <div className="text-sm text-muted-foreground">
-                            Showing {totalCount > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-
-                            {Math.min(totalCount, currentPage * itemsPerPage)} of {totalCount} results
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                disabled={currentPage === 1 || loading}
-                            >
-                                Previous
-                            </Button>
-                            <div className="text-sm font-medium w-20 text-center">
-                                Page {currentPage}
+                        {/* Pagination */}
+                        <div className="flex items-center justify-between px-2 py-4">
+                            <div className="text-sm text-muted-foreground">
+                                Showing {totalCount > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-
+                                {Math.min(totalCount, currentPage * itemsPerPage)} of {totalCount} results
                             </div>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setCurrentPage(p => p + 1)}
-                                disabled={currentPage * itemsPerPage >= totalCount || loading}
-                            >
-                                Next
-                            </Button>
+                            <div className="flex items-center space-x-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1 || loading}
+                                >
+                                    Previous
+                                </Button>
+                                <div className="text-sm font-medium w-20 text-center">
+                                    Page {currentPage}
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCurrentPage(p => p + 1)}
+                                    disabled={currentPage * itemsPerPage >= totalCount || loading}
+                                >
+                                    Next
+                                </Button>
+                            </div>
                         </div>
+                    </>
+                ) : (
+                    <div className="flex-1 flex items-center justify-center text-muted-foreground py-20">
+                        Enter a search term to find time slices.
                     </div>
-                </>
-            ) : (
-                <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                    Enter a search term to find time slices.
-                </div>
-            )}
+                )}
+            </div>
 
             <EditTimeSliceDialog
                 open={!!editSlice}

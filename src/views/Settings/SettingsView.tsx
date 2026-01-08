@@ -137,7 +137,7 @@ export function SettingsView() {
     };
 
     return (
-        <div className="flex flex-col h-full bg-background p-6 space-y-6 overflow-y-auto">
+        <div className="flex flex-col h-full bg-background p-6 space-y-6 overflow-y-auto" onWheel={(e) => e.stopPropagation()}>
             <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
 
             <Tabs defaultValue="general" className="w-full">

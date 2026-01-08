@@ -136,7 +136,7 @@ export function ImportFromJiraDialog({ open, onOpenChange, onImport }: ImportFro
 
                         {/* Autocomplete dropdown */}
                         {results.length > 0 && !selectedIssue && (
-                            <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-[250px] overflow-y-auto">
+                            <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-[250px] overflow-y-auto" onWheel={(e) => e.stopPropagation()}>
                                 {results.map(issue => (
                                     <div
                                         key={issue.id}

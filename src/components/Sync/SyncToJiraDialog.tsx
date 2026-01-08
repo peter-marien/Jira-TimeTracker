@@ -195,7 +195,7 @@ export function SyncToJiraDialog({ date, slices, open, onOpenChange, onSuccess }
                                 <AlertTriangle className="h-4 w-4" />
                                 <span className="font-medium text-sm">Skipped Items (Manual Action Required)</span>
                             </div>
-                            <ScrollArea className="h-[200px] border rounded bg-slate-50 dark:bg-slate-900/50">
+                            <ScrollArea className="h-[200px] border rounded bg-slate-50 dark:bg-slate-900/50" onWheel={(e) => e.stopPropagation()}>
                                 <div className="p-2 space-y-1">
                                     {syncResult.skippedConnection.map(s => (
                                         <div key={s.id} className="text-sm p-2 bg-white dark:bg-slate-800 rounded border border-amber-100 dark:border-amber-900/30 flex justify-between items-center">
@@ -226,7 +226,7 @@ export function SyncToJiraDialog({ date, slices, open, onOpenChange, onSuccess }
                                 <XCircle className="h-4 w-4" />
                                 <span className="font-medium text-sm">Failed Items</span>
                             </div>
-                            <ScrollArea className="h-[100px] border rounded bg-red-50 dark:bg-red-900/10">
+                            <ScrollArea className="h-[100px] border rounded bg-red-50 dark:bg-red-900/10" onWheel={(e) => e.stopPropagation()}>
                                 <div className="p-2 space-y-1">
                                     {syncResult.failed.map(({ slice, error }) => (
                                         <div key={slice.id} className="text-sm p-2 text-red-700 dark:text-red-300">
@@ -280,7 +280,7 @@ export function SyncToJiraDialog({ date, slices, open, onOpenChange, onSuccess }
                     </div>
 
                     {syncable.length > 0 ? (
-                        <ScrollArea className="h-[160px] border rounded bg-white dark:bg-slate-950">
+                        <ScrollArea className="h-[160px] border rounded bg-white dark:bg-slate-950" onWheel={(e) => e.stopPropagation()}>
                             <div className="p-1">
                                 {syncable.map(s => (
                                     <div key={s.id} className="flex justify-between items-center p-2 text-sm border-b last:border-0 hover:bg-slate-50 dark:hover:bg-slate-900">
@@ -306,7 +306,7 @@ export function SyncToJiraDialog({ date, slices, open, onOpenChange, onSuccess }
                         <div className="flex items-center gap-2">
                             <h4 className="text-sm font-medium text-muted-foreground">Won't be Synced ({skippedConnection.length + skippedKey.length})</h4>
                         </div>
-                        <ScrollArea className="h-[120px] border rounded bg-slate-50 dark:bg-slate-900/30">
+                        <ScrollArea className="h-[120px] border rounded bg-slate-50 dark:bg-slate-900/30" onWheel={(e) => e.stopPropagation()}>
                             <div className="p-1">
                                 {skippedConnection.map(s => (
                                     <div key={s.id} className="flex justify-between items-center p-2 text-sm border-b border-white/50 dark:border-slate-800 last:border-0 opacity-80">

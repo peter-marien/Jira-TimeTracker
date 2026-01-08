@@ -179,7 +179,7 @@ export function MonthView() {
                 </div>
             </div>
 
-            <div className="flex-1 border rounded-md overflow-auto bg-card shadow-sm">
+            <div className="flex-1 border rounded-md overflow-auto bg-card shadow-sm min-h-0 h-full" onWheel={(e) => e.stopPropagation()}>
                 <table className="w-full border-collapse text-xs table-fixed">
                     <thead className="sticky top-0 bg-secondary/80 backdrop-blur-sm z-20 shadow-sm">
                         <tr>

@@ -108,7 +108,7 @@ export function Dashboard() {
         <div className="flex flex-col h-full bg-background">
             <ActiveTrackingBanner />
 
-            <div className="flex-1 p-6 space-y-6 overflow-y-auto">
+            <div className="flex-1 p-6 space-y-6 overflow-y-auto" onWheel={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>

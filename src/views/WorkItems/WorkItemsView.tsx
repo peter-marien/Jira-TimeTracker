@@ -143,7 +143,7 @@ export function WorkItemsView() {
                 </div>
             </div>
 
-            <div className="border rounded-md flex-1 overflow-hidden">
+            <div className="border rounded-md flex-1 overflow-hidden" onWheel={(e) => e.stopPropagation()}>
                 <div className="overflow-y-auto h-full">
                     <Table>
                         <TableHeader>

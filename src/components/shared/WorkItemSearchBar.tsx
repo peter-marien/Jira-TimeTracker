@@ -112,18 +112,20 @@ export function WorkItemSearchBar({ onSelect, className, placeholder = "Search w
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
-                    className={cn("w-full justify-between", className)}
+                    className={cn("w-full justify-between min-w-0", className)}
                 >
-                    {value
-                        ? (localItems.find((item) => item.description === value)?.description || value)
-                        : placeholder}
+                    <span className="truncate flex-1 text-left">
+                        {value
+                            ? (localItems.find((item) => item.description === value)?.description || value)
+                            : placeholder}
+                    </span>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                <Command shouldFilter={false}>
+                <Command shouldFilter={false} className="h-auto">
                     <CommandInput placeholder="Search work items (key or description)..." value={query} onValueChange={setQuery} />
-                    <CommandList>
+                    <CommandList onWheel={(e) => e.stopPropagation()}>
                         <CommandEmpty>
                             {isLoading ? (
                                 <span className="flex items-center gap-2">

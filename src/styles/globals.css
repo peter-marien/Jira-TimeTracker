@@ -4,6 +4,16 @@
 
 @layer base {
   :root {
+    @apply h-full;
+  }
+
+  html,
+  body,
+  #root {
+    @apply h-full;
+  }
+
+  :root {
     /* Light Theme */
     --background: 0 0% 100%;
     --foreground: 222 47% 11%;
@@ -73,7 +83,7 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground h-full;
     font-feature-settings: "ss01", "ss02", "cv01", "cv02";
     /* Technical font features */
   }

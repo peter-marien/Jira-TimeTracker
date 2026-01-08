@@ -100,7 +100,7 @@ export function WorkItemTimeSlicesDialog({ open, onOpenChange, workItem }: WorkI
                     </DialogHeader>
 
                     <div className="flex-1 overflow-hidden mt-4">
-                        <ScrollArea className="h-full pr-4">
+                        <ScrollArea className="h-full pr-4" onWheel={(e) => e.stopPropagation()}>
                             {loading ? (
                                 <div className="flex items-center justify-center h-40">
                                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
