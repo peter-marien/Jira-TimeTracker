@@ -1,11 +1,13 @@
 {
   "name": "jira-timetracker-app",
   "private": true,
-  "version": "0.2.1",
+  "version": "0.2.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "taskkill /f /im electron.exe 2>nul || exit 0",
     "build": "tsc && vite build && electron-builder",
+    "prerelease": "taskkill /f /im electron.exe 2>nul || exit 0",
     "release": "tsc && vite build && dotenv -e .env -- electron-builder --publish always",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
