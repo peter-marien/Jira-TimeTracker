@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { Minus, Square, X, Copy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import logoLight from '/logo.svg?url'
+import logoDark from '/logo-dark.svg?url'
 
 export function TitleBar() {
     const [isMaximized, setIsMaximized] = useState(false)
@@ -41,7 +43,7 @@ export function TitleBar() {
         setIsMaximized(!isMaximized)
     }
 
-    const logoSrc = isDark ? '/logo-dark.svg' : '/logo.svg'
+    const logoSrc = isDark ? logoDark : logoLight
 
     return (
         <div className="h-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-4 border-b select-none drag-region">
