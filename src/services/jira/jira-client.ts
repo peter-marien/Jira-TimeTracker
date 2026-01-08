@@ -12,7 +12,7 @@ export interface JiraWorklog {
     issueId: string;
     timeSpentSeconds: number;
     started: string;
-    comment?: any;
+    comment?: string | Record<string, unknown>;
 }
 
 export class JiraClient {
@@ -37,7 +37,7 @@ export class JiraClient {
         });
     }
 
-    async searchIssues(jql: string): Promise<any[]> {
+    async searchIssues(jql: string): Promise<{ id: string; key: string; fields: { summary: string } }[]> {
         try {
             console.log(`[JiraClient] Searching with JQL: ${jql}`);
             const response = await this.client.post('/search/jql', {
@@ -48,17 +48,18 @@ export class JiraClient {
             console.log(`[JiraClient] Search response:`, JSON.stringify(response.data, null, 2));
             const issues = response.data.issues || response.data;
             return Array.isArray(issues) ? issues : [];
-        } catch (error: any) {
-            console.error(`Jira search failed [${error.config?.method?.toUpperCase()} ${error.config?.baseURL}${error.config?.url}]:`, error.message);
-            if (error.response) {
-                console.error('Response status:', error.response.status);
-                console.error('Response data:', JSON.stringify(error.response.data, null, 2));
+        } catch (error: unknown) {
+            const err = error as { config?: { method?: string; baseURL?: string; url?: string }; message?: string; response?: { status?: number; data?: unknown } };
+            console.error(`Jira search failed [${err.config?.method?.toUpperCase()} ${err.config?.baseURL}${err.config?.url}]:`, err.message);
+            if (err.response) {
+                console.error('Response status:', err.response.status);
+                console.error('Response data:', JSON.stringify(err.response.data, null, 2));
             }
             throw error;
         }
     }
 
-    async getData(path: string): Promise<any> {
+    async getData<T = unknown>(path: string): Promise<T> {
         return (await this.client.get(path)).data;
     }
 
@@ -82,7 +83,7 @@ export class JiraClient {
             const formattedStarted = format(startedDate, "yyyy-MM-dd'T'HH:mm:ss.SSSXXXX");
             const timeSpentSeconds = Math.max(60, worklog.timeSpentSeconds);
 
-            const payload: any = {
+            const payload: { started: string; timeSpentSeconds: number; comment?: { version: number; type: string; content: { type: string; content: { type: string; text: string }[] }[] } } = {
                 started: formattedStarted,
                 timeSpentSeconds: timeSpentSeconds,
             };
@@ -107,11 +108,12 @@ export class JiraClient {
 
             const response = await this.client.post<JiraWorklog>(`/issue/${issueIdOrKey}/worklog`, payload);
             return response.data;
-        } catch (error: any) {
-            console.error('Failed to add worklog:', error);
-            if (error.response) {
-                console.error('Response status:', error.response.status);
-                console.error('Response data:', JSON.stringify(error.response.data, null, 2));
+        } catch (error: unknown) {
+            const err = error as { response?: { status?: number; data?: unknown }; message?: string };
+            console.error('Failed to add worklog:', err);
+            if (err.response) {
+                console.error('Response status:', err.response.status);
+                console.error('Response data:', JSON.stringify(err.response.data, null, 2));
             }
             throw error;
         }
@@ -127,7 +129,7 @@ export class JiraClient {
             const formattedStarted = format(startedDate, "yyyy-MM-dd'T'HH:mm:ss.SSSXXXX");
             const timeSpentSeconds = Math.max(60, worklog.timeSpentSeconds);
 
-            const payload: any = {
+            const payload: { started: string; timeSpentSeconds: number; comment?: { version: number; type: string; content: { type: string; content: { type: string; text: string }[] }[] } } = {
                 started: formattedStarted,
                 timeSpentSeconds: timeSpentSeconds,
             };
@@ -153,17 +155,18 @@ export class JiraClient {
             console.log(`[JiraClient] Updating worklog ${worklogId} on ${issueIdOrKey}`);
             const response = await this.client.put<JiraWorklog>(`/issue/${issueIdOrKey}/worklog/${worklogId}`, payload);
             return response.data;
-        } catch (error: any) {
-            console.error(`[JiraClient] Failed to update worklog ${worklogId}:`, error);
-            if (error.response) {
-                console.error('Response status:', error.response.status);
-                console.error('Response data:', JSON.stringify(error.response.data, null, 2));
+        } catch (error: unknown) {
+            const err = error as { response?: { status?: number; data?: unknown }; message?: string };
+            console.error(`[JiraClient] Failed to update worklog ${worklogId}:`, err);
+            if (err.response) {
+                console.error('Response status:', err.response.status);
+                console.error('Response data:', JSON.stringify(err.response.data, null, 2));
             }
             throw error;
         }
     }
 
-    async getCurrentUser(): Promise<any> {
+    async getCurrentUser(): Promise<{ displayName: string }> {
         try {
             return await this.getData('/myself');
         } catch (error) {

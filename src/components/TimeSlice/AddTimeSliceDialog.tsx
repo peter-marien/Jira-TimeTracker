@@ -71,7 +71,7 @@ export function AddTimeSliceDialog({ open, onOpenChange, onSave, selectedDate }:
                     <div className="grid gap-2">
                         <Label htmlFor="workitem">Work Item</Label>
                         <WorkItemSearchBar
-                            onSelect={(item: any) => setWorkItemId(item.id)}
+                            onSelect={(item) => setWorkItemId(item.id)}
                             placeholder="Search for work item..."
                         />
                     </div>

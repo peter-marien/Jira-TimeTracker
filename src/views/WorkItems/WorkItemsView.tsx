@@ -60,6 +60,7 @@ export function WorkItemsView() {
     useEffect(() => {
         const timer = setTimeout(fetchItems, 300);
         return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [query, currentPage, showCompleted]);
 
     const handleDelete = async () => {
@@ -67,7 +68,7 @@ export function WorkItemsView() {
             try {
                 await api.deleteWorkItem(deleteItem.id);
                 fetchItems();
-            } catch (e) {
+            } catch {
                 setError("Cannot delete work item with existing time slices.");
             }
             setDeleteItem(null);

@@ -86,7 +86,7 @@ export function JiraConnectionDialog({ connection, open, onOpenChange, onSave }:
             } else {
                 setTestStatus({ success: false, message: result.error || 'Connection failed' });
             }
-        } catch (e) {
+        } catch {
             setTestStatus({ success: false, message: 'Connection failed' });
         } finally {
             setTesting(false);

@@ -102,9 +102,10 @@ export function registerIpcHandlers() {
                 const info = stmt.run(item)
                 return { id: info.lastInsertRowid, ...item }
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             // Check for unique constraint violation
-            if (error.code === 'SQLITE_CONSTRAINT_UNIQUE' || error.message?.includes('UNIQUE constraint failed')) {
+            const sqliteError = error as { code?: string; message?: string };
+            if (sqliteError.code === 'SQLITE_CONSTRAINT_UNIQUE' || sqliteError.message?.includes('UNIQUE constraint failed')) {
                 throw new Error('A work item with this Jira key already exists.');
             }
             throw error;
@@ -125,7 +126,7 @@ export function registerIpcHandlers() {
         return stmt.run(completed ? 1 : 0, ...ids);
     })
 
-    ipcMain.handle('db:get-recent-work-items', (_) => {
+    ipcMain.handle('db:get-recent-work-items', () => {
         const sql = `
             SELECT wi.*, jc.name as connection_name
             FROM work_items wi
@@ -169,7 +170,7 @@ export function registerIpcHandlers() {
     ipcMain.handle('db:save-time-slice', (_, slice) => {
         if (slice.id) {
             // Fetch existing record to preserve fields not provided in the update
-            const existing = db.prepare('SELECT * FROM time_slices WHERE id = ?').get(slice.id) as any;
+            const existing = db.prepare('SELECT * FROM time_slices WHERE id = ?').get(slice.id) as Record<string, unknown>;
             const merged = { ...existing, ...slice };
 
             const stmt = db.prepare(`
@@ -287,7 +288,7 @@ export function registerIpcHandlers() {
     // Jira API
     ipcMain.handle('jira:search-issues', async (_, query: string) => {
         const stmt = db.prepare('SELECT * FROM jira_connections WHERE is_default = 1 LIMIT 1');
-        const conn = stmt.get() as any;
+        const conn = stmt.get() as { base_url: string; email: string; api_token: string } | undefined;
 
         if (!conn) {
             throw new Error("No default Jira connection found");
@@ -314,7 +315,7 @@ export function registerIpcHandlers() {
     });
 
     ipcMain.handle('jira:search-issues-all-connections', async (_, query: string) => {
-        const connections = db.prepare('SELECT * FROM jira_connections').all() as any[];
+        const connections = db.prepare('SELECT * FROM jira_connections').all() as { id: number; name: string; base_url: string; email: string; api_token: string }[];
 
         if (connections.length === 0) {
             return [];
@@ -340,7 +341,7 @@ export function registerIpcHandlers() {
                     apiToken: conn.api_token
                 });
                 const issues = await client.searchIssues(jql);
-                return issues.map((issue: any) => ({
+                return issues.map((issue: { key: string; fields?: { summary?: string } }) => ({
                     key: issue.key,
                     summary: issue.fields?.summary || '',
                     connectionId: conn.id,
@@ -351,13 +352,13 @@ export function registerIpcHandlers() {
 
         // Flatten successful results
         return results
-            .filter((r): r is PromiseFulfilledResult<any[]> => r.status === 'fulfilled')
+            .filter((r): r is PromiseFulfilledResult<{ key: string; summary: string; connectionId: number; connectionName: string }[]> => r.status === 'fulfilled')
             .flatMap(r => r.value);
     });
 
     ipcMain.handle('jira:add-worklog', async (_, { issueKey, timeSpentSeconds, comment, started }) => {
         const stmt = db.prepare('SELECT * FROM jira_connections WHERE is_default = 1 LIMIT 1');
-        const conn = stmt.get() as any;
+        const conn = stmt.get() as { base_url: string; email: string; api_token: string } | undefined;
         if (!conn) throw new Error("No connection");
 
         const { JiraClient } = await import('../src/services/jira/jira-client');
@@ -376,7 +377,7 @@ export function registerIpcHandlers() {
 
     ipcMain.handle('jira:get-worklogs', async (_, { issueKey }) => {
         const stmt = db.prepare('SELECT * FROM jira_connections WHERE is_default = 1 LIMIT 1');
-        const conn = stmt.get() as any;
+        const conn = stmt.get() as { base_url: string; email: string; api_token: string } | undefined;
         if (!conn) throw new Error("No connection");
 
         const { JiraClient } = await import('../src/services/jira/jira-client');
@@ -391,7 +392,7 @@ export function registerIpcHandlers() {
 
     ipcMain.handle('jira:update-worklog', async (_, { issueKey, worklogId, timeSpentSeconds, comment, started }) => {
         const stmt = db.prepare('SELECT * FROM jira_connections WHERE is_default = 1 LIMIT 1');
-        const conn = stmt.get() as any;
+        const conn = stmt.get() as { base_url: string; email: string; api_token: string } | undefined;
         if (!conn) throw new Error("No default Jira connection configured");
 
         const { JiraClient } = await import('../src/services/jira/jira-client');
@@ -401,15 +402,11 @@ export function registerIpcHandlers() {
             apiToken: conn.api_token
         });
 
-        try {
-            return await client.updateWorklog(issueKey, worklogId, {
-                timeSpentSeconds,
-                comment,
-                started
-            });
-        } catch (error: any) {
-            throw error;
-        }
+        return await client.updateWorklog(issueKey, worklogId, {
+            timeSpentSeconds,
+            comment,
+            started
+        });
     });
 
     ipcMain.handle('jira:test-connection', async (_, config) => {
@@ -423,10 +420,11 @@ export function registerIpcHandlers() {
         try {
             const user = await client.getCurrentUser();
             return { success: true, displayName: user.displayName };
-        } catch (e: any) {
-            const msg = e.response?.status === 401 ? 'Authentication failed. Check credentials.' :
-                e.code === 'ENOTFOUND' ? 'Host not found. Check URL.' :
-                    e.message;
+        } catch (e: unknown) {
+            const err = e as { response?: { status?: number }; code?: string; message?: string };
+            const msg = err.response?.status === 401 ? 'Authentication failed. Check credentials.' :
+                err.code === 'ENOTFOUND' ? 'Host not found. Check URL.' :
+                    err.message;
             return { success: false, error: msg };
         }
     });

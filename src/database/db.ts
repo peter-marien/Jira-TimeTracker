@@ -99,7 +99,7 @@ function runMigrations(database: Database.Database) {
   try {
     // Check if columns exist by trying to select them
     database.prepare('SELECT synced_start_time FROM time_slices LIMIT 1').get();
-  } catch (error) {
+  } catch {
     // Columns don't exist, add them
     console.log('Running migration: Adding synced_start_time and synced_end_time columns');
     database.exec(`
@@ -112,7 +112,7 @@ function runMigrations(database: Database.Database) {
   // Migration: Add is_completed column to work_items
   try {
     database.prepare('SELECT is_completed FROM work_items LIMIT 1').get();
-  } catch (error) {
+  } catch {
     console.log('Running migration: Adding is_completed column to work_items');
     database.exec(`
       ALTER TABLE work_items ADD COLUMN is_completed INTEGER DEFAULT 0;

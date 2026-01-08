@@ -36,10 +36,10 @@ export function AwayTimeDialog({
 
     // Jira search state
     const [jiraQuery, setJiraQuery] = useState("");
-    const [jiraResults, setJiraResults] = useState<any[]>([]);
+    const [jiraResults, setJiraResults] = useState<{ id: string; key: string; fields: { summary: string } }[]>([]);
     const [jiraLoading, setJiraLoading] = useState(false);
     const [jiraError, setJiraError] = useState<string | null>(null);
-    const [selectedJiraIssue, setSelectedJiraIssue] = useState<any | null>(null);
+    const [selectedJiraIssue, setSelectedJiraIssue] = useState<{ id: string; key: string; fields: { summary: string } } | null>(null);
     const [importing, setImporting] = useState(false);
 
     // Debounced Jira search
@@ -56,8 +56,9 @@ export function AwayTimeDialog({
                 const data = await api.searchJiraIssues(jiraQuery);
                 const issues = Array.isArray(data) ? data : (data.issues || []);
                 setJiraResults(issues);
-            } catch (err: any) {
-                const msg = err.message || "Failed to search Jira.";
+            } catch (err: unknown) {
+                const error = err as { message?: string };
+                const msg = error.message || "Failed to search Jira.";
                 setJiraError(msg.includes('default') ? "No default Jira connection configured." : msg);
                 setJiraResults([]);
             } finally {
@@ -68,7 +69,7 @@ export function AwayTimeDialog({
         return () => clearTimeout(timeoutId);
     }, [jiraQuery, selectedAction]);
 
-    const handleSelectJiraIssue = (issue: any) => {
+    const handleSelectJiraIssue = (issue: { id: string; key: string; fields: { summary: string } }) => {
         setSelectedJiraIssue(issue);
         setJiraQuery(issue.key); // Show key in the input
         setJiraResults([]); // Close dropdown
@@ -104,9 +105,10 @@ export function AwayTimeDialog({
                 // Assign away time to the new work item
                 onAction('reassign', newWorkItem);
                 resetAndClose();
-            } catch (err: any) {
+            } catch (err: unknown) {
+                const error = err as { message?: string };
                 // Clean up IPC error message (remove "Error invoking remote method..." prefix)
-                let msg = err.message || "Failed to import issue.";
+                let msg = error.message || "Failed to import issue.";
                 const match = msg.match(/Error: (.+)$/);
                 if (match) msg = match[1];
                 setJiraError(msg);

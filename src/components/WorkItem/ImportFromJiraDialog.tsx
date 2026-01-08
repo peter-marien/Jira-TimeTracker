@@ -20,10 +20,10 @@ interface ImportFromJiraDialogProps {
 
 export function ImportFromJiraDialog({ open, onOpenChange, onImport }: ImportFromJiraDialogProps) {
     const [query, setQuery] = useState("");
-    const [results, setResults] = useState<any[]>([]);
+    const [results, setResults] = useState<{ id: string; key: string; fields: { summary: string } }[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [selectedIssue, setSelectedIssue] = useState<any | null>(null);
+    const [selectedIssue, setSelectedIssue] = useState<{ id: string; key: string; fields: { summary: string } } | null>(null);
     const [importing, setImporting] = useState(false);
 
     // Debounced search as you type
@@ -40,8 +40,9 @@ export function ImportFromJiraDialog({ open, onOpenChange, onImport }: ImportFro
                 const data = await api.searchJiraIssues(query);
                 const issues = Array.isArray(data) ? data : (data.issues || []);
                 setResults(issues);
-            } catch (err: any) {
-                const msg = err.message || "Failed to search Jira.";
+            } catch (err: unknown) {
+                const error = err as { message?: string };
+                const msg = error.message || "Failed to search Jira.";
                 setError(msg.includes('default') ? "No default Jira connection configured." : msg);
                 setResults([]);
             } finally {
@@ -63,7 +64,7 @@ export function ImportFromJiraDialog({ open, onOpenChange, onImport }: ImportFro
         }
     }, [open]);
 
-    const handleSelectIssue = (issue: any) => {
+    const handleSelectIssue = (issue: { id: string; key: string; fields: { summary: string } }) => {
         setSelectedIssue(issue);
         setQuery(issue.key);
         setResults([]);
@@ -96,11 +97,10 @@ export function ImportFromJiraDialog({ open, onOpenChange, onImport }: ImportFro
 
             onImport();
             onOpenChange(false);
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const errObj = err as { message?: string };
             // Clean up IPC error message (remove "Error invoking remote method..." prefix)
-            let msg = err.message || "Failed to import issue.";
-            const match = msg.match(/Error: (.+)$/);
-            if (match) msg = match[1];
+            const msg = errObj.message || "Failed to import issue.";
             setError(msg);
             setImporting(false);
         }

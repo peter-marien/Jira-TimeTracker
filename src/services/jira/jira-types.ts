@@ -27,7 +27,7 @@ export interface JiraWorklog {
     id: string;
     author: JiraUser;
     updateAuthor: JiraUser;
-    comment?: string | any; // ADF
+    comment?: string | Record<string, unknown>; // ADF
     created: string;
     updated: string;
     started: string;

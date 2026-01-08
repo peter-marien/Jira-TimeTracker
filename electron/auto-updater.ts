@@ -4,7 +4,7 @@ import log from 'electron-log';
 
 // Configure logging
 autoUpdater.logger = log;
-(autoUpdater.logger as any).transports.file.level = 'info';
+(autoUpdater.logger as typeof log).transports.file.level = 'info';
 
 export function initializeAutoUpdater(window: BrowserWindow) {
     autoUpdater.checkForUpdatesAndNotify();

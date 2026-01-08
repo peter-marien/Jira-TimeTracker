@@ -58,6 +58,7 @@ export function SearchView() {
     useEffect(() => {
         const timer = setTimeout(fetchResults, 300);
         return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [query, currentPage]);
 
     const handleDoubleClick = (slice: TimeSlice) => {

@@ -55,7 +55,7 @@ export function TimePicker({ value, onChange, className, disabled }: TimePickerP
             disabled={disabled}
             maskChar="_"
         >
-            {(inputProps: any) => (
+            {(inputProps: React.InputHTMLAttributes<HTMLInputElement>) => (
                 <Input
                     {...inputProps}
                     type="text"

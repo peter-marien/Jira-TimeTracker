@@ -103,10 +103,11 @@ export function SyncToJiraDialog({ date, slices, open, onOpenChange, onSuccess }
                                 comment: slice.notes || slice.work_item_description || "Worked on issue",
                                 started: slice.start_time
                             });
-                        } catch (updateError: any) {
-                            const is404 = updateError.response?.status === 404 ||
-                                updateError.message?.includes('404') ||
-                                updateError.message?.includes('status code 404');
+                        } catch (updateError: unknown) {
+                            const err = updateError as { response?: { status?: number }; message?: string };
+                            const is404 = err.response?.status === 404 ||
+                                err.message?.includes('404') ||
+                                err.message?.includes('status code 404');
 
                             if (is404) {
                                 console.log(`Worklog ${slice.jira_worklog_id} not found, creating new one`);
@@ -140,9 +141,10 @@ export function SyncToJiraDialog({ date, slices, open, onOpenChange, onSuccess }
                     });
 
                     result.synced.push(slice);
-                } catch (err: any) {
+                } catch (err: unknown) {
                     console.error(`Failed to sync slice ${slice.id}`, err);
-                    const msg = err.response?.data?.errorMessages?.[0] || err.message || "Unknown error";
+                    const error = err as { response?: { data?: { errorMessages?: string[] } }; message?: string };
+                    const msg = error.response?.data?.errorMessages?.[0] || error.message || "Unknown error";
                     result.failed.push({ slice, error: msg });
                 }
             }
