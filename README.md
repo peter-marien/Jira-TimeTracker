@@ -56,6 +56,12 @@ npm run build
 
 ### Deploy new version to GitHub
 
+ **_NOTE:_**  Ensure that you have a .env file with a valid GitHub token in the root.
+
+ ```
+ GH_TOKEN=[YOUR_GITHUB_TOKEN]
+ ```
+
 Update version number in package.json and run:
 
 ```bash
