@@ -18,8 +18,8 @@ import { Plus, Trash2, AlertCircle } from "lucide-react"
 
 interface SplitSegment {
     id: string;
-    startTime: string; // HH:mm
-    endTime: string;   // HH:mm
+    startTime: string; // HH:mm:ss
+    endTime: string;   // HH:mm:ss
     workItem: WorkItem | null;
 }
 
@@ -47,8 +47,8 @@ export function SplitTimeSliceDialog({ slice, open, onOpenChange, onSave }: Spli
 
             setSegments([{
                 id: Math.random().toString(36).substr(2, 9),
-                startTime: format(midStart, "HH:mm"),
-                endTime: format(midEnd, "HH:mm"),
+                startTime: format(midStart, "HH:mm:ss"),
+                endTime: format(midEnd, "HH:mm:ss"),
                 workItem: null
             }]);
             setError(null);
@@ -58,7 +58,7 @@ export function SplitTimeSliceDialog({ slice, open, onOpenChange, onSave }: Spli
     const addSegment = () => {
         if (!slice) return;
         const lastSegments = segments[segments.length - 1];
-        const lastEnd = lastSegments ? lastSegments.endTime : "00:00";
+        const lastEnd = lastSegments ? lastSegments.endTime : "00:00:00";
 
         setSegments([...segments, {
             id: Math.random().toString(36).substr(2, 9),
@@ -87,8 +87,8 @@ export function SplitTimeSliceDialog({ slice, open, onOpenChange, onSave }: Spli
 
         for (let i = 0; i < sorted.length; i++) {
             const s = sorted[i];
-            const start = new Date(`${dateBase}T${s.startTime}:00`);
-            const end = new Date(`${dateBase}T${s.endTime}:00`);
+            const start = new Date(`${dateBase}T${s.startTime}`);
+            const end = new Date(`${dateBase}T${s.endTime}`);
 
             if (isBefore(start, sliceStart) || isAfter(end, sliceEnd)) {
                 setError("Segments must be within original time range.");
@@ -132,8 +132,8 @@ export function SplitTimeSliceDialog({ slice, open, onOpenChange, onSave }: Spli
         let currentPos = originalStart;
 
         for (const seg of sorted) {
-            const segStartISO = `${dateBase}T${seg.startTime}:00`;
-            const segEndISO = `${dateBase}T${seg.endTime}:00`;
+            const segStartISO = `${dateBase}T${seg.startTime}`;
+            const segEndISO = `${dateBase}T${seg.endTime}`;
 
             // Gap
             if (isAfter(new Date(segStartISO), new Date(currentPos))) {
