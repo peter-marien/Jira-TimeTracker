@@ -9,7 +9,6 @@ import { ImportFromJiraDialog } from "@/components/WorkItem/ImportFromJiraDialog
 import { CreateWorkItemDialog } from "@/components/WorkItem/CreateWorkItemDialog"
 import { EditWorkItemDialog } from "@/components/WorkItem/EditWorkItemDialog"
 import { WorkItemTimeSlicesDialog } from "@/components/WorkItem/WorkItemTimeSlicesDialog"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
@@ -85,14 +84,6 @@ export function WorkItemsView() {
         }
     }
 
-    const toggleSelectAll = () => {
-        if (selectedIds.length === items.length) {
-            setSelectedIds([]);
-        } else {
-            setSelectedIds(items.map(i => i.id));
-        }
-    }
-
     const toggleSelect = (id: number) => {
         if (selectedIds.includes(id)) {
             setSelectedIds(selectedIds.filter(i => i !== id));
@@ -158,13 +149,6 @@ export function WorkItemsView() {
                     <Table>
                         <TableHeader>
                             <TableRow className="hover:bg-transparent">
-                                <TableHead className="w-[50px]">
-                                    <Checkbox
-                                        checked={items.length > 0 && selectedIds.length === items.length}
-                                        onCheckedChange={toggleSelectAll}
-                                        aria-label="Select all"
-                                    />
-                                </TableHead>
                                 <TableHead className="w-[150px]">Jira Key</TableHead>
                                 <TableHead>Description</TableHead>
                                 <TableHead className="w-[150px]">Connection</TableHead>
@@ -175,7 +159,7 @@ export function WorkItemsView() {
                         <TableBody>
                             {items.length === 0 && !loading && (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                                    <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
                                         No work items found.
                                     </TableCell>
                                 </TableRow>
@@ -203,13 +187,6 @@ export function WorkItemsView() {
                                             onDoubleClick={() => setEditItem(item)}
                                             onClick={(e) => handleRowClick(e, item)}
                                         >
-                                            <TableCell onClick={(e) => e.stopPropagation()}>
-                                                <Checkbox
-                                                    checked={isSelected}
-                                                    onCheckedChange={() => toggleSelect(item.id)}
-                                                    aria-label={`Select ${item.description}`}
-                                                />
-                                            </TableCell>
                                             <TableCell>
                                                 {item.jira_key ? (
                                                     <span className="text-xs font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded flex-shrink-0">
