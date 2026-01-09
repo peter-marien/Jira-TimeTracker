@@ -16,6 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MessageDialog } from "@/components/shared/MessageDialog"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { WorkItemContextMenu } from "./WorkItemContextMenu"
 
 export function WorkItemsView() {
     const [items, setItems] = useState<WorkItem[]>([]);
@@ -109,6 +110,15 @@ export function WorkItemsView() {
         return `${hours}h ${minutes}m`;
     };
 
+    const handleRowClick = (e: React.MouseEvent, item: WorkItem) => {
+        if (e.ctrlKey || e.metaKey) {
+            toggleSelect(item.id);
+        } else {
+            // Regular click: clear others and select this one
+            setSelectedIds([item.id]);
+        }
+    };
+
     return (
         <div className="flex flex-col h-full bg-background p-6 space-y-6">
             <div className="flex items-center justify-between">
@@ -147,7 +157,7 @@ export function WorkItemsView() {
                 <div className="overflow-y-auto h-full">
                     <Table>
                         <TableHeader>
-                            <TableRow>
+                            <TableRow className="hover:bg-transparent">
                                 <TableHead className="w-[50px]">
                                     <Checkbox
                                         checked={items.length > 0 && selectedIds.length === items.length}
@@ -165,106 +175,123 @@ export function WorkItemsView() {
                         <TableBody>
                             {items.length === 0 && !loading && (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
+                                    <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
                                         No work items found.
                                     </TableCell>
                                 </TableRow>
                             )}
-                            {items.map(item => (
-                                <TableRow
-                                    key={item.id}
-                                    className={cn(
-                                        "cursor-default select-none",
-                                        item.is_completed === 1 && "opacity-60 bg-muted/20"
-                                    )}
-                                    onDoubleClick={() => setEditItem(item)}
-                                >
-                                    <TableCell onClick={(e) => e.stopPropagation()}>
-                                        <Checkbox
-                                            checked={selectedIds.includes(item.id)}
-                                            onCheckedChange={() => toggleSelect(item.id)}
-                                            aria-label={`Select ${item.description}`}
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        {item.jira_key ? (
-                                            <span className="text-xs font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded flex-shrink-0">
-                                                {item.jira_key}
-                                            </span>
-                                        ) : (
-                                            <span className="text-muted-foreground text-xs italic">Manual</span>
-                                        )}
-                                    </TableCell>
-                                    <TableCell className={cn("font-medium", item.is_completed === 1 && "line-through text-muted-foreground")}>
-                                        {item.description}
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground text-sm">
-                                        {item.connection_name || '-'}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge variant="secondary" className="font-mono">
-                                            <Clock className="w-3 h-3 mr-1 opacity-70" />
-                                            {formatTotalTime(item.total_seconds)}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon">
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                {selectedIds.length > 1 && selectedIds.includes(item.id) ? (
-                                                    <>
-                                                        <DropdownMenuItem onClick={() => handleToggleCompletion(selectedIds, true)}>
-                                                            <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-500" />
-                                                            Mark {selectedIds.length} selected as Complete
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => handleToggleCompletion(selectedIds, false)}>
-                                                            <XCircle className="mr-2 h-4 w-4" />
-                                                            Mark {selectedIds.length} selected as Incomplete
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuSeparator />
-                                                    </>
+                            {items.map(item => {
+                                const isSelected = selectedIds.includes(item.id);
+                                return (
+                                    <WorkItemContextMenu
+                                        key={item.id}
+                                        item={item}
+                                        isSelected={isSelected}
+                                        selectedCount={selectedIds.length}
+                                        onEdit={setEditItem}
+                                        onDelete={setDeleteItem}
+                                        onShowHistory={setTimeSlicesItem}
+                                        onToggleCompletion={handleToggleCompletion}
+                                        selectedIds={selectedIds}
+                                    >
+                                        <TableRow
+                                            className={cn(
+                                                "cursor-default select-none",
+                                                item.is_completed === 1 && !isSelected && "opacity-60 bg-muted/20",
+                                                isSelected && "bg-primary/10 hover:bg-primary/15"
+                                            )}
+                                            onDoubleClick={() => setEditItem(item)}
+                                            onClick={(e) => handleRowClick(e, item)}
+                                        >
+                                            <TableCell onClick={(e) => e.stopPropagation()}>
+                                                <Checkbox
+                                                    checked={isSelected}
+                                                    onCheckedChange={() => toggleSelect(item.id)}
+                                                    aria-label={`Select ${item.description}`}
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                {item.jira_key ? (
+                                                    <span className="text-xs font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded flex-shrink-0">
+                                                        {item.jira_key}
+                                                    </span>
                                                 ) : (
-                                                    <>
-                                                        <DropdownMenuItem onClick={() => handleToggleCompletion([item.id], item.is_completed === 0)}>
-                                                            {item.is_completed === 0 ? (
-                                                                <>
-                                                                    <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-500" />
-                                                                    Mark as Complete
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <XCircle className="mr-2 h-4 w-4 text-muted-foreground" />
-                                                                    Mark as Incomplete
-                                                                </>
-                                                            )}
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuSeparator />
-                                                    </>
+                                                    <span className="text-muted-foreground text-xs italic">Manual</span>
                                                 )}
-                                                <DropdownMenuItem onClick={() => setEditItem(item)}>
-                                                    <Edit2 className="mr-2 h-4 w-4" />
-                                                    Edit
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => setTimeSlicesItem(item)}>
-                                                    <History className="mr-2 h-4 w-4" />
-                                                    Show Time Slices
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    className="text-destructive focus:text-destructive"
-                                                    onClick={() => setDeleteItem(item)}
-                                                >
-                                                    <Trash2 className="mr-2 h-4 w-4" />
-                                                    Delete
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
+                                            </TableCell>
+                                            <TableCell className={cn("font-medium", item.is_completed === 1 && "line-through text-muted-foreground")}>
+                                                {item.description}
+                                            </TableCell>
+                                            <TableCell className="text-muted-foreground text-sm">
+                                                {item.connection_name || '-'}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant="secondary" className="font-mono">
+                                                    <Clock className="w-3 h-3 mr-1 opacity-70" />
+                                                    {formatTotalTime(item.total_seconds)}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon">
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        {selectedIds.length > 1 && selectedIds.includes(item.id) ? (
+                                                            <>
+                                                                <DropdownMenuItem onClick={() => handleToggleCompletion(selectedIds, true)}>
+                                                                    <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-500" />
+                                                                    Mark {selectedIds.length} selected as Complete
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => handleToggleCompletion(selectedIds, false)}>
+                                                                    <XCircle className="mr-2 h-4 w-4" />
+                                                                    Mark {selectedIds.length} selected as Incomplete
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuSeparator />
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <DropdownMenuItem onClick={() => handleToggleCompletion([item.id], item.is_completed === 0)}>
+                                                                    {item.is_completed === 0 ? (
+                                                                        <>
+                                                                            <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-500" />
+                                                                            Mark as Complete
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <XCircle className="mr-2 h-4 w-4 text-muted-foreground" />
+                                                                            Mark as Incomplete
+                                                                        </>
+                                                                    )}
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuSeparator />
+                                                                <DropdownMenuItem onClick={() => setEditItem(item)}>
+                                                                    <Edit2 className="mr-2 h-4 w-4" />
+                                                                    Edit
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => setTimeSlicesItem(item)}>
+                                                                    <History className="mr-2 h-4 w-4" />
+                                                                    Show Time Slices
+                                                                </DropdownMenuItem>
+                                                            </>
+                                                        )}
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem
+                                                            className="text-destructive focus:text-destructive"
+                                                            onClick={() => setDeleteItem(item)}
+                                                        >
+                                                            <Trash2 className="mr-2 h-4 w-4" />
+                                                            Delete
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </TableCell>
+                                        </TableRow>
+                                    </WorkItemContextMenu>
+                                );
+                            })}
                         </TableBody>
                     </Table>
                 </div>
