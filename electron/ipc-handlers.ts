@@ -266,6 +266,50 @@ export function registerIpcHandlers() {
         }
     });
 
+    ipcMain.handle('db:merge-time-slices', (_, { ids }: { ids: number[] }) => {
+        const slices = db.prepare(`
+            SELECT * FROM time_slices 
+            WHERE id IN (${ids.map(() => '?').join(',')})
+            ORDER BY start_time ASC
+        `).all(...ids) as any[];
+
+        if (slices.length < 2) throw new Error("At least two slices are required to merge");
+
+        const firstSlice = slices[0];
+        const lastSlice = slices[slices.length - 1];
+
+        // Concatenate notes, filtering out empty ones
+        const combinedNotes = slices
+            .map(s => s.notes?.trim())
+            .filter(n => !!n)
+            .join('\n');
+
+        const mergedData = {
+            work_item_id: firstSlice.work_item_id,
+            start_time: firstSlice.start_time,
+            end_time: lastSlice.end_time || null,
+            notes: combinedNotes,
+            synced_to_jira: 0,
+            jira_worklog_id: null,
+            synced_start_time: null,
+            synced_end_time: null
+        };
+
+        const transaction = db.transaction(() => {
+            // Delete all original slices
+            db.prepare(`DELETE FROM time_slices WHERE id IN (${ids.map(() => '?').join(',')})`).run(...ids);
+
+            // Insert the new merged slice
+            const insertStmt = db.prepare(`
+                INSERT INTO time_slices (work_item_id, start_time, end_time, notes, synced_to_jira, jira_worklog_id, synced_start_time, synced_end_time)
+                VALUES (@work_item_id, @start_time, @end_time, @notes, @synced_to_jira, @jira_worklog_id, @synced_start_time, @synced_end_time)
+            `);
+            return insertStmt.run(mergedData);
+        });
+
+        return transaction();
+    });
+
     // Settings
     ipcMain.handle('db:get-settings', () => {
         const stmt = db.prepare('SELECT key, value FROM settings');

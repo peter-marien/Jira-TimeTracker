@@ -112,4 +112,10 @@ export const api = {
     // App Info
     getAppVersion: () => ipc.invoke('app:get-version') as Promise<string>,
     quitAndInstallUpdate: () => ipc.send('update:quit-and-install'),
+
+    // Merge logic
+    mergeTimeSlices: (ids: number[]) => ipc.invoke('db:merge-time-slices', { ids }),
+
+    // General passthrough for custom handlers
+    invoke: (channel: string, ...args: any[]) => ipc.invoke(channel, ...args),
 };

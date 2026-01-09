@@ -12,24 +12,61 @@ import {
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { AlertCircle, CheckCircle2, Copy, Pencil, Play, Trash2, ArrowRightLeft, MoreHorizontal, Split } from "lucide-react"
+import { AlertCircle, CheckCircle2, Copy, Pencil, Play, Trash2, ArrowRightLeft, MoreHorizontal, Split, Merge } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface TimeSliceTableProps {
     slices: TimeSlice[];
+    selectedIds?: Set<number>;
+    onSelectionChange?: (ids: Set<number>) => void;
     onEdit: (slice: TimeSlice) => void;
     onSplit: (slice: TimeSlice) => void;
     onMove: (slice: TimeSlice) => void;
     onDelete: (slice: TimeSlice) => void;
     onResume: (slice: TimeSlice) => void;
     onCopy: (slice: TimeSlice) => void;
+    onMerge?: () => void;
     onDoubleClick?: (slice: TimeSlice) => void;
 }
 
-export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete, onResume, onCopy, onDoubleClick }: TimeSliceTableProps) {
+export function TimeSliceTable({
+    slices,
+    selectedIds = new Set(),
+    onSelectionChange,
+    onEdit,
+    onSplit,
+    onMove,
+    onDelete,
+    onResume,
+    onCopy,
+    onMerge,
+    onDoubleClick
+}: TimeSliceTableProps) {
     if (slices.length === 0) {
         return <div className="text-center py-10 text-muted-foreground">No time tracked for this day.</div>
     }
+
+    const handleRowClick = (e: React.MouseEvent, slice: TimeSlice) => {
+        if (!onSelectionChange) return;
+
+        if (e.ctrlKey || e.metaKey) {
+            const newSelection = new Set(selectedIds);
+            if (newSelection.has(slice.id)) {
+                newSelection.delete(slice.id);
+            } else {
+                newSelection.add(slice.id);
+            }
+            onSelectionChange(newSelection);
+        } else {
+            // Regular click clears selection and selects just this one
+            // unless it's already the only one selected
+            if (selectedIds.size === 1 && selectedIds.has(slice.id)) {
+                // Keep it selected? Usually people expect single click to select one.
+            } else {
+                onSelectionChange(new Set([slice.id]));
+            }
+        }
+    };
 
     return (
         <div className="rounded-md border bg-card">
@@ -47,6 +84,7 @@ export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete, onRe
                     const end = slice.end_time ? new Date(slice.end_time) : null;
                     const duration = end ? differenceInSeconds(end, start) : 0;
                     const isActive = !slice.end_time;
+                    const isSelected = selectedIds.has(slice.id);
 
                     // Check if synced and if times have changed
                     const isSynced = slice.synced_to_jira === 1;
@@ -57,7 +95,12 @@ export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete, onRe
 
                     const Content = (
                         <div
-                            className={cn("grid grid-cols-[6rem_6rem_8rem_1fr_6rem_3rem] gap-4 p-4 items-center hover:bg-accent/50 transition-colors cursor-default select-none", isActive && "bg-primary/5 hover:bg-primary/10 border-l-2 border-l-primary")}
+                            className={cn(
+                                "grid grid-cols-[6rem_6rem_8rem_1fr_6rem_3rem] gap-4 p-4 items-center transition-colors cursor-default select-none",
+                                isSelected ? "bg-primary/15 hover:bg-primary/20" : "hover:bg-accent/50",
+                                isActive && !isSelected && "bg-primary/5 hover:bg-primary/10 border-l-2 border-l-primary"
+                            )}
+                            onClick={(e) => handleRowClick(e, slice)}
                             onDoubleClick={() => onDoubleClick ? onDoubleClick(slice) : onEdit(slice)}
                         >
                             {/* Start Column */}
@@ -128,34 +171,43 @@ export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete, onRe
                             {/* Actions Column */}
                             <div className="flex justify-end">
                                 <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
+                                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                                         <Button variant="ghost" size="icon" className="h-8 w-8">
                                             <MoreHorizontal className="h-4 w-4" />
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => onEdit(slice)}>
+                                        {selectedIds.size > 1 && selectedIds.has(slice.id) && (
+                                            <>
+                                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMerge?.(); }} className="text-amber-600 focus:text-amber-600">
+                                                    <Merge className="mr-2 h-4 w-4" />
+                                                    Merge Selected
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                            </>
+                                        )}
+                                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(slice); }}>
                                             <Pencil className="mr-2 h-4 w-4" />
                                             Edit
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => onResume(slice)}>
+                                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onResume(slice); }}>
                                             <Play className="mr-2 h-4 w-4 text-primary" />
                                             Resume
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => onSplit(slice)}>
+                                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onSplit(slice); }}>
                                             <Split className="mr-2 h-4 w-4" />
                                             Split
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => onMove(slice)}>
+                                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMove(slice); }}>
                                             <ArrowRightLeft className="mr-2 h-4 w-4" />
                                             Move
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => onCopy(slice)}>
+                                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onCopy(slice); }}>
                                             <Copy className="mr-2 h-4 w-4" />
                                             Copy to other days
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
-                                        <DropdownMenuItem onClick={() => onDelete(slice)} className="text-destructive focus:text-destructive">
+                                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(slice); }} className="text-destructive focus:text-destructive">
                                             <Trash2 className="mr-2 h-4 w-4" />
                                             Delete
                                         </DropdownMenuItem>
@@ -175,6 +227,8 @@ export function TimeSliceTable({ slices, onEdit, onSplit, onMove, onDelete, onRe
                             onDelete={onDelete}
                             onResume={onResume}
                             onCopy={onCopy}
+                            onMerge={onMerge}
+                            canMerge={selectedIds.size > 1 && selectedIds.has(slice.id)}
                         >
                             {Content}
                         </TimeSliceContextMenu>

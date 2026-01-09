@@ -15,6 +15,7 @@ import { MoveTimeSliceDialog } from "@/components/TimeSlice/MoveTimeSliceDialog"
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog"
 import { SyncToJiraDialog } from "@/components/Sync/SyncToJiraDialog"
 import { CopyTimeSliceDialog } from "@/components/TimeSlice/CopyTimeSliceDialog"
+import { MergeSlicesDialog } from "@/components/shared/MergeSlicesDialog"
 import { ArrowLeftRight, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -24,6 +25,9 @@ export function Dashboard() {
     const activeTimeSliceId = useTrackingStore(state => state.activeTimeSliceId);
     const prevActiveIdRef = useRef<number | null>(activeTimeSliceId);
 
+    // Selection State
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
     // Dialog States
     const [editSlice, setEditSlice] = useState<TimeSlice | null>(null);
     const [addSliceOpen, setAddSliceOpen] = useState(false);
@@ -32,6 +36,7 @@ export function Dashboard() {
     const [deleteSlice, setDeleteSlice] = useState<TimeSlice | null>(null);
     const [copySlice, setCopySlice] = useState<TimeSlice | null>(null);
     const [syncOpen, setSyncOpen] = useState(false);
+    const [mergeOpen, setMergeOpen] = useState(false);
 
     // Refresh list when tracking starts/stops
     // AND detection of when timing stops to prompt for notes
@@ -45,7 +50,13 @@ export function Dashboard() {
         }
         prevActiveIdRef.current = activeTimeSliceId;
         refresh();
+        setSelectedIds(new Set()); // Clear selection on refresh
     }, [activeTimeSliceId, refresh]);
+
+    // Clear selection when date changes
+    useEffect(() => {
+        setSelectedIds(new Set());
+    }, [selectedDate]);
 
     // Handlers
     const handleEdit = (slice: TimeSlice) => setEditSlice(slice);
@@ -71,6 +82,18 @@ export function Dashboard() {
             await api.deleteTimeSlice(deleteSlice.id);
             setDeleteSlice(null);
             refresh();
+        }
+    }
+
+    const confirmMerge = async () => {
+        const ids = Array.from(selectedIds);
+        try {
+            await api.mergeTimeSlices(ids);
+            setMergeOpen(false);
+            setSelectedIds(new Set());
+            refresh();
+        } catch (err) {
+            console.error("Failed to merge slices", err);
         }
     }
 
@@ -103,6 +126,10 @@ export function Dashboard() {
             formatted: `${hours}h ${minutes.toString().padStart(2, '0')}m`
         };
     }, [slices, now]);
+
+    const selectedSlices = useMemo(() => {
+        return slices.filter(s => selectedIds.has(s.id));
+    }, [slices, selectedIds]);
 
     return (
         <div className="flex flex-col h-full bg-background">
@@ -146,12 +173,15 @@ export function Dashboard() {
                     ) : (
                         <TimeSliceTable
                             slices={slices}
+                            selectedIds={selectedIds}
+                            onSelectionChange={setSelectedIds}
                             onEdit={handleEdit}
                             onDelete={handleDelete}
                             onSplit={handleSplit}
                             onMove={handleMove}
                             onResume={handleResume}
                             onCopy={handleCopy}
+                            onMerge={() => setMergeOpen(true)}
                         />
                     )}
                 </div>
@@ -195,6 +225,13 @@ export function Dashboard() {
                 description="This action cannot be undone."
                 variant="destructive"
                 confirmText="Delete"
+            />
+
+            <MergeSlicesDialog
+                open={mergeOpen}
+                onOpenChange={setMergeOpen}
+                slicesToMerge={selectedSlices}
+                onConfirm={confirmMerge}
             />
 
             <SyncToJiraDialog
