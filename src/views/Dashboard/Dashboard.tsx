@@ -101,7 +101,7 @@ export function Dashboard() {
     const [now, setNow] = useState(new Date());
 
     useEffect(() => {
-        const interval = setInterval(() => setNow(new Date()), 60000); // Update every minute
+        const interval = setInterval(() => setNow(new Date()), 1000); // Update every second
         return () => clearInterval(interval);
     }, []);
 
