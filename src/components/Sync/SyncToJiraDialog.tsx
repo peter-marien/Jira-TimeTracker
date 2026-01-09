@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { TimeSlice, api } from "@/lib/api"
 import { useState, useMemo } from "react"
 import { Loader2, CheckCircle, AlertTriangle, XCircle } from "lucide-react"
-import { format, differenceInSeconds } from "date-fns"
+import { format, differenceInSeconds, intervalToDuration } from "date-fns"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -74,6 +74,16 @@ export function SyncToJiraDialog({ date, slices, open, onOpenChange, onSuccess }
 
         return { syncable, skippedConnection, skippedKey, activeSlice };
     }, [slices]);
+
+    const formatDuration = (slice: TimeSlice) => {
+        if (!slice.start_time) return "00:00";
+        const start = new Date(slice.start_time);
+        const end = slice.end_time ? new Date(slice.end_time) : new Date();
+        const duration = intervalToDuration({ start, end });
+        const hours = (duration.hours || 0) + (duration.days || 0) * 24;
+        const minutes = duration.minutes || 0;
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    };
 
     const handleSync = async () => {
         setSyncing(true);
@@ -201,7 +211,7 @@ export function SyncToJiraDialog({ date, slices, open, onOpenChange, onSuccess }
                                         <div key={s.id} className="text-sm p-2 bg-white dark:bg-slate-800 rounded border border-amber-100 dark:border-amber-900/30 flex justify-between items-center">
                                             <div className="flex flex-col overflow-hidden">
                                                 <span className="font-medium truncate">{s.work_item_description}</span>
-                                                <span className="text-xs text-muted-foreground">{s.jira_key} • No Jira Connection</span>
+                                                <span className="text-xs text-muted-foreground">{s.jira_key} • {formatDuration(s)}</span>
                                             </div>
                                             <span className="text-xs bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded">No Connection</span>
                                         </div>
@@ -210,7 +220,7 @@ export function SyncToJiraDialog({ date, slices, open, onOpenChange, onSuccess }
                                         <div key={s.id} className="text-sm p-2 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-800 flex justify-between items-center">
                                             <div className="flex flex-col overflow-hidden">
                                                 <span className="font-medium truncate">{s.work_item_description}</span>
-                                                <span className="text-xs text-muted-foreground">No Jira Key</span>
+                                                <span className="text-xs text-muted-foreground">{formatDuration(s)}</span>
                                             </div>
                                             <span className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded">Local Only</span>
                                         </div>
@@ -230,7 +240,7 @@ export function SyncToJiraDialog({ date, slices, open, onOpenChange, onSuccess }
                                 <div className="p-2 space-y-1">
                                     {syncResult.failed.map(({ slice, error }) => (
                                         <div key={slice.id} className="text-sm p-2 text-red-700 dark:text-red-300">
-                                            <span className="font-bold">{slice.jira_key}:</span> {error}
+                                            <span className="font-bold">{slice.jira_key}:</span> {error} • {formatDuration(slice)}
                                         </div>
                                     ))}
                                 </div>
@@ -288,7 +298,7 @@ export function SyncToJiraDialog({ date, slices, open, onOpenChange, onSuccess }
                                             <span className="font-mono font-medium text-emerald-600 dark:text-emerald-500 w-[80px]">{s.jira_key}</span>
                                             <span className="text-muted-foreground truncate max-w-[220px]" title={s.notes || s.work_item_description}>{s.notes || s.work_item_description}</span>
                                         </div>
-                                        <span className="font-mono text-xs text-muted-foreground">{format(new Date(s.start_time), "HH:mm")}</span>
+                                        <span className="font-mono text-xs text-muted-foreground">{formatDuration(s)}</span>
                                     </div>
                                 ))}
                             </div>
@@ -312,9 +322,12 @@ export function SyncToJiraDialog({ date, slices, open, onOpenChange, onSuccess }
                                     <div key={s.id} className="flex justify-between items-center p-2 text-sm border-b border-white/50 dark:border-slate-800 last:border-0 opacity-80">
                                         <div className="flex items-center gap-3">
                                             <span className="font-mono font-medium text-amber-600 dark:text-amber-500 w-[80px]">{s.jira_key}</span>
-                                            <span className="text-muted-foreground truncate max-w-[200px]">{s.work_item_description}</span>
+                                            <div className="flex flex-col">
+                                                <span className="text-muted-foreground truncate max-w-[200px]">{s.work_item_description}</span>
+                                                <span className="text-[10px] text-amber-600/70 dark:text-amber-400/70">No Jira Connection</span>
+                                            </div>
                                         </div>
-                                        <span className="text-[10px] bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded">No Connection</span>
+                                        <span className="font-mono text-xs text-muted-foreground">{formatDuration(s)}</span>
                                     </div>
                                 ))}
                                 {skippedKey.map(s => (
@@ -323,7 +336,7 @@ export function SyncToJiraDialog({ date, slices, open, onOpenChange, onSuccess }
                                             <span className="font-mono font-medium text-slate-400 w-[80px]">LOCAL</span>
                                             <span className="text-muted-foreground truncate max-w-[200px]">{s.work_item_description}</span>
                                         </div>
-                                        <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded">No Key</span>
+                                        <span className="font-mono text-xs text-muted-foreground">{formatDuration(s)}</span>
                                     </div>
                                 ))}
                             </div>
