@@ -126,7 +126,7 @@ export function Timeline({ date, slices, className, onSliceClick, connections, o
                             <div
                                 onDoubleClick={() => onSliceClick?.(slice)}
                                 className={cn(
-                                    "absolute top-3 bottom-5 rounded-md cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col justify-center items-center px-1 overflow-hidden",
+                                    "absolute top-3 bottom-5 rounded-xl cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col justify-center items-center px-1 overflow-hidden",
                                     isActive
                                         ? "shadow-[0_0_10px_rgba(0,0,0,0.2)] animate-pulse brightness-110 border-white/20 border"
                                         : "hover:brightness-110 shadow-sm border border-white/5",
