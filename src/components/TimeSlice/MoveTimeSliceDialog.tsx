@@ -49,7 +49,7 @@ export function MoveTimeSliceDialog({ slice, open, onOpenChange, onSave }: MoveT
                 <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
                         <Label>New Work Item</Label>
-                        <WorkItemSearchBar onSelect={setNewItem} placeholder="Select work item..." />
+                        <WorkItemSearchBar onSelect={setNewItem} placeholder="Select work item..." autoFocus />
                     </div>
                 </div>
                 <DialogFooter>

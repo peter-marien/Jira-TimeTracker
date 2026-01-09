@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
@@ -21,6 +21,7 @@ interface WorkItemSearchBarProps {
     onSelect: (workItem: WorkItem) => void;
     className?: string;
     placeholder?: string;
+    autoFocus?: boolean;
 }
 
 // Simple Jira icon component
@@ -32,7 +33,7 @@ function JiraIcon({ className }: { className?: string }) {
     );
 }
 
-export function WorkItemSearchBar({ onSelect, className, placeholder = "Search work items..." }: WorkItemSearchBarProps) {
+export function WorkItemSearchBar({ onSelect, className, placeholder = "Search work items...", autoFocus = false }: WorkItemSearchBarProps) {
     const [open, setOpen] = useState(false)
     const [value, setValue] = useState("")
     const [query, setQuery] = useState("")
@@ -40,6 +41,19 @@ export function WorkItemSearchBar({ onSelect, className, placeholder = "Search w
     const [jiraItems, setJiraItems] = useState<JiraSearchResult[]>([])
     const [localLoading, setLocalLoading] = useState(false)
     const [jiraLoading, setJiraLoading] = useState(false)
+    const initialFocusDone = useRef(false)
+
+    // Auto-open the popover when autoFocus is true
+    useEffect(() => {
+        if (autoFocus && !initialFocusDone.current) {
+            // Small delay to ensure the component is fully mounted
+            const timer = setTimeout(() => {
+                setOpen(true);
+                initialFocusDone.current = true;
+            }, 100);
+            return () => clearTimeout(timer);
+        }
+    }, [autoFocus]);
 
     // Local search
     useEffect(() => {
