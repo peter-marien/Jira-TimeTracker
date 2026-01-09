@@ -28,7 +28,7 @@ export function JiraConnectionChart({ data }: JiraConnectionChartProps) {
                 color: curr.fill
             }
             return acc
-        }, {} as any)
+        }, {} as ChartConfig)
     } satisfies ChartConfig
 
     // Format data for Recharts - horizontal bars expect connection on Y axis

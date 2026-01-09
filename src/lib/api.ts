@@ -117,5 +117,6 @@ export const api = {
     mergeTimeSlices: (ids: number[]) => ipc.invoke('db:merge-time-slices', { ids }),
 
     // General passthrough for custom handlers
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     invoke: (channel: string, ...args: any[]) => ipc.invoke(channel, ...args),
 };

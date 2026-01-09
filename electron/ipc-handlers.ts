@@ -271,7 +271,7 @@ export function registerIpcHandlers() {
             SELECT * FROM time_slices 
             WHERE id IN (${ids.map(() => '?').join(',')})
             ORDER BY start_time ASC
-        `).all(...ids) as any[];
+        `).all(...ids) as any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
 
         if (slices.length < 2) throw new Error("At least two slices are required to merge");
 
