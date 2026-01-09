@@ -105,24 +105,40 @@ export function Dashboard() {
         return () => clearInterval(interval);
     }, []);
 
-    // Calculate total time for the day
-    const totalTime = useMemo(() => {
+    // Calculate total time and connection breakdown for the day
+    const dashboardData = useMemo(() => {
         let totalMinutes = 0;
+        const connectionMap = new Map<number | string, { name: string, minutes: number }>();
+
         for (const slice of slices) {
             if (slice.start_time) {
                 const start = new Date(slice.start_time).getTime();
                 const end = slice.end_time ? new Date(slice.end_time).getTime() : now.getTime();
-                // Avoid negative durations if start is in future (unlikely but safe)
-                const duration = Math.max(0, end - start);
-                totalMinutes += duration / (1000 * 60);
+                const durationMinutes = Math.max(0, end - start) / (1000 * 60);
+                totalMinutes += durationMinutes;
+
+                const connId = slice.jira_connection_id || 'other';
+                const connName = slice.connection_name || 'Other';
+
+                const existing = connectionMap.get(connId) || { name: connName, minutes: 0 };
+                existing.minutes += durationMinutes;
+                connectionMap.set(connId, existing);
             }
         }
+
+        const connectionData = Array.from(connectionMap.values())
+            .filter(c => c.minutes > 0)
+            .map((c, i) => ({
+                name: c.name,
+                minutes: c.minutes,
+                fill: `hsl(var(--primary) / ${Math.max(0.4, 1 - (i * 0.2))})`
+            }));
+
         const hours = Math.floor(totalMinutes / 60);
         const minutes = Math.round(totalMinutes % 60);
         return {
-            hours,
-            minutes,
             totalMinutes,
+            connectionData,
             formatted: `${hours}h ${minutes.toString().padStart(2, '0')}m`
         };
     }, [slices, now]);
@@ -153,7 +169,10 @@ export function Dashboard() {
                     </div>
                 </div>
 
-                <QuickStartBar totalMinutes={totalTime.totalMinutes} />
+                <QuickStartBar
+                    totalMinutes={dashboardData.totalMinutes}
+                    connectionData={dashboardData.connectionData}
+                />
 
                 <Timeline date={selectedDate} slices={slices} onSliceClick={handleEdit} />
 

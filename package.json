@@ -46,6 +46,7 @@
     "react-dom": "^18.2.0",
     "react-input-mask": "^2.0.4",
     "react-router-dom": "^7.11.0",
+    "recharts": "^3.6.0",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
     "zustand": "^5.0.9"

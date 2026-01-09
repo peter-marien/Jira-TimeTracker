@@ -53,7 +53,7 @@ export function DailyProgressRing({
                     strokeDasharray={circumference}
                     strokeDashoffset={dashOffset}
                     strokeLinecap="round"
-                    className="text-primary transition-all duration-1000 ease-in-out"
+                    className="text-primary"
                 />
             </svg>
 

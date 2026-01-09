@@ -8,12 +8,14 @@ import { ImportFromJiraDialog } from "@/components/WorkItem/ImportFromJiraDialog
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Badge } from "@/components/ui/badge"
 import { DailyProgressRing } from "@/components/Dashboard/DailyProgressRing"
+import { JiraConnectionChart, ConnectionData } from "@/components/Dashboard/JiraConnectionChart"
 
 interface QuickStartBarProps {
     totalMinutes?: number;
+    connectionData?: ConnectionData[];
 }
 
-export function QuickStartBar({ totalMinutes = 0 }: QuickStartBarProps) {
+export function QuickStartBar({ totalMinutes = 0, connectionData = [] }: QuickStartBarProps) {
     const { startTracking, activeTimeSliceId } = useTrackingStore();
     const [importOpen, setImportOpen] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
@@ -42,9 +44,14 @@ export function QuickStartBar({ totalMinutes = 0 }: QuickStartBarProps) {
     };
 
     return (
-        <div className="grid grid-cols-[1fr_auto_1fr] items-start w-full px-4 py-2">
-            {/* Left Column: Spacer to center the search bar */}
-            <div className="hidden lg:block w-full" />
+        <div className="grid grid-cols-[auto_1fr_auto] gap-8 items-start w-full max-w-screen-2xl mx-auto px-4 py-2">
+            {/* Left Column: Progress Ring */}
+            <div className="hidden lg:flex flex-col items-center justify-start min-w-[300px] gap-2">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground/70 w-full text-center">Total hours</h3>
+                <div className="py-1">
+                    <DailyProgressRing totalMinutes={totalMinutes} size={88} />
+                </div>
+            </div>
 
             {/* Center Column: Search Bar & Recent Badges */}
             <div className="flex flex-col gap-3 w-full max-w-5xl min-w-[300px] md:min-w-[600px]">
@@ -105,10 +112,10 @@ export function QuickStartBar({ totalMinutes = 0 }: QuickStartBarProps) {
                 )}
             </div>
 
-            {/* Right Column: Centered Progress Ring */}
-            <div className="hidden sm:flex items-start justify-center w-full min-w-[120px]">
-                <div className="py-1">
-                    <DailyProgressRing totalMinutes={totalMinutes} size={88} />
+            {/* Right Column: Connection Chart */}
+            <div className="hidden lg:flex flex-col items-center justify-start min-w-[300px]">
+                <div className="py-1 w-full flex justify-center">
+                    <JiraConnectionChart data={connectionData} />
                 </div>
             </div>
 
