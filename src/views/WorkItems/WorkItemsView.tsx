@@ -35,6 +35,7 @@ export function WorkItemsView() {
     const [totalCount, setTotalCount] = useState(0);
     const [showCompleted, setShowCompleted] = useState(false);
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const [lastClickedId, setLastClickedId] = useState<number | null>(null);
     const itemsPerPage = 50;
 
     // Dialogs
@@ -188,12 +189,29 @@ export function WorkItemsView() {
     };
 
     const handleRowClick = (e: React.MouseEvent, item: WorkItem) => {
-        if (e.ctrlKey || e.metaKey) {
+        if (e.shiftKey && lastClickedId !== null) {
+            const currentIndex = items.findIndex(i => i.id === item.id);
+            const lastIndex = items.findIndex(i => i.id === lastClickedId);
+
+            if (currentIndex !== -1 && lastIndex !== -1) {
+                const start = Math.min(currentIndex, lastIndex);
+                const end = Math.max(currentIndex, lastIndex);
+                const rangeIds = items.slice(start, end + 1).map(i => i.id);
+
+                if (e.ctrlKey || e.metaKey) {
+                    const newSelection = Array.from(new Set([...selectedIds, ...rangeIds]));
+                    setSelectedIds(newSelection);
+                } else {
+                    setSelectedIds(rangeIds);
+                }
+            }
+        } else if (e.ctrlKey || e.metaKey) {
             toggleSelect(item.id);
         } else {
             // Regular click: clear others and select this one
             setSelectedIds([item.id]);
         }
+        setLastClickedId(item.id);
     };
 
     return (

@@ -31,6 +31,8 @@ interface TimeSliceTableProps {
     otherColor?: string;
 }
 
+import { useState } from "react";
+
 export function TimeSliceTable({
     slices,
     selectedIds = new Set(),
@@ -46,6 +48,8 @@ export function TimeSliceTable({
     connections,
     otherColor
 }: TimeSliceTableProps) {
+    const [lastClickedId, setLastClickedId] = useState<number | null>(null);
+
     if (slices.length === 0) {
         return <div className="text-center py-10 text-muted-foreground">No time tracked for this day.</div>
     }
@@ -53,7 +57,22 @@ export function TimeSliceTable({
     const handleRowClick = (e: React.MouseEvent, slice: TimeSlice) => {
         if (!onSelectionChange) return;
 
-        if (e.ctrlKey || e.metaKey) {
+        const sortedSlices = [...slices].sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+
+        if (e.shiftKey && lastClickedId !== null) {
+            const currentIndex = sortedSlices.findIndex(s => s.id === slice.id);
+            const lastIndex = sortedSlices.findIndex(s => s.id === lastClickedId);
+
+            if (currentIndex !== -1 && lastIndex !== -1) {
+                const start = Math.min(currentIndex, lastIndex);
+                const end = Math.max(currentIndex, lastIndex);
+                const rangeIds = sortedSlices.slice(start, end + 1).map(s => s.id);
+
+                const newSelection = e.ctrlKey || e.metaKey ? new Set(selectedIds) : new Set<number>();
+                rangeIds.forEach(id => newSelection.add(id));
+                onSelectionChange(newSelection);
+            }
+        } else if (e.ctrlKey || e.metaKey) {
             const newSelection = new Set(selectedIds);
             if (newSelection.has(slice.id)) {
                 newSelection.delete(slice.id);
@@ -62,14 +81,10 @@ export function TimeSliceTable({
             }
             onSelectionChange(newSelection);
         } else {
-            // Regular click clears selection and selects just this one
-            // unless it's already the only one selected
-            if (selectedIds.size === 1 && selectedIds.has(slice.id)) {
-                // Keep it selected? Usually people expect single click to select one.
-            } else {
-                onSelectionChange(new Set([slice.id]));
-            }
+            onSelectionChange(new Set([slice.id]));
         }
+
+        setLastClickedId(slice.id);
     };
 
     return (
