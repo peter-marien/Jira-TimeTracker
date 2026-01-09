@@ -59,8 +59,8 @@ export function DailyProgressRing({
 
             {/* Center Text */}
             <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-[20px] font-bold text-foreground">
-                    {(totalMinutes / 60).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).replace('.', ',')}h
+                <span className="text-[18px] font-bold text-foreground">
+                    {Math.floor(totalMinutes / 60)}:{Math.floor(totalMinutes % 60).toString().padStart(2, '0')}
                 </span>
             </div>
         </div>
