@@ -2,6 +2,24 @@ import { create } from 'zustand'
 import { WorkItem, api } from '@/lib/api'
 import { formatISO } from 'date-fns'
 
+/**
+ * Rounds a date to the nearest interval.
+ * If intervalMinutes is 0 or 1, just clears the seconds.
+ */
+function roundToNearestInterval(date: Date, intervalMinutes: number): Date {
+    const result = new Date(date);
+    result.setSeconds(0, 0); // Always clear seconds and milliseconds
+
+    if (intervalMinutes <= 1) {
+        return result;
+    }
+
+    const intervalMs = intervalMinutes * 60 * 1000;
+    const timestamp = result.getTime();
+    const roundedMs = Math.round(timestamp / intervalMs) * intervalMs;
+    return new Date(roundedMs);
+}
+
 interface TrackingStore {
     activeWorkItem: WorkItem | null;
     activeTimeSliceId: number | null;
@@ -10,8 +28,8 @@ interface TrackingStore {
     totalTimeSpent: number; // Historical + current session
     historicalBase: number; // For internal calculation
 
-    startTracking: (workItem: WorkItem) => Promise<void>;
-    stopTracking: () => Promise<void>;
+    startTracking: (workItem: WorkItem, overrideStartTime?: string) => Promise<void>;
+    stopTracking: () => Promise<string | null>; // Returns the (possibly rounded) final end time
     tick: () => void; // Update elapsed time
     setElapsedSeconds: (seconds: number) => void;
     handleAwayTime: (action: 'discard' | 'keep' | 'reassign', awayStartTime: string, targetWorkItem?: WorkItem) => Promise<void>;
@@ -31,22 +49,47 @@ export const useTrackingStore = create<TrackingStore>((set, get) => ({
 
     setElapsedSeconds: (seconds) => set({ elapsedSeconds: seconds }),
 
-    startTracking: async (workItem) => {
+    startTracking: async (workItem, overrideStartTime) => {
         // 1. Stop current if any (handled by UI or logic? Logic here is safer)
         const { activeTimeSliceId, stopTracking } = get();
+        let startTimeToUse = overrideStartTime;
+
         if (activeTimeSliceId) {
-            await stopTracking();
+            // stopTracking returns the rounded end time of the stopped slice
+            const roundedEndTime = await stopTracking();
+            if (roundedEndTime && !overrideStartTime) {
+                // Use the rounded end time as the start of the new slice
+                startTimeToUse = roundedEndTime;
+            }
         }
 
-        const now = formatISO(new Date());
-        // 2. Create new time slice in DB
+        // 2. If no overrideStartTime was provided (and no slice was stopped), apply rounding to current time
+        if (!startTimeToUse) {
+            const now = new Date();
+            try {
+                const settings = await api.getSettings();
+                if (settings.rounding_enabled === 'true') {
+                    const intervalMinutes = parseInt(settings.rounding_interval || '15', 10);
+                    const roundedStart = roundToNearestInterval(now, intervalMinutes);
+                    startTimeToUse = formatISO(roundedStart);
+                    console.log(`[TimeRounding] New slice start rounded from ${formatISO(now)} to ${startTimeToUse} (Interval: ${intervalMinutes}m)`);
+                } else {
+                    startTimeToUse = formatISO(now);
+                }
+            } catch (err) {
+                console.error('[TimeRounding] Failed to get settings for start rounding:', err);
+                startTimeToUse = formatISO(now);
+            }
+        }
+
+        // 3. Create new time slice in DB
         const slice = await api.saveTimeSlice({
             work_item_id: workItem.id,
-            start_time: now,
+            start_time: startTimeToUse,
             end_time: null // Open-ended
         });
 
-        // 3. Fetch initial total seconds from DB (historical)
+        // 4. Fetch initial total seconds from DB (historical)
         const workItems = await api.getWorkItems({ query: workItem.jira_key || workItem.description });
         const freshWorkItem = workItems.find(wi => wi.id === workItem.id);
         const historicalSeconds = freshWorkItem?.total_seconds || 0;
@@ -54,7 +97,7 @@ export const useTrackingStore = create<TrackingStore>((set, get) => ({
         set({
             activeWorkItem: workItem,
             activeTimeSliceId: slice.id,
-            startTime: now,
+            startTime: startTimeToUse,
             elapsedSeconds: 0,
             totalTimeSpent: historicalSeconds,
             historicalBase: historicalSeconds
@@ -67,38 +110,19 @@ export const useTrackingStore = create<TrackingStore>((set, get) => ({
 
     stopTracking: async () => {
         const { activeTimeSliceId, activeWorkItem, startTime } = get();
-        if (!activeTimeSliceId || !startTime) return;
+        if (!activeTimeSliceId || !startTime) return null;
 
-        let finalStartTime = startTime;
-        let finalEndTime = formatISO(new Date());
+        const now = new Date();
+        let finalEndTime = formatISO(now);
 
-        // Apply time rounding if enabled
+        // Apply time rounding to the END time only (start time remains as-is)
         try {
             const settings = await api.getSettings();
             if (settings.rounding_enabled === 'true') {
                 const intervalMinutes = parseInt(settings.rounding_interval || '15', 10);
-                const intervalMs = intervalMinutes * 60 * 1000;
-
-                if (intervalMs > 0) {
-                    const originalStart = new Date(startTime);
-                    const originalEnd = new Date();
-
-                    // Round Start Down
-                    const roundedStartMs = Math.floor(originalStart.getTime() / intervalMs) * intervalMs;
-                    // Round End Up
-                    let roundedEndMs = Math.ceil(originalEnd.getTime() / intervalMs) * intervalMs;
-
-                    // Ensure minimum duration is 1 interval
-                    if (roundedEndMs - roundedStartMs < intervalMs) {
-                        roundedEndMs = roundedStartMs + intervalMs;
-                    }
-
-                    finalStartTime = formatISO(new Date(roundedStartMs));
-                    finalEndTime = formatISO(new Date(roundedEndMs));
-
-                    console.log(`[TimeRounding] Original: ${startTime} - ${formatISO(originalEnd)}`);
-                    console.log(`[TimeRounding] Rounded:  ${finalStartTime} - ${finalEndTime} (Interval: ${intervalMinutes}m)`);
-                }
+                const roundedEnd = roundToNearestInterval(now, intervalMinutes);
+                finalEndTime = formatISO(roundedEnd);
+                console.log(`[TimeRounding] End rounded to ${finalEndTime} (Interval: ${intervalMinutes}m)`);
             }
         } catch (err) {
             console.error('[TimeRounding] Failed to apply rounding:', err);
@@ -107,7 +131,7 @@ export const useTrackingStore = create<TrackingStore>((set, get) => ({
         await api.saveTimeSlice({
             id: activeTimeSliceId,
             work_item_id: activeWorkItem!.id,
-            start_time: finalStartTime,
+            start_time: startTime, // Keep the original start time
             end_time: finalEndTime
         });
 
@@ -123,6 +147,8 @@ export const useTrackingStore = create<TrackingStore>((set, get) => ({
             totalTimeSpent: 0,
             historicalBase: 0
         });
+
+        return finalEndTime;
     },
 
     tick: () => {
