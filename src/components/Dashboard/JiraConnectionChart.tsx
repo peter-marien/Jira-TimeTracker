@@ -67,7 +67,7 @@ export function JiraConnectionChart({ data }: JiraConnectionChartProps) {
                         tickLine={false}
                         axisLine={false}
                         className="text-[10px] font-medium fill-muted-foreground"
-                        width={60}
+                        width={90}
                     />
                     <Bar
                         dataKey="minutes"
