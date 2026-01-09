@@ -6,7 +6,7 @@ import {
     ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import { WorkItem } from "@/lib/api"
-import { Edit2, Trash2, History, CheckCircle2, XCircle } from "lucide-react"
+import { Edit2, Trash2, History, CheckCircle2, XCircle, ArrowRightLeft } from "lucide-react"
 
 interface WorkItemContextMenuProps {
     children: React.ReactNode;
@@ -17,6 +17,7 @@ interface WorkItemContextMenuProps {
     onDelete: (item: WorkItem) => void;
     onShowHistory: (item: WorkItem) => void;
     onToggleCompletion: (ids: number[], completed: boolean) => void;
+    onChangeConnection: () => void;
     selectedIds: number[];
 }
 
@@ -29,6 +30,7 @@ export function WorkItemContextMenu({
     onDelete,
     onShowHistory,
     onToggleCompletion,
+    onChangeConnection,
     selectedIds
 }: WorkItemContextMenuProps) {
     return (
@@ -46,6 +48,11 @@ export function WorkItemContextMenu({
                         <ContextMenuItem onClick={() => onToggleCompletion(selectedIds, false)}>
                             <XCircle className="mr-2 h-4 w-4" />
                             Mark {selectedCount} selected as Incomplete
+                        </ContextMenuItem>
+                        <ContextMenuSeparator />
+                        <ContextMenuItem onClick={onChangeConnection}>
+                            <ArrowRightLeft className="mr-2 h-4 w-4" />
+                            Change Connection
                         </ContextMenuItem>
                     </>
                 ) : (
@@ -67,6 +74,10 @@ export function WorkItemContextMenu({
                         <ContextMenuItem onClick={() => onEdit(item)}>
                             <Edit2 className="mr-2 h-4 w-4" />
                             Edit Work Item
+                        </ContextMenuItem>
+                        <ContextMenuItem onClick={onChangeConnection}>
+                            <ArrowRightLeft className="mr-2 h-4 w-4" />
+                            Change Connection
                         </ContextMenuItem>
                         <ContextMenuItem onClick={() => onShowHistory(item)}>
                             <History className="mr-2 h-4 w-4" />

@@ -134,6 +134,12 @@ export function registerIpcHandlers() {
         return stmt.run(completed ? 1 : 0, ...ids);
     })
 
+    ipcMain.handle('db:bulk-update-work-items-connection', (_, { ids, connectionId }: { ids: number[], connectionId: number | null }) => {
+        const placeholders = ids.map(() => '?').join(',');
+        const stmt = db.prepare(`UPDATE work_items SET jira_connection_id = ?, updated_at = unixepoch() WHERE id IN (${placeholders})`);
+        return stmt.run(connectionId, ...ids);
+    })
+
     ipcMain.handle('db:get-recent-work-items', () => {
         const sql = `
             SELECT wi.*, jc.name as connection_name

@@ -3,12 +3,13 @@ import { api, WorkItem, JiraConnection } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Search, Trash2, Edit2, Download, MoreHorizontal, History, Clock, CheckCircle2, XCircle } from "lucide-react"
+import { Plus, Search, Trash2, Edit2, Download, MoreHorizontal, History, Clock, CheckCircle2, XCircle, ArrowRightLeft } from "lucide-react"
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog"
 import { ImportFromJiraDialog } from "@/components/WorkItem/ImportFromJiraDialog"
 import { CreateWorkItemDialog } from "@/components/WorkItem/CreateWorkItemDialog"
 import { EditWorkItemDialog } from "@/components/WorkItem/EditWorkItemDialog"
 import { WorkItemTimeSlicesDialog } from "@/components/WorkItem/WorkItemTimeSlicesDialog"
+import { BulkChangeConnectionDialog } from "@/components/WorkItem/BulkChangeConnectionDialog"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
@@ -42,6 +43,7 @@ export function WorkItemsView() {
     const [editItem, setEditItem] = useState<WorkItem | null>(null);
     const [deleteItem, setDeleteItem] = useState<WorkItem | null>(null);
     const [timeSlicesItem, setTimeSlicesItem] = useState<WorkItem | null>(null);
+    const [bulkConnectionOpen, setBulkConnectionOpen] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [jiraConnections, setJiraConnections] = useState<JiraConnection[]>([]);
 
@@ -105,6 +107,15 @@ export function WorkItemsView() {
             setSelectedIds([...selectedIds, id]);
         }
     }
+
+    const handleBulkSaveConnection = async (connectionId: number | null) => {
+        try {
+            await api.bulkUpdateWorkItemsConnection(selectedIds, connectionId);
+            fetchItems();
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     const formatTotalTime = (seconds: number | undefined) => {
         if (!seconds || seconds === 0) return "0m";
@@ -193,6 +204,11 @@ export function WorkItemsView() {
                     <Button variant="outline" onClick={() => setImportOpen(true)}>
                         <Download className="mr-2 h-4 w-4" /> Import from Jira
                     </Button>
+                    {selectedIds.length > 0 && (
+                        <Button variant="outline" onClick={() => setBulkConnectionOpen(true)}>
+                            <ArrowRightLeft className="mr-2 h-4 w-4" /> Change Connection
+                        </Button>
+                    )}
                     <Button onClick={() => setCreateOpen(true)}>
                         <Plus className="mr-2 h-4 w-4" /> New Work Item
                     </Button>
@@ -251,6 +267,7 @@ export function WorkItemsView() {
                                         onDelete={setDeleteItem}
                                         onShowHistory={setTimeSlicesItem}
                                         onToggleCompletion={handleToggleCompletion}
+                                        onChangeConnection={() => setBulkConnectionOpen(true)}
                                         selectedIds={selectedIds}
                                     >
                                         <TableRow
@@ -428,6 +445,12 @@ export function WorkItemsView() {
                 description={`Are you sure you want to delete "${deleteItem?.description}"?`}
                 confirmText="Delete"
                 variant="destructive"
+            />
+            <BulkChangeConnectionDialog
+                open={bulkConnectionOpen}
+                onOpenChange={setBulkConnectionOpen}
+                onSave={handleBulkSaveConnection}
+                selectedCount={selectedIds.length}
             />
             <MessageDialog
                 open={!!error}
