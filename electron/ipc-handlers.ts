@@ -27,16 +27,24 @@ export function registerIpcHandlers() {
         if (connection.id) {
             const stmt = db.prepare(`
         UPDATE jira_connections 
-        SET name = @name, base_url = @base_url, email = @email, api_token = @api_token, is_default = @is_default, updated_at = unixepoch()
+        SET name = @name, base_url = @base_url, email = @email, api_token = @api_token, is_default = @is_default, color = @color, is_enabled = @is_enabled, updated_at = unixepoch()
         WHERE id = @id
       `)
-            return stmt.run(connection)
+            return stmt.run({
+                ...connection,
+                color: connection.color || null,
+                is_enabled: connection.is_enabled !== undefined ? connection.is_enabled : 1
+            })
         } else {
             const stmt = db.prepare(`
-        INSERT INTO jira_connections (name, base_url, email, api_token, is_default)
-        VALUES (@name, @base_url, @email, @api_token, @is_default)
+        INSERT INTO jira_connections (name, base_url, email, api_token, is_default, color, is_enabled)
+        VALUES (@name, @base_url, @email, @api_token, @is_default, @color, @is_enabled)
       `)
-            return stmt.run(connection)
+            return stmt.run({
+                ...connection,
+                color: connection.color || null,
+                is_enabled: connection.is_enabled !== undefined ? connection.is_enabled : 1
+            })
         }
     })
 
@@ -331,7 +339,7 @@ export function registerIpcHandlers() {
 
     // Jira API
     ipcMain.handle('jira:search-issues', async (_, query: string) => {
-        const stmt = db.prepare('SELECT * FROM jira_connections WHERE is_default = 1 LIMIT 1');
+        const stmt = db.prepare('SELECT * FROM jira_connections WHERE is_default = 1 AND is_enabled = 1 LIMIT 1');
         const conn = stmt.get() as { base_url: string; email: string; api_token: string } | undefined;
 
         if (!conn) {
@@ -359,7 +367,7 @@ export function registerIpcHandlers() {
     });
 
     ipcMain.handle('jira:search-issues-all-connections', async (_, query: string) => {
-        const connections = db.prepare('SELECT * FROM jira_connections').all() as { id: number; name: string; base_url: string; email: string; api_token: string }[];
+        const connections = db.prepare('SELECT * FROM jira_connections WHERE is_enabled = 1').all() as { id: number; name: string; base_url: string; email: string; api_token: string }[];
 
         if (connections.length === 0) {
             return [];

@@ -1,4 +1,4 @@
-import { TimeSlice } from "@/lib/api"
+import { TimeSlice, JiraConnection } from "@/lib/api"
 import { TimeDisplay } from "@/components/shared/TimeDisplay"
 import { DurationDisplay } from "@/components/shared/DurationDisplay"
 import { TimeSliceContextMenu } from "./TimeSliceContextMenu"
@@ -27,6 +27,8 @@ interface TimeSliceTableProps {
     onCopy: (slice: TimeSlice) => void;
     onMerge?: () => void;
     onDoubleClick?: (slice: TimeSlice) => void;
+    connections?: JiraConnection[];
+    otherColor?: string;
 }
 
 export function TimeSliceTable({
@@ -40,7 +42,9 @@ export function TimeSliceTable({
     onResume,
     onCopy,
     onMerge,
-    onDoubleClick
+    onDoubleClick,
+    connections,
+    otherColor
 }: TimeSliceTableProps) {
     if (slices.length === 0) {
         return <div className="text-center py-10 text-muted-foreground">No time tracked for this day.</div>
@@ -117,13 +121,27 @@ export function TimeSliceTable({
                                 )}
                             </div>
 
-                            {/* Jira Key Column */}
                             <div className="flex items-center gap-1.5">
                                 {slice.jira_key ? (
                                     <>
-                                        <span className="text-xs font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded flex-shrink-0">
-                                            {slice.jira_key}
-                                        </span>
+                                        {(() => {
+                                            const connId = slice.jira_connection_id;
+                                            const connection = connId ? connections?.find(c => c.id === connId) : null;
+                                            const badgeColor = connection?.color || (connId ? 'hsl(var(--primary))' : (otherColor || '#64748b'));
+                                            const isHex = badgeColor.startsWith('#');
+
+                                            return (
+                                                <span
+                                                    className="text-xs font-bold px-1.5 py-0.5 rounded flex-shrink-0"
+                                                    style={{
+                                                        backgroundColor: isHex ? `${badgeColor}20` : `hsl(var(--primary) / 0.1)`,
+                                                        color: badgeColor
+                                                    }}
+                                                >
+                                                    {slice.jira_key}
+                                                </span>
+                                            );
+                                        })()}
                                         {isOutOfSync ? (
                                             <Tooltip>
                                                 <TooltipTrigger asChild>

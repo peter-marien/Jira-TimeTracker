@@ -41,6 +41,8 @@ export interface JiraConnection {
     email: string;
     api_token: string;
     is_default: number;
+    color?: string;
+    is_enabled: number;
 }
 
 const ipc = window.ipcRenderer;

@@ -4,7 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button"
 import { ChevronsUpDown, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { api, WorkItem } from "@/lib/api"
+import { api, WorkItem, JiraConnection } from "@/lib/api"
 
 interface JiraSearchResult {
     key: string;
@@ -41,7 +41,12 @@ export function WorkItemSearchBar({ onSelect, className, placeholder = "Search w
     const [jiraItems, setJiraItems] = useState<JiraSearchResult[]>([])
     const [localLoading, setLocalLoading] = useState(false)
     const [jiraLoading, setJiraLoading] = useState(false)
+    const [connections, setConnections] = useState<JiraConnection[]>([]);
     const initialFocusDone = useRef(false)
+
+    useEffect(() => {
+        api.getJiraConnections().then(setConnections);
+    }, []);
 
     // Auto-open the popover when autoFocus is true
     useEffect(() => {
@@ -168,7 +173,10 @@ export function WorkItemSearchBar({ onSelect, className, placeholder = "Search w
                                             >
                                                 <span className="font-bold truncate w-full">{item.description}</span>
                                                 {item.jira_key && (
-                                                    <span className="text-xs text-muted-foreground font-mono">
+                                                    <span
+                                                        className="text-xs font-mono"
+                                                        style={{ color: connections.find(c => c.id === item.jira_connection_id)?.color || 'hsl(var(--primary))' }}
+                                                    >
                                                         {item.jira_key}
                                                     </span>
                                                 )}
@@ -185,7 +193,10 @@ export function WorkItemSearchBar({ onSelect, className, placeholder = "Search w
                                             >
                                                 <div className="flex flex-col items-start gap-1 min-w-0 flex-1">
                                                     <span className="font-bold truncate w-full">{jiraItem.summary}</span>
-                                                    <span className="text-xs text-muted-foreground font-mono">
+                                                    <span
+                                                        className="text-xs font-mono"
+                                                        style={{ color: connections.find(c => c.id === jiraItem.connectionId)?.color || 'hsl(var(--primary))' }}
+                                                    >
                                                         {jiraItem.key}
                                                     </span>
                                                 </div>

@@ -1,4 +1,4 @@
-import { TimeSlice } from "@/lib/api"
+import { TimeSlice, JiraConnection } from "@/lib/api"
 import { startOfDay, setHours, endOfDay, format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -8,9 +8,11 @@ interface TimelineProps {
     slices: TimeSlice[];
     className?: string;
     onSliceClick?: (slice: TimeSlice) => void;
+    connections?: JiraConnection[];
+    otherColor?: string;
 }
 
-export function Timeline({ date, slices, className, onSliceClick }: TimelineProps) {
+export function Timeline({ date, slices, className, onSliceClick, connections, otherColor }: TimelineProps) {
     const dayStart = startOfDay(date);
     const dayEnd = endOfDay(date);
 
@@ -110,6 +112,10 @@ export function Timeline({ date, slices, className, onSliceClick }: TimelineProp
                 const isActive = !slice.end_time;
                 const hasOverlap = getOverlapStatus(slice);
 
+                const connId = slice.jira_connection_id;
+                const connection = connId ? connections?.find(c => c.id === connId) : null;
+                const sliceColor = connection?.color || (connId ? 'hsl(var(--primary))' : otherColor || '#64748b');
+
                 // Text display logic: only show if block is wide enough
                 const showDetails = widthPercent > 4;
                 const showTimes = widthPercent > 15;
@@ -122,11 +128,15 @@ export function Timeline({ date, slices, className, onSliceClick }: TimelineProp
                                 className={cn(
                                     "absolute top-3 bottom-5 rounded-md cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col justify-center items-center px-1 overflow-hidden",
                                     isActive
-                                        ? "bg-primary shadow-[0_0_15px_hsl(var(--primary))_0.3] animate-pulse border-primary/30 border"
-                                        : "bg-primary/90 hover:bg-primary shadow-sm border border-white/10",
-                                    hasOverlap && "border-2 border-red-500 z-10"
+                                        ? "shadow-[0_0_10px_rgba(0,0,0,0.2)] animate-pulse brightness-110 border-white/20 border"
+                                        : "hover:brightness-110 shadow-sm border border-white/5",
+                                    hasOverlap && "ring-2 ring-red-500 z-10"
                                 )}
-                                style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
+                                style={{
+                                    left: `${leftPercent}%`,
+                                    width: `${widthPercent}%`,
+                                    backgroundColor: sliceColor
+                                }}
                             >
                                 {showDetails && (
                                     <span className="text-[10px] font-bold text-white truncate w-full text-center">

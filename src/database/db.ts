@@ -51,6 +51,8 @@ function initSchema(database: Database.Database) {
       email TEXT NOT NULL,
       api_token TEXT NOT NULL,
       is_default INTEGER DEFAULT 0,
+      color TEXT,
+      is_enabled INTEGER DEFAULT 1,
       created_at INTEGER DEFAULT (unixepoch()),
       updated_at INTEGER DEFAULT (unixepoch())
     );
@@ -176,6 +178,17 @@ function runMigrations(database: Database.Database) {
     }
   } catch (error) {
     console.error('Failed to create unique index:', error);
+  }
+  // Migration: Add color and is_enabled columns to jira_connections
+  try {
+    database.prepare('SELECT color FROM jira_connections LIMIT 1').get();
+  } catch {
+    console.log('Running migration: Adding color and is_enabled columns to jira_connections');
+    database.exec(`
+      ALTER TABLE jira_connections ADD COLUMN color TEXT;
+      ALTER TABLE jira_connections ADD COLUMN is_enabled INTEGER DEFAULT 1;
+    `);
+    console.log('Migration completed successfully');
   }
 }
 

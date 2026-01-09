@@ -12,7 +12,8 @@ import { Label } from "@/components/ui/label"
 import { useState, useEffect } from "react"
 import { api, JiraConnection } from "@/lib/api"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Eye, EyeOff, Loader2, Plug } from "lucide-react"
+import { Eye, EyeOff, Loader2, Plug, Palette } from "lucide-react"
+import { ColorPicker } from "@/components/shared/ColorPicker"
 
 interface JiraConnectionDialogProps {
     connection: JiraConnection | null;
@@ -27,6 +28,8 @@ export function JiraConnectionDialog({ connection, open, onOpenChange, onSave }:
     const [email, setEmail] = useState("");
     const [apiToken, setApiToken] = useState("");
     const [isDefault, setIsDefault] = useState(false);
+    const [color, setColor] = useState("");
+    const [isEnabled, setIsEnabled] = useState(true);
 
     // New state
     const [showToken, setShowToken] = useState(false);
@@ -41,12 +44,16 @@ export function JiraConnectionDialog({ connection, open, onOpenChange, onSave }:
                 setEmail(connection.email);
                 setApiToken(connection.api_token);
                 setIsDefault(!!connection.is_default);
+                setColor(connection.color || "");
+                setIsEnabled(connection.is_enabled !== 0);
             } else {
                 setName("");
                 setBaseUrl("");
                 setEmail("");
                 setApiToken("");
                 setIsDefault(false);
+                setColor("");
+                setIsEnabled(true);
             }
             setTestStatus(null);
             setShowToken(false);
@@ -62,7 +69,9 @@ export function JiraConnectionDialog({ connection, open, onOpenChange, onSave }:
             base_url: baseUrl,
             email,
             api_token: apiToken,
-            is_default: isDefault ? 1 : 0
+            is_default: isDefault ? 1 : 0,
+            color: color || undefined,
+            is_enabled: isEnabled ? 1 : 0
         });
 
         onSave();
@@ -147,6 +156,25 @@ export function JiraConnectionDialog({ connection, open, onOpenChange, onSave }:
                         </p>
                     </div>
 
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="color" className="flex items-center gap-2">
+                                <Palette className="h-4 w-4" /> Connection Color
+                            </Label>
+                            <ColorPicker color={color} onChange={setColor} />
+                        </div>
+                        <div className="flex flex-col justify-end pb-1 gap-2">
+                            <div className="flex items-center space-x-2">
+                                <Checkbox id="enabled" checked={isEnabled} onCheckedChange={(checked) => setIsEnabled(!!checked)} />
+                                <Label htmlFor="enabled">Connection Enabled</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Checkbox id="default" checked={isDefault} onCheckedChange={(checked) => setIsDefault(!!checked)} />
+                                <Label htmlFor="default">Set as default</Label>
+                            </div>
+                        </div>
+                    </div>
+
                     {testStatus && (
                         <div className={`text-sm p-2 rounded flex items-center gap-2 ${testStatus.success ? 'bg-emerald-50 text-emerald-700' : 'bg-destructive/10 text-destructive'}`}>
                             {testStatus.success ? (
@@ -158,22 +186,16 @@ export function JiraConnectionDialog({ connection, open, onOpenChange, onSave }:
                         </div>
                     )}
 
-                    <div className="flex items-center space-x-2 pt-2 justify-between">
-                        <div className="flex items-center space-x-2">
-                            <Checkbox id="default" checked={isDefault} onCheckedChange={(checked) => setIsDefault(!!checked)} />
-                            <Label htmlFor="default">Set as default</Label>
-                        </div>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={handleTestConnection}
-                            disabled={testing}
-                        >
-                            {testing ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Plug className="h-3 w-3 mr-2" />}
-                            Test
-                        </Button>
-                    </div>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleTestConnection}
+                        disabled={testing}
+                    >
+                        {testing ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Plug className="h-3 w-3 mr-2" />}
+                        Test
+                    </Button>
                 </div>
                 <DialogFooter>
                     <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>Cancel</Button>

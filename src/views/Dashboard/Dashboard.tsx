@@ -6,7 +6,7 @@ import { ActiveTrackingBanner } from "./ActiveTrackingBanner"
 import { useDateStore } from "@/stores/useDateStore"
 import { useTrackingStore } from "@/stores/useTrackingStore"
 import { useTimeSlices } from "@/hooks/useTimeSlices"
-import { TimeSlice, api } from "@/lib/api"
+import { TimeSlice, api, JiraConnection } from "@/lib/api"
 import { useState, useEffect, useRef, useMemo } from "react"
 import { EditTimeSliceDialog } from "@/components/TimeSlice/EditTimeSliceDialog"
 import { AddTimeSliceDialog } from "@/components/TimeSlice/AddTimeSliceDialog"
@@ -37,6 +37,8 @@ export function Dashboard() {
     const [copySlice, setCopySlice] = useState<TimeSlice | null>(null);
     const [syncOpen, setSyncOpen] = useState(false);
     const [mergeOpen, setMergeOpen] = useState(false);
+    const [jiraConnections, setJiraConnections] = useState<JiraConnection[]>([]);
+    const [otherColor, setOtherColor] = useState("#64748b");
 
     // Refresh list when tracking starts/stops
     // AND detection of when timing stops to prompt for notes
@@ -51,6 +53,12 @@ export function Dashboard() {
         prevActiveIdRef.current = activeTimeSliceId;
         refresh();
         setSelectedIds(new Set()); // Clear selection on refresh
+
+        // Fetch connection info for colors
+        api.getJiraConnections().then(setJiraConnections);
+        api.getSettings().then(settings => {
+            setOtherColor(settings.other_color || "#64748b");
+        });
     }, [activeTimeSliceId, refresh]);
 
     // Clear selection when date changes
@@ -126,13 +134,17 @@ export function Dashboard() {
             }
         }
 
-        const connectionData = Array.from(connectionMap.values())
-            .filter(c => c.minutes > 0)
-            .map((c, i) => ({
-                name: c.name,
-                minutes: c.minutes,
-                fill: `hsl(var(--primary) / ${Math.max(0.4, 1 - (i * 0.2))})`
-            }));
+        const connectionData = Array.from(connectionMap.entries())
+            .filter(([, c]) => c.minutes > 0)
+            .map(([id, c]) => {
+                const connection = typeof id === 'number' ? jiraConnections.find(conn => conn.id === id) : null;
+                const color = connection?.color || (id === 'other' ? otherColor : 'hsl(var(--primary))');
+                return {
+                    name: c.name,
+                    minutes: c.minutes,
+                    fill: color
+                };
+            });
 
         const hours = Math.floor(totalMinutes / 60);
         const minutes = Math.round(totalMinutes % 60);
@@ -141,7 +153,7 @@ export function Dashboard() {
             connectionData,
             formatted: `${hours}h ${minutes.toString().padStart(2, '0')}m`
         };
-    }, [slices, now]);
+    }, [slices, now, jiraConnections, otherColor]);
 
     const selectedSlices = useMemo(() => {
         return slices.filter(s => selectedIds.has(s.id));
@@ -174,7 +186,13 @@ export function Dashboard() {
                     connectionData={dashboardData.connectionData}
                 />
 
-                <Timeline date={selectedDate} slices={slices} onSliceClick={handleEdit} />
+                <Timeline
+                    date={selectedDate}
+                    slices={slices}
+                    onSliceClick={handleEdit}
+                    connections={jiraConnections}
+                    otherColor={otherColor}
+                />
 
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -201,6 +219,8 @@ export function Dashboard() {
                             onResume={handleResume}
                             onCopy={handleCopy}
                             onMerge={() => setMergeOpen(true)}
+                            connections={jiraConnections}
+                            otherColor={otherColor}
                         />
                     )}
                 </div>

@@ -83,7 +83,15 @@ export function JiraConnections() {
                         {connections.map(conn => (
                             <TableRow key={conn.id} className="group hover:bg-accent/50 transition-colors">
                                 <TableCell className="font-medium whitespace-nowrap">
-                                    {conn.name}
+                                    <div className="flex items-center gap-2">
+                                        {conn.color && (
+                                            <div
+                                                className="w-3 h-3 rounded-full border border-black/10 shrink-0"
+                                                style={{ backgroundColor: conn.color }}
+                                            />
+                                        )}
+                                        {conn.name}
+                                    </div>
                                 </TableCell>
                                 <TableCell className="text-muted-foreground truncate max-w-[300px]" title={conn.base_url}>
                                     {conn.base_url}
@@ -92,11 +100,18 @@ export function JiraConnections() {
                                     {conn.email}
                                 </TableCell>
                                 <TableCell>
-                                    {!!conn.is_default && (
-                                        <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20">
-                                            Default
-                                        </Badge>
-                                    )}
+                                    <div className="flex flex-wrap gap-1">
+                                        {!!conn.is_default && (
+                                            <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20">
+                                                Default
+                                            </Badge>
+                                        )}
+                                        {conn.is_enabled === 0 && (
+                                            <Badge variant="outline" className="text-muted-foreground border-dashed">
+                                                Disabled
+                                            </Badge>
+                                        )}
+                                    </div>
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <DropdownMenu>

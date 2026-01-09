@@ -22,6 +22,7 @@ import {
 import React from "react"
 import { api } from "@/lib/api"
 import { MessageDialog } from "@/components/shared/MessageDialog"
+import { ColorPicker } from "@/components/shared/ColorPicker"
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -49,6 +50,7 @@ export function SettingsView() {
     const [roundingInterval, setRoundingInterval] = React.useState(15);
     const [updateInterval, setUpdateInterval] = React.useState(60);
     const [appVersion, setAppVersion] = React.useState<string>("");
+    const [otherColor, setOtherColor] = React.useState("#64748b");
 
     React.useEffect(() => {
         api.getDatabasePath().then(setDbPath).catch(() => setDbPath("Error fetching path"));
@@ -70,6 +72,8 @@ export function SettingsView() {
             // Load update settings
             const uInterval = settings.update_check_interval ? parseInt(settings.update_check_interval, 10) : 60;
             setUpdateInterval(uInterval);
+            // Load other color
+            setOtherColor(settings.other_color || "#64748b");
         });
     }, []);
 
@@ -184,6 +188,24 @@ export function SettingsView() {
                                     <Monitor className="h-6 w-6" />
                                     <span>System</span>
                                 </Button>
+                            </div>
+
+                            <div className="grid gap-2 pt-4 border-t">
+                                <Label htmlFor="other-color" className="flex items-center gap-2">
+                                    <Clock className="h-4 w-4" /> Non-Jira Time ("Other") Color
+                                </Label>
+                                <div className="w-[300px]">
+                                    <ColorPicker
+                                        color={otherColor}
+                                        onChange={async (newColor) => {
+                                            setOtherColor(newColor);
+                                            await api.saveSetting('other_color', newColor);
+                                        }}
+                                    />
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    This color will be used for time slices not linked to any Jira connection.
+                                </p>
                             </div>
                         </CardContent>
                     </Card>

@@ -87,7 +87,18 @@ export function EditWorkItemDialog({ item, open, onOpenChange, onSave }: EditWor
                                 <SelectItem value="none">None</SelectItem>
                                 {connections.map(conn => (
                                     <SelectItem key={conn.id} value={conn.id.toString()}>
-                                        {conn.name}
+                                        <div className="flex items-center gap-2">
+                                            {conn.color && (
+                                                <div
+                                                    className="w-2.5 h-2.5 rounded-full border border-black/10 shrink-0"
+                                                    style={{ backgroundColor: conn.color }}
+                                                />
+                                            )}
+                                            {conn.name}
+                                            {conn.is_enabled === 0 && (
+                                                <span className="text-[10px] text-muted-foreground ml-1">(Disabled)</span>
+                                            )}
+                                        </div>
                                     </SelectItem>
                                 ))}
                             </SelectContent>

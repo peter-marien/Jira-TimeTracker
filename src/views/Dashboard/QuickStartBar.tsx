@@ -1,6 +1,6 @@
 import { WorkItemSearchBar } from "@/components/shared/WorkItemSearchBar"
 import { useTrackingStore } from "@/stores/useTrackingStore"
-import { api, WorkItem } from "@/lib/api"
+import { api, WorkItem, JiraConnection } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import { useState, useEffect } from "react"
@@ -20,6 +20,7 @@ export function QuickStartBar({ totalMinutes = 0, connectionData = [] }: QuickSt
     const [importOpen, setImportOpen] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
     const [recentItems, setRecentItems] = useState<WorkItem[]>([]);
+    const [connections, setConnections] = useState<JiraConnection[]>([]);
 
     const fetchRecentItems = async () => {
         try {
@@ -32,6 +33,7 @@ export function QuickStartBar({ totalMinutes = 0, connectionData = [] }: QuickSt
 
     useEffect(() => {
         fetchRecentItems();
+        api.getJiraConnections().then(setConnections);
     }, [activeTimeSliceId]);
 
     const handleSelect = (item: WorkItem) => {
@@ -84,30 +86,40 @@ export function QuickStartBar({ totalMinutes = 0, connectionData = [] }: QuickSt
                 {recentItems.length > 0 && (
                     <div className="flex flex-wrap gap-2 px-1">
                         <span className="text-[10px] uppercase font-bold text-muted-foreground/50 w-full mb-1 tracking-widest">Recent Activity</span>
-                        {recentItems.map(item => (
-                            <Tooltip key={item.id}>
-                                <TooltipTrigger asChild>
-                                    <Badge
-                                        key={item.id}
-                                        variant={item.jira_key ? "default" : "secondary"}
-                                        className="cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all font-medium py-1 px-3"
-                                        onClick={() => handleSelect(item)}
-                                    >
-                                        {item.jira_key ? item.jira_key : (
-                                            <span className="max-w-[150px] truncate">{item.description}</span>
-                                        )}
-                                    </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent side="bottom" className="p-3">
-                                    <div className="space-y-1">
-                                        {item.jira_key && <p className="text-[10px] font-black text-primary uppercase tracking-tighter">{item.jira_key}</p>}
-                                        <p className="max-w-[300px] text-xs font-semibold leading-snug">
-                                            {item.description}
-                                        </p>
-                                    </div>
-                                </TooltipContent>
-                            </Tooltip>
-                        ))}
+                        {recentItems.map(item => {
+                            const connection = item.jira_connection_id ? connections.find(c => c.id === item.jira_connection_id) : null;
+                            const badgeColor = connection?.color || (item.jira_key ? 'hsl(var(--primary))' : 'hsl(var(--secondary))');
+                            const isHex = badgeColor.startsWith('#');
+
+                            return (
+                                <Tooltip key={item.id}>
+                                    <TooltipTrigger asChild>
+                                        <Badge
+                                            key={item.id}
+                                            variant="outline"
+                                            className="cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all font-medium py-1 px-3 border-transparent"
+                                            style={{
+                                                backgroundColor: isHex ? `${badgeColor}20` : (item.jira_key ? 'hsl(var(--primary) / 0.1)' : 'hsl(var(--secondary) / 0.1)'),
+                                                color: badgeColor
+                                            }}
+                                            onClick={() => handleSelect(item)}
+                                        >
+                                            {item.jira_key ? item.jira_key : (
+                                                <span className="max-w-[150px] truncate">{item.description}</span>
+                                            )}
+                                        </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="bottom" className="p-3">
+                                        <div className="space-y-1">
+                                            {item.jira_key && <p className="text-[10px] font-black uppercase tracking-tighter" style={{ color: badgeColor }}>{item.jira_key}</p>}
+                                            <p className="max-w-[300px] text-xs font-semibold leading-snug">
+                                                {item.description}
+                                            </p>
+                                        </div>
+                                    </TooltipContent>
+                                </Tooltip>
+                            );
+                        })}
                     </div>
                 )}
             </div>

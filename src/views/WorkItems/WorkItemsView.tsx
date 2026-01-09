@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { api, WorkItem } from "@/lib/api"
+import { api, WorkItem, JiraConnection } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -43,6 +43,7 @@ export function WorkItemsView() {
     const [deleteItem, setDeleteItem] = useState<WorkItem | null>(null);
     const [timeSlicesItem, setTimeSlicesItem] = useState<WorkItem | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [jiraConnections, setJiraConnections] = useState<JiraConnection[]>([]);
 
     const fetchItems = async () => {
         setLoading(true);
@@ -61,6 +62,10 @@ export function WorkItemsView() {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        api.getJiraConnections().then(setJiraConnections);
+    }, []);
 
     useEffect(() => {
         setCurrentPage(1); // Reset to page 1 on search or filter change
@@ -258,11 +263,23 @@ export function WorkItemsView() {
                                             onClick={(e) => handleRowClick(e, item)}
                                         >
                                             <TableCell>
-                                                {item.jira_key ? (
-                                                    <span className="text-xs font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded flex-shrink-0">
-                                                        {item.jira_key}
-                                                    </span>
-                                                ) : (
+                                                {item.jira_key ? (() => {
+                                                    const connection = item.jira_connection_id ? jiraConnections.find(c => c.id === item.jira_connection_id) : null;
+                                                    const badgeColor = connection?.color || 'hsl(var(--primary))';
+                                                    const isHex = badgeColor.startsWith('#');
+
+                                                    return (
+                                                        <span
+                                                            className="text-xs font-bold px-1.5 py-0.5 rounded flex-shrink-0"
+                                                            style={{
+                                                                backgroundColor: isHex ? `${badgeColor}20` : `hsl(var(--primary) / 0.1)`,
+                                                                color: badgeColor
+                                                            }}
+                                                        >
+                                                            {item.jira_key}
+                                                        </span>
+                                                    );
+                                                })() : (
                                                     <span className="text-muted-foreground text-xs italic">Manual</span>
                                                 )}
                                             </TableCell>
@@ -270,7 +287,16 @@ export function WorkItemsView() {
                                                 {item.description}
                                             </TableCell>
                                             <TableCell className="text-muted-foreground text-sm">
-                                                {item.connection_name || '-'}
+                                                <div className="flex items-center gap-2">
+                                                    {(() => {
+                                                        const connection = item.jira_connection_id ? jiraConnections.find(c => c.id === item.jira_connection_id) : null;
+                                                        if (connection?.color) {
+                                                            return <div className="w-2 h-2 rounded-full" style={{ backgroundColor: connection.color }} />;
+                                                        }
+                                                        return null;
+                                                    })()}
+                                                    {item.connection_name || '-'}
+                                                </div>
                                             </TableCell>
                                             <TableCell>
                                                 <Badge variant="secondary" className="font-mono">

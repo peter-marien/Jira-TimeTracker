@@ -20,10 +20,10 @@ interface ImportFromJiraDialogProps {
 
 export function ImportFromJiraDialog({ open, onOpenChange, onImport }: ImportFromJiraDialogProps) {
     const [query, setQuery] = useState("");
-    const [results, setResults] = useState<{ id: string; key: string; fields: { summary: string } }[]>([]);
+    const [results, setResults] = useState<{ key: string; summary: string; connectionId: number; connectionName: string }[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [selectedIssue, setSelectedIssue] = useState<{ id: string; key: string; fields: { summary: string } } | null>(null);
+    const [selectedIssue, setSelectedIssue] = useState<{ key: string; summary: string; connectionId: number; connectionName: string } | null>(null);
     const [importing, setImporting] = useState(false);
 
     // Debounced search as you type
@@ -37,13 +37,11 @@ export function ImportFromJiraDialog({ open, onOpenChange, onImport }: ImportFro
             setLoading(true);
             setError(null);
             try {
-                const data = await api.searchJiraIssues(query);
-                const issues = Array.isArray(data) ? data : (data.issues || []);
+                const issues = await api.searchJiraIssuesAllConnections(query);
                 setResults(issues);
             } catch (err: unknown) {
                 const error = err as { message?: string };
-                const msg = error.message || "Failed to search Jira.";
-                setError(msg.includes('default') ? "No default Jira connection configured." : msg);
+                setError(error.message || "Failed to search Jira.");
                 setResults([]);
             } finally {
                 setLoading(false);
@@ -64,7 +62,7 @@ export function ImportFromJiraDialog({ open, onOpenChange, onImport }: ImportFro
         }
     }, [open]);
 
-    const handleSelectIssue = (issue: { id: string; key: string; fields: { summary: string } }) => {
+    const handleSelectIssue = (issue: { key: string; summary: string; connectionId: number; connectionName: string }) => {
         setSelectedIssue(issue);
         setQuery(issue.key);
         setResults([]);
@@ -80,19 +78,10 @@ export function ImportFromJiraDialog({ open, onOpenChange, onImport }: ImportFro
 
         setImporting(true);
         try {
-            const connections = await api.getJiraConnections();
-            const defaultConn = connections.find(c => c.is_default) || connections[0];
-
-            if (!defaultConn) {
-                setError("No Jira connection configured.");
-                setImporting(false);
-                return;
-            }
-
             await api.saveWorkItem({
-                jira_connection_id: defaultConn.id,
+                jira_connection_id: selectedIssue.connectionId,
                 jira_key: selectedIssue.key,
-                description: selectedIssue.fields.summary || selectedIssue.key
+                description: selectedIssue.summary || selectedIssue.key
             });
 
             onImport();
@@ -137,19 +126,24 @@ export function ImportFromJiraDialog({ open, onOpenChange, onImport }: ImportFro
                         {/* Autocomplete dropdown */}
                         {results.length > 0 && !selectedIssue && (
                             <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-[250px] overflow-y-auto" onWheel={(e) => e.stopPropagation()}>
-                                {results.map(issue => (
+                                {results.map((issue) => (
                                     <div
-                                        key={issue.id}
+                                        key={`${issue.connectionId}-${issue.key}`}
                                         role="button"
                                         tabIndex={0}
-                                        className="w-full text-left px-3 py-2 hover:bg-accent transition-colors flex items-start gap-2 cursor-pointer"
+                                        className="w-full text-left px-3 py-2 hover:bg-accent transition-colors flex items-start gap-2 cursor-pointer border-b last:border-0"
                                         onClick={() => handleSelectIssue(issue)}
                                         onKeyDown={(e) => e.key === 'Enter' && handleSelectIssue(issue)}
                                     >
-                                        <span className="font-mono text-xs font-semibold bg-secondary px-1.5 py-0.5 rounded shrink-0">
-                                            {issue.key}
-                                        </span>
-                                        <span className="text-sm line-clamp-1">{issue.fields.summary}</span>
+                                        <div className="flex flex-col">
+                                            <span className="font-mono text-[10px] font-semibold bg-secondary px-1.5 py-0.5 rounded shrink-0">
+                                                {issue.key}
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-col flex-1 min-w-0">
+                                            <span className="text-sm line-clamp-1">{issue.summary}</span>
+                                            <span className="text-[10px] text-muted-foreground">{issue.connectionName}</span>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -166,9 +160,12 @@ export function ImportFromJiraDialog({ open, onOpenChange, onImport }: ImportFro
                                     <span className="font-mono text-sm font-semibold text-primary">
                                         {selectedIssue.key}
                                     </span>
+                                    <span className="text-[10px] px-1.5 py-0.5 bg-secondary rounded text-muted-foreground">
+                                        {selectedIssue.connectionName}
+                                    </span>
                                 </div>
                                 <p className="text-sm text-muted-foreground line-clamp-2">
-                                    {selectedIssue.fields.summary}
+                                    {selectedIssue.summary}
                                 </p>
                             </div>
                             <Button
