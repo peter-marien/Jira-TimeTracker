@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
-import { api, WorkItem, TimeSlice } from "@/lib/api"
+import { api, WorkItem, TimeSlice, JiraConnection } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import {
@@ -14,10 +14,12 @@ import {
     subMonths
 } from "date-fns"
 import { cn } from "@/lib/utils"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export function MonthView() {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [slices, setSlices] = useState<TimeSlice[]>([]);
+    const [connections, setConnections] = useState<JiraConnection[]>([]);
     const [loading, setLoading] = useState(true);
 
     const monthStart = useMemo(() => startOfMonth(currentMonth), [currentMonth]);
@@ -41,6 +43,10 @@ export function MonthView() {
 
         fetchData();
     }, [currentMonth, monthStart, monthEnd]);
+
+    useEffect(() => {
+        api.getJiraConnections().then(setConnections);
+    }, []);
 
     // Derive work items from slices
     const activeWorkItems = useMemo(() => {
@@ -83,6 +89,17 @@ export function MonthView() {
 
         return data;
     }, [slices]);
+
+    // Group work items by connection name
+    const itemsByConnection = useMemo(() => {
+        const grouped: Record<string, WorkItem[]> = {};
+        activeWorkItems.forEach(item => {
+            const connName = item.connection_name || "Manual / No Connection";
+            if (!grouped[connName]) grouped[connName] = [];
+            grouped[connName].push(item);
+        });
+        return grouped;
+    }, [activeWorkItems]);
 
     const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
@@ -179,101 +196,223 @@ export function MonthView() {
                 </div>
             </div>
 
-            <div className="flex-1 border rounded-md overflow-auto bg-card shadow-sm min-h-0 h-full" onWheel={(e) => e.stopPropagation()}>
-                <table className="w-full border-collapse text-xs table-fixed">
-                    <thead className="sticky top-0 bg-secondary/80 backdrop-blur-sm z-20 shadow-sm">
-                        <tr>
-                            <th className="w-24 p-2 border-r border-b text-left bg-primary/10 font-bold">Jira Key</th>
-                            <th className="w-64 p-2 border-r border-b text-left bg-primary/10 font-bold">Work Item</th>
-                            {daysInMonth.map(day => (
-                                <th
-                                    key={day.toISOString()}
-                                    className={cn(
-                                        "w-8 border-r border-b text-center font-medium",
-                                        isWeekend(day) ? "bg-muted/60 text-muted-foreground" : "bg-primary/5"
-                                    )}
-                                >
-                                    {getDate(day)}
-                                </th>
-                            ))}
-                            <th className="w-16 p-2 border-b text-center bg-primary/10 font-bold">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {activeWorkItems.map(item => {
-                            let itemTotal = 0;
-                            return (
-                                <tr key={item.id} className="hover:bg-accent/30 transition-colors">
-                                    <td className="p-2 border-r border-b font-mono text-[10px] truncate">{item.jira_key || "-"}</td>
-                                    <td className="p-2 border-r border-b truncate" title={item.description}>{item.description}</td>
+            <Tabs defaultValue="all" className="flex-1 flex flex-col min-h-0">
+                <TabsList className="w-fit mb-2">
+                    <TabsTrigger value="all">All</TabsTrigger>
+                    <TabsTrigger value="by-connection">By Connection</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="all" className="flex-1 min-h-0 mt-0">
+                    <div className="h-full border rounded-md overflow-auto bg-card shadow-sm" onWheel={(e) => e.stopPropagation()}>
+                        <table className="w-full border-collapse text-xs table-fixed">
+                            <thead className="sticky top-0 bg-secondary/80 backdrop-blur-sm z-20 shadow-sm">
+                                <tr>
+                                    <th className="w-24 p-2 border-r border-b text-left bg-primary/10 font-bold">Jira Key</th>
+                                    <th className="w-64 p-2 border-r border-b text-left bg-primary/10 font-bold">Work Item</th>
+                                    {daysInMonth.map(day => (
+                                        <th
+                                            key={day.toISOString()}
+                                            className={cn(
+                                                "w-8 border-r border-b text-center font-medium",
+                                                isWeekend(day) ? "bg-muted/60 text-muted-foreground" : "bg-primary/5"
+                                            )}
+                                        >
+                                            {getDate(day)}
+                                        </th>
+                                    ))}
+                                    <th className="w-16 p-2 border-b text-center bg-primary/10 font-bold">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {activeWorkItems.map(item => {
+                                    let itemTotal = 0;
+                                    return (
+                                        <tr key={item.id} className="hover:bg-accent/30 transition-colors">
+                                            <td className="p-2 border-r border-b font-mono text-[10px] truncate">{item.jira_key || "-"}</td>
+                                            <td className="p-2 border-r border-b truncate" title={item.description}>{item.description}</td>
+                                            {daysInMonth.map(day => {
+                                                const d = getDate(day);
+                                                const seconds = aggregation[item.id]?.[d] || 0;
+                                                itemTotal += seconds;
+                                                return (
+                                                    <td
+                                                        key={day.toISOString()}
+                                                        className={cn(
+                                                            "border-r border-b text-center p-0 h-8",
+                                                            isWeekend(day) && "bg-muted/40"
+                                                        )}
+                                                    >
+                                                        {seconds > 0 && formatHours(seconds)}
+                                                    </td>
+                                                );
+                                            })}
+                                            <td className="p-2 border-b text-center font-bold bg-primary/5">
+                                                {formatHours(itemTotal)}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                                {/* Summary Row */}
+                                <tr className="sticky bottom-0 bg-primary/20 backdrop-blur-md font-bold shadow-[0_-2px_4px_rgba(0,0,0,0.1)]">
+                                    <td colSpan={2} className="p-2 border-r border-t bg-primary/10">TOTAL</td>
                                     {daysInMonth.map(day => {
                                         const d = getDate(day);
-                                        const seconds = aggregation[item.id]?.[d] || 0;
-                                        itemTotal += seconds;
+                                        let dayTotal = 0;
+                                        activeWorkItems.forEach(item => {
+                                            dayTotal += aggregation[item.id]?.[d] || 0;
+                                        });
                                         return (
                                             <td
                                                 key={day.toISOString()}
                                                 className={cn(
-                                                    "border-r border-b text-center p-0 h-8",
-                                                    isWeekend(day) && "bg-muted/40"
+                                                    "border-r border-t text-center h-10",
+                                                    isWeekend(day) && "bg-muted/60"
                                                 )}
                                             >
-                                                {seconds > 0 && formatHours(seconds)}
+                                                {dayTotal > 0 && formatHours(dayTotal)}
                                             </td>
                                         );
                                     })}
-                                    <td className="p-2 border-b text-center font-bold bg-primary/5">
-                                        {formatHours(itemTotal)}
+                                    <td className="p-2 border-t text-center bg-primary/30">
+                                        {formatHours(slices.reduce((acc, s) => {
+                                            const start = new Date(s.start_time);
+                                            const end = s.end_time ? new Date(s.end_time) : new Date();
+                                            return acc + differenceInSeconds(end, start);
+                                        }, 0))}
                                     </td>
                                 </tr>
-                            );
-                        })}
-                        {/* Summary Row */}
-                        <tr className="sticky bottom-0 bg-primary/20 backdrop-blur-md font-bold shadow-[0_-2px_4px_rgba(0,0,0,0.1)]">
-                            <td colSpan={2} className="p-2 border-r border-t bg-primary/10">TOTAL</td>
-                            {daysInMonth.map(day => {
-                                const d = getDate(day);
-                                let dayTotal = 0;
-                                activeWorkItems.forEach(item => {
-                                    dayTotal += aggregation[item.id]?.[d] || 0;
-                                });
-                                return (
-                                    <td
-                                        key={day.toISOString()}
-                                        className={cn(
-                                            "border-r border-t text-center h-10",
-                                            isWeekend(day) && "bg-muted/60"
-                                        )}
-                                    >
-                                        {dayTotal > 0 && formatHours(dayTotal)}
-                                    </td>
-                                );
-                            })}
-                            <td className="p-2 border-t text-center bg-primary/30">
-                                {formatHours(slices.reduce((acc, s) => {
-                                    const start = new Date(s.start_time);
-                                    const end = s.end_time ? new Date(s.end_time) : new Date();
-                                    return acc + differenceInSeconds(end, start);
-                                }, 0))}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-                {loading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-30">
-                        <div className="flex flex-col items-center gap-2">
-                            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                            <span className="text-sm font-medium animate-pulse">Loading monthly overview...</span>
+                            </tbody>
+                        </table>
+                        {loading && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-30">
+                                <div className="flex flex-col items-center gap-2">
+                                    <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                    <span className="text-sm font-medium animate-pulse">Loading monthly overview...</span>
+                                </div>
+                            </div>
+                        )}
+                        {!loading && activeWorkItems.length === 0 && (
+                            <div className="flex flex-col items-center justify-center h-64 text-muted-foreground gap-2">
+                                <p className="text-lg">No time tracked in {format(currentMonth, "MMMM")}.</p>
+                                <p className="text-sm italic">Switch to the dashboard to start tracking!</p>
+                            </div>
+                        )}
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="by-connection" className="flex-1 min-h-0 mt-0 overflow-auto space-y-6">
+                    {Object.entries(itemsByConnection).map(([connectionName, items]) => {
+                        let connectionTotal = 0;
+                        const connection = connections.find(c => c.name === connectionName);
+                        const connColor = connection?.color || '#64748b';
+                        return (
+                            <div key={connectionName} className="border rounded-md bg-card shadow-sm overflow-hidden">
+                                <div
+                                    className="p-3 font-bold text-sm border-b flex items-center gap-2"
+                                >
+                                    <div
+                                        className="w-3 h-3 rounded-full shrink-0 border border-black/10"
+                                        style={{ backgroundColor: connColor }}
+                                    />
+                                    <span style={{ color: connColor }}>{connectionName}</span>
+                                </div>
+                                <div className="overflow-auto" onWheel={(e) => e.stopPropagation()}>
+                                    <table className="w-full border-collapse text-xs table-fixed">
+                                        <thead className="sticky top-0 bg-secondary/80 backdrop-blur-sm z-20 shadow-sm">
+                                            <tr>
+                                                <th className="w-24 p-2 border-r border-b text-left bg-primary/5 font-bold">Jira Key</th>
+                                                <th className="w-64 p-2 border-r border-b text-left bg-primary/5 font-bold">Work Item</th>
+                                                {daysInMonth.map(day => (
+                                                    <th
+                                                        key={day.toISOString()}
+                                                        className={cn(
+                                                            "w-8 border-r border-b text-center font-medium",
+                                                            isWeekend(day) ? "bg-muted/60 text-muted-foreground" : "bg-primary/5"
+                                                        )}
+                                                    >
+                                                        {getDate(day)}
+                                                    </th>
+                                                ))}
+                                                <th className="w-16 p-2 border-b text-center bg-primary/5 font-bold">Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {items.map(item => {
+                                                let itemTotal = 0;
+                                                return (
+                                                    <tr key={item.id} className="hover:bg-accent/30 transition-colors">
+                                                        <td className="p-2 border-r border-b font-mono text-[10px] truncate">{item.jira_key || "-"}</td>
+                                                        <td className="p-2 border-r border-b truncate" title={item.description}>{item.description}</td>
+                                                        {daysInMonth.map(day => {
+                                                            const d = getDate(day);
+                                                            const seconds = aggregation[item.id]?.[d] || 0;
+                                                            itemTotal += seconds;
+                                                            connectionTotal += seconds;
+                                                            return (
+                                                                <td
+                                                                    key={day.toISOString()}
+                                                                    className={cn(
+                                                                        "border-r border-b text-center p-0 h-8",
+                                                                        isWeekend(day) && "bg-muted/40"
+                                                                    )}
+                                                                >
+                                                                    {seconds > 0 && formatHours(seconds)}
+                                                                </td>
+                                                            );
+                                                        })}
+                                                        <td className="p-2 border-b text-center font-bold bg-primary/5">
+                                                            {formatHours(itemTotal)}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                            {/* Connection Total Row */}
+                                            <tr className="bg-primary/10 font-bold">
+                                                <td colSpan={2} className="p-2 border-r border-t">Total</td>
+                                                {daysInMonth.map(day => {
+                                                    const d = getDate(day);
+                                                    let dayTotal = 0;
+                                                    items.forEach(item => {
+                                                        dayTotal += aggregation[item.id]?.[d] || 0;
+                                                    });
+                                                    return (
+                                                        <td
+                                                            key={day.toISOString()}
+                                                            className={cn(
+                                                                "border-r border-t text-center h-10",
+                                                                isWeekend(day) && "bg-muted/60"
+                                                            )}
+                                                        >
+                                                            {dayTotal > 0 && formatHours(dayTotal)}
+                                                        </td>
+                                                    );
+                                                })}
+                                                <td className="p-2 border-t text-center bg-primary/20">
+                                                    {formatHours(connectionTotal)}
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        );
+                    })}
+                    {loading && (
+                        <div className="flex items-center justify-center h-64 text-muted-foreground">
+                            <div className="flex flex-col items-center gap-2">
+                                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                <span className="text-sm font-medium animate-pulse">Loading monthly overview...</span>
+                            </div>
                         </div>
-                    </div>
-                )}
-                {!loading && activeWorkItems.length === 0 && (
-                    <div className="flex flex-col items-center justify-center h-64 text-muted-foreground gap-2">
-                        <p className="text-lg">No time tracked in {format(currentMonth, "MMMM")}.</p>
-                        <p className="text-sm italic">Switch to the dashboard to start tracking!</p>
-                    </div>
-                )}
-            </div>
+                    )}
+                    {!loading && Object.keys(itemsByConnection).length === 0 && (
+                        <div className="flex flex-col items-center justify-center h-64 text-muted-foreground gap-2">
+                            <p className="text-lg">No time tracked in {format(currentMonth, "MMMM")}.</p>
+                            <p className="text-sm italic">Switch to the dashboard to start tracking!</p>
+                        </div>
+                    )}
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }
