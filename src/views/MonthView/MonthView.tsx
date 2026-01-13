@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from "react"
+import { useNavigate } from "react-router-dom"
+import { useDateStore } from "@/stores/useDateStore"
 import { api, WorkItem, TimeSlice, JiraConnection } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
@@ -17,6 +19,13 @@ import { cn } from "@/lib/utils"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MonthCellDialog } from "@/components/MonthView/MonthCellDialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuItem,
+    ContextMenuTrigger,
+} from "@/components/ui/context-menu"
+import { ExternalLink, Info } from "lucide-react"
 
 export function MonthView() {
     const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -30,6 +39,9 @@ export function MonthView() {
     const [selectedDateLabel, setSelectedDateLabel] = useState("");
     const [selectedHours, setSelectedHours] = useState("");
     const [selectedNotes, setSelectedNotes] = useState("");
+
+    const navigate = useNavigate();
+    const setSelectedDate = useDateStore(state => state.setSelectedDate);
 
     const monthStart = useMemo(() => startOfMonth(currentMonth), [currentMonth]);
     const monthEnd = useMemo(() => endOfMonth(currentMonth), [currentMonth]);
@@ -177,16 +189,24 @@ export function MonthView() {
             getDate(new Date(s.start_time)) === d
         );
 
-        const notes = daySlices
-            .map(s => s.notes?.trim())
-            .filter(Boolean)
-            .join("\n");
+        const uniqueNotes = Array.from(new Set(
+            daySlices
+                .map(s => s.notes?.trim())
+                .filter(Boolean)
+        ));
+
+        const notes = uniqueNotes.join("\n");
 
         setSelectedItem(item);
         setSelectedDateLabel(format(day, "EEEE, MMMM do, yyyy"));
         setSelectedHours(formatHours(seconds));
         setSelectedNotes(notes);
         setIsDetailsOpen(true);
+    };
+
+    const handleGoToDashboard = (day: Date) => {
+        setSelectedDate(day);
+        navigate("/");
     };
 
     return (
@@ -273,32 +293,50 @@ export function MonthView() {
 
                                                     return (
                                                         <Tooltip key={day.toISOString()}>
-                                                            <TooltipTrigger asChild>
-                                                                <td
-                                                                    onClick={() => handleCellClick(item, day, seconds)}
-                                                                    className={cn(
-                                                                        "border-r border-b text-center p-0 h-8",
-                                                                        isWeekend(day) && "bg-muted/40",
-                                                                        seconds > 0 && "cursor-pointer hover:bg-primary/20 hover:text-primary transition-colors font-medium"
-                                                                    )}
-                                                                >
-                                                                    {seconds > 0 && formatHours(seconds)}
-                                                                </td>
-                                                            </TooltipTrigger>
+                                                            <ContextMenu>
+                                                                <ContextMenuTrigger asChild>
+                                                                    <TooltipTrigger asChild>
+                                                                        <td
+                                                                            onClick={() => handleCellClick(item, day, seconds)}
+                                                                            className={cn(
+                                                                                "border-r border-b text-center p-0 h-8",
+                                                                                isWeekend(day) && "bg-muted/40",
+                                                                                seconds > 0 && "cursor-pointer hover:bg-primary/20 hover:text-primary transition-colors font-medium"
+                                                                            )}
+                                                                        >
+                                                                            {seconds > 0 && formatHours(seconds)}
+                                                                        </td>
+                                                                    </TooltipTrigger>
+                                                                </ContextMenuTrigger>
+                                                                <ContextMenuContent>
+                                                                    <ContextMenuItem onClick={() => handleCellClick(item, day, seconds)} disabled={seconds <= 0}>
+                                                                        <Info className="w-4 h-4 mr-2" />
+                                                                        Show Details
+                                                                    </ContextMenuItem>
+                                                                    <ContextMenuItem onClick={() => handleGoToDashboard(day)}>
+                                                                        <ExternalLink className="w-4 h-4 mr-2" />
+                                                                        Go to Dashboard
+                                                                    </ContextMenuItem>
+                                                                </ContextMenuContent>
+                                                            </ContextMenu>
                                                             {seconds > 0 && (
                                                                 <TooltipContent className="max-w-[400px] p-3 space-y-2">
                                                                     <p className="font-bold text-xs border-b pb-1">{format(day, "EEEE, MMM do")}</p>
                                                                     <div className="space-y-1">
-                                                                        {daySlices.map(s => (
+                                                                        {daySlices.length > 0 ? daySlices.map(s => (
                                                                             <div key={s.id} className="text-[10px] leading-tight flex gap-2">
                                                                                 <span className="font-mono text-muted-foreground shrink-0 tabular-nums">
-                                                                                    {format(new Date(s.start_time), "HH:mm")} - {s.end_time ? format(new Date(s.end_time), "HH:mm") : "Now"}
+                                                                                    {format(new Date(s.start_time), "HH:mm")} - {s.end_time ? format(new Date(s.end_time), "HH:mm") : "Now"}:
                                                                                 </span>
                                                                                 <span className="break-words">
-                                                                                    {s.notes || <span className="italic opacity-50">No notes</span>}
+                                                                                    {s.notes?.trim() || <span className="italic opacity-50">No notes</span>}
                                                                                 </span>
                                                                             </div>
-                                                                        ))}
+                                                                        )) : (
+                                                                            <div className="text-[10px] italic opacity-50 text-center py-1">
+                                                                                No slices recorded
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                 </TooltipContent>
                                                             )}
@@ -415,32 +453,50 @@ export function MonthView() {
 
                                                                 return (
                                                                     <Tooltip key={day.toISOString()}>
-                                                                        <TooltipTrigger asChild>
-                                                                            <td
-                                                                                onClick={() => handleCellClick(item, day, seconds)}
-                                                                                className={cn(
-                                                                                    "border-r border-b text-center p-0 h-8",
-                                                                                    isWeekend(day) && "bg-muted/40",
-                                                                                    seconds > 0 && "cursor-pointer hover:bg-primary/20 hover:text-primary transition-colors font-medium"
-                                                                                )}
-                                                                            >
-                                                                                {seconds > 0 && formatHours(seconds)}
-                                                                            </td>
-                                                                        </TooltipTrigger>
+                                                                        <ContextMenu>
+                                                                            <ContextMenuTrigger asChild>
+                                                                                <TooltipTrigger asChild>
+                                                                                    <td
+                                                                                        onClick={() => handleCellClick(item, day, seconds)}
+                                                                                        className={cn(
+                                                                                            "border-r border-b text-center p-0 h-8",
+                                                                                            isWeekend(day) && "bg-muted/40",
+                                                                                            seconds > 0 && "cursor-pointer hover:bg-primary/20 hover:text-primary transition-colors font-medium"
+                                                                                        )}
+                                                                                    >
+                                                                                        {seconds > 0 && formatHours(seconds)}
+                                                                                    </td>
+                                                                                </TooltipTrigger>
+                                                                            </ContextMenuTrigger>
+                                                                            <ContextMenuContent>
+                                                                                <ContextMenuItem onClick={() => handleCellClick(item, day, seconds)} disabled={seconds <= 0}>
+                                                                                    <Info className="w-4 h-4 mr-2" />
+                                                                                    Show Details
+                                                                                </ContextMenuItem>
+                                                                                <ContextMenuItem onClick={() => handleGoToDashboard(day)}>
+                                                                                    <ExternalLink className="w-4 h-4 mr-2" />
+                                                                                    Go to Dashboard
+                                                                                </ContextMenuItem>
+                                                                            </ContextMenuContent>
+                                                                        </ContextMenu>
                                                                         {seconds > 0 && (
                                                                             <TooltipContent className="max-w-[400px] p-3 space-y-2">
                                                                                 <p className="font-bold text-xs border-b pb-1">{format(day, "EEEE, MMM do")}</p>
                                                                                 <div className="space-y-1">
-                                                                                    {daySlices.map(s => (
+                                                                                    {daySlices.length > 0 ? daySlices.map(s => (
                                                                                         <div key={s.id} className="text-[10px] leading-tight flex gap-2">
                                                                                             <span className="font-mono text-muted-foreground shrink-0 tabular-nums">
-                                                                                                {format(new Date(s.start_time), "HH:mm")} - {s.end_time ? format(new Date(s.end_time), "HH:mm") : "Now"}
+                                                                                                {format(new Date(s.start_time), "HH:mm")} - {s.end_time ? format(new Date(s.end_time), "HH:mm") : "Now"}:
                                                                                             </span>
                                                                                             <span className="break-words">
-                                                                                                {s.notes || <span className="italic opacity-50">No notes</span>}
+                                                                                                {s.notes?.trim() || <span className="italic opacity-50">No notes</span>}
                                                                                             </span>
                                                                                         </div>
-                                                                                    ))}
+                                                                                    )) : (
+                                                                                        <div className="text-[10px] italic opacity-50 text-center py-1">
+                                                                                            No slices recorded
+                                                                                        </div>
+                                                                                    )}
                                                                                 </div>
                                                                             </TooltipContent>
                                                                         )}

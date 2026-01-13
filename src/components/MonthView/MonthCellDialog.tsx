@@ -36,14 +36,7 @@ export function MonthCellDialog({
     const handleCopy = async () => {
         if (!workItem) return;
 
-        const textToCopy = [
-            `Date: ${dateLabel}`,
-            `Work Item: ${workItem.jira_key ? `[${workItem.jira_key}] ` : ""}${workItem.description}`,
-            `Total Time: ${hours}h`,
-            "",
-            "Notes:",
-            notes || "No notes available."
-        ].join("\n");
+        const textToCopy = notes || "";
 
         await navigator.clipboard.writeText(textToCopy);
         setCopied(true);
@@ -113,7 +106,7 @@ export function MonthCellDialog({
                         ) : (
                             <>
                                 <Copy className="w-4 h-4" />
-                                Copy Daily Summary
+                                Copy Notes
                             </>
                         )}
                     </Button>
