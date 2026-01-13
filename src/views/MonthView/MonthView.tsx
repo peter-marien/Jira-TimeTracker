@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MonthCellDialog } from "@/components/MonthView/MonthCellDialog"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 export function MonthView() {
     const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -189,199 +190,91 @@ export function MonthView() {
     };
 
     return (
-        <div className="flex flex-col h-full bg-background overflow-hidden p-6 space-y-4">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Month View</h1>
-                    <div className="flex gap-6 mt-2">
-                        <div className="flex flex-col">
-                            <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Total working days</span>
-                            <span className="text-lg font-semibold">{stats.workingDays}</span>
+        <TooltipProvider>
+            <div className="flex flex-col h-full bg-background overflow-hidden p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight">Month View</h1>
+                        <div className="flex gap-6 mt-2">
+                            <div className="flex flex-col">
+                                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Total working days</span>
+                                <span className="text-lg font-semibold">{stats.workingDays}</span>
+                            </div>
+                            <div className="flex flex-col border-l pl-6">
+                                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Average hours/workday</span>
+                                <span className="text-lg font-semibold">{formatDecimal(stats.avgHours)}h</span>
+                            </div>
+                            <div className="flex flex-col border-l pl-6">
+                                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Overtime</span>
+                                <span className={cn("text-lg font-semibold", stats.overtime > 0 ? "text-emerald-500" : "text-muted-foreground")}>
+                                    {stats.overtime > 0 ? "+" : ""}{formatDecimal(stats.overtime)}h
+                                </span>
+                            </div>
                         </div>
-                        <div className="flex flex-col border-l pl-6">
-                            <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Average hours/workday</span>
-                            <span className="text-lg font-semibold">{formatDecimal(stats.avgHours)}h</span>
-                        </div>
-                        <div className="flex flex-col border-l pl-6">
-                            <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Overtime</span>
-                            <span className={cn("text-lg font-semibold", stats.overtime > 0 ? "text-emerald-500" : "text-muted-foreground")}>
-                                {stats.overtime > 0 ? "+" : ""}{formatDecimal(stats.overtime)}h
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <Button variant="outline" size="icon" onClick={prevMonth}>
+                                <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <span className="text-lg font-semibold min-w-[150px] text-center">
+                                {format(currentMonth, "MMMM yyyy")}
                             </span>
+                            <Button variant="outline" size="icon" onClick={nextMonth}>
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
                         </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                        <Button variant="outline" size="icon" onClick={prevMonth}>
-                            <ChevronLeft className="h-4 w-4" />
-                        </Button>
-                        <span className="text-lg font-semibold min-w-[150px] text-center">
-                            {format(currentMonth, "MMMM yyyy")}
-                        </span>
-                        <Button variant="outline" size="icon" onClick={nextMonth}>
-                            <ChevronRight className="h-4 w-4" />
-                        </Button>
-                    </div>
-                </div>
-            </div>
 
-            <Tabs defaultValue="all" className="flex-1 flex flex-col min-h-0">
-                <TabsList className="w-fit mb-2">
-                    <TabsTrigger value="all">All</TabsTrigger>
-                    <TabsTrigger value="by-connection">By Connection</TabsTrigger>
-                </TabsList>
+                <Tabs defaultValue="all" className="flex-1 flex flex-col min-h-0">
+                    <TabsList className="w-fit mb-2">
+                        <TabsTrigger value="all">All</TabsTrigger>
+                        <TabsTrigger value="by-connection">By Connection</TabsTrigger>
+                    </TabsList>
 
-                <TabsContent value="all" className="flex-1 min-h-0 mt-0">
-                    <div className="h-full border rounded-md overflow-auto bg-card shadow-sm" onWheel={(e) => e.stopPropagation()}>
-                        <table className="w-full border-collapse text-xs table-fixed">
-                            <thead className="sticky top-0 bg-secondary/80 backdrop-blur-sm z-20 shadow-sm">
-                                <tr>
-                                    <th className="w-24 p-2 border-r border-b text-left bg-primary/10 font-bold">Jira Key</th>
-                                    <th className="w-64 p-2 border-r border-b text-left bg-primary/10 font-bold">Work Item</th>
-                                    {daysInMonth.map(day => (
-                                        <th
-                                            key={day.toISOString()}
-                                            className={cn(
-                                                "w-8 border-r border-b text-center font-medium",
-                                                isWeekend(day) ? "bg-muted/60 text-muted-foreground" : "bg-primary/5"
-                                            )}
-                                        >
-                                            {getDate(day)}
-                                        </th>
-                                    ))}
-                                    <th className="w-16 p-2 border-b text-center bg-primary/10 font-bold">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {activeWorkItems.map(item => {
-                                    let itemTotal = 0;
-                                    return (
-                                        <tr key={item.id} className="hover:bg-accent/30 transition-colors">
-                                            <td className="p-2 border-r border-b font-mono text-[10px] truncate">{item.jira_key || "-"}</td>
-                                            <td className="p-2 border-r border-b truncate" title={item.description}>{item.description}</td>
-                                            {daysInMonth.map(day => {
-                                                const d = getDate(day);
-                                                const seconds = aggregation[item.id]?.[d] || 0;
-                                                itemTotal += seconds;
-                                                return (
-                                                    <td
-                                                        key={day.toISOString()}
-                                                        onClick={() => handleCellClick(item, day, seconds)}
-                                                        className={cn(
-                                                            "border-r border-b text-center p-0 h-8",
-                                                            isWeekend(day) && "bg-muted/40",
-                                                            seconds > 0 && "cursor-pointer hover:bg-primary/20 hover:text-primary transition-colors font-medium"
-                                                        )}
-                                                    >
-                                                        {seconds > 0 && formatHours(seconds)}
-                                                    </td>
-                                                );
-                                            })}
-                                            <td className="p-2 border-b text-center font-bold bg-primary/5">
-                                                {formatHours(itemTotal)}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                                {/* Summary Row */}
-                                <tr className="sticky bottom-0 bg-primary/20 backdrop-blur-md font-bold shadow-[0_-2px_4px_rgba(0,0,0,0.1)]">
-                                    <td colSpan={2} className="p-2 border-r border-t bg-primary/10">TOTAL</td>
-                                    {daysInMonth.map(day => {
-                                        const d = getDate(day);
-                                        let dayTotal = 0;
-                                        activeWorkItems.forEach(item => {
-                                            dayTotal += aggregation[item.id]?.[d] || 0;
-                                        });
-                                        return (
-                                            <td
+                    <TabsContent value="all" className="flex-1 min-h-0 mt-0">
+                        <div className="h-full border rounded-md overflow-auto bg-card shadow-sm" onWheel={(e) => e.stopPropagation()}>
+                            <table className="w-full border-collapse text-xs table-fixed">
+                                <thead className="sticky top-0 bg-secondary/80 backdrop-blur-sm z-20 shadow-sm">
+                                    <tr>
+                                        <th className="w-24 p-2 border-r border-b text-left bg-primary/10 font-bold">Jira Key</th>
+                                        <th className="w-64 p-2 border-r border-b text-left bg-primary/10 font-bold">Work Item</th>
+                                        {daysInMonth.map(day => (
+                                            <th
                                                 key={day.toISOString()}
                                                 className={cn(
-                                                    "border-r border-t text-center h-10",
-                                                    isWeekend(day) && "bg-muted/60"
+                                                    "w-8 border-r border-b text-center font-medium",
+                                                    isWeekend(day) ? "bg-muted/60 text-muted-foreground" : "bg-primary/5"
                                                 )}
                                             >
-                                                {dayTotal > 0 && formatHours(dayTotal)}
-                                            </td>
-                                        );
-                                    })}
-                                    <td className="p-2 border-t text-center bg-primary/30">
-                                        {formatHours(slices.reduce((acc, s) => {
-                                            const start = new Date(s.start_time);
-                                            const end = s.end_time ? new Date(s.end_time) : new Date();
-                                            return acc + differenceInSeconds(end, start);
-                                        }, 0))}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        {loading && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-30">
-                                <div className="flex flex-col items-center gap-2">
-                                    <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                                    <span className="text-sm font-medium animate-pulse">Loading monthly overview...</span>
-                                </div>
-                            </div>
-                        )}
-                        {!loading && activeWorkItems.length === 0 && (
-                            <div className="flex flex-col items-center justify-center h-64 text-muted-foreground gap-2">
-                                <p className="text-lg">No time tracked in {format(currentMonth, "MMMM")}.</p>
-                                <p className="text-sm italic">Switch to the dashboard to start tracking!</p>
-                            </div>
-                        )}
-                    </div>
-                </TabsContent>
+                                                {getDate(day)}
+                                            </th>
+                                        ))}
+                                        <th className="w-16 p-2 border-b text-center bg-primary/10 font-bold">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {activeWorkItems.map(item => {
+                                        let itemTotal = 0;
+                                        return (
+                                            <tr key={item.id} className="hover:bg-accent/30 transition-colors">
+                                                <td className="p-2 border-r border-b font-mono text-[10px] truncate">{item.jira_key || "-"}</td>
+                                                <td className="p-2 border-r border-b truncate" title={item.description}>{item.description}</td>
+                                                {daysInMonth.map(day => {
+                                                    const d = getDate(day);
+                                                    const seconds = aggregation[item.id]?.[d] || 0;
+                                                    itemTotal += seconds;
 
-                <TabsContent value="by-connection" className="flex-1 min-h-0 mt-0 overflow-auto space-y-6">
-                    {Object.entries(itemsByConnection).map(([connectionName, items]) => {
-                        let connectionTotal = 0;
-                        const connection = connections.find(c => c.name === connectionName);
-                        const connColor = connection?.color || '#64748b';
-                        return (
-                            <div key={connectionName} className="border rounded-md bg-card shadow-sm overflow-hidden">
-                                <div
-                                    className="p-3 font-bold text-sm border-b flex items-center gap-2"
-                                >
-                                    <div
-                                        className="w-3 h-3 rounded-full shrink-0 border border-black/10"
-                                        style={{ backgroundColor: connColor }}
-                                    />
-                                    <span style={{ color: connColor }}>{connectionName}</span>
-                                </div>
-                                <div className="overflow-auto" onWheel={(e) => e.stopPropagation()}>
-                                    <table className="w-full border-collapse text-xs table-fixed">
-                                        <thead className="sticky top-0 bg-secondary/80 backdrop-blur-sm z-20 shadow-sm">
-                                            <tr>
-                                                <th className="w-24 p-2 border-r border-b text-left bg-primary/5 font-bold">Jira Key</th>
-                                                <th className="w-64 p-2 border-r border-b text-left bg-primary/5 font-bold">Work Item</th>
-                                                {daysInMonth.map(day => (
-                                                    <th
-                                                        key={day.toISOString()}
-                                                        className={cn(
-                                                            "w-8 border-r border-b text-center font-medium",
-                                                            isWeekend(day) ? "bg-muted/60 text-muted-foreground" : "bg-primary/5"
-                                                        )}
-                                                    >
-                                                        {getDate(day)}
-                                                    </th>
-                                                ))}
-                                                <th className="w-16 p-2 border-b text-center bg-primary/5 font-bold">Total</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {items.map(item => {
-                                                let itemTotal = 0;
-                                                return (
-                                                    <tr key={item.id} className="hover:bg-accent/30 transition-colors">
-                                                        <td className="p-2 border-r border-b font-mono text-[10px] truncate">{item.jira_key || "-"}</td>
-                                                        <td className="p-2 border-r border-b truncate" title={item.description}>{item.description}</td>
-                                                        {daysInMonth.map(day => {
-                                                            const d = getDate(day);
-                                                            const seconds = aggregation[item.id]?.[d] || 0;
-                                                            itemTotal += seconds;
-                                                            connectionTotal += seconds;
-                                                            return (
+                                                    const daySlices = seconds > 0 ? slices.filter(s =>
+                                                        s.work_item_id === item.id &&
+                                                        getDate(new Date(s.start_time)) === d
+                                                    ).sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()) : [];
+
+                                                    return (
+                                                        <Tooltip key={day.toISOString()}>
+                                                            <TooltipTrigger asChild>
                                                                 <td
-                                                                    key={day.toISOString()}
                                                                     onClick={() => handleCellClick(item, day, seconds)}
                                                                     className={cn(
                                                                         "border-r border-b text-center p-0 h-8",
@@ -391,70 +284,232 @@ export function MonthView() {
                                                                 >
                                                                     {seconds > 0 && formatHours(seconds)}
                                                                 </td>
-                                                            );
-                                                        })}
-                                                        <td className="p-2 border-b text-center font-bold bg-primary/5">
-                                                            {formatHours(itemTotal)}
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                            {/* Connection Total Row */}
-                                            <tr className="bg-primary/10 font-bold">
-                                                <td colSpan={2} className="p-2 border-r border-t">Total</td>
-                                                {daysInMonth.map(day => {
-                                                    const d = getDate(day);
-                                                    let dayTotal = 0;
-                                                    items.forEach(item => {
-                                                        dayTotal += aggregation[item.id]?.[d] || 0;
-                                                    });
-                                                    return (
-                                                        <td
-                                                            key={day.toISOString()}
-                                                            className={cn(
-                                                                "border-r border-t text-center h-10",
-                                                                isWeekend(day) && "bg-muted/60"
+                                                            </TooltipTrigger>
+                                                            {seconds > 0 && (
+                                                                <TooltipContent className="max-w-[400px] p-3 space-y-2">
+                                                                    <p className="font-bold text-xs border-b pb-1">{format(day, "EEEE, MMM do")}</p>
+                                                                    <div className="space-y-1">
+                                                                        {daySlices.map(s => (
+                                                                            <div key={s.id} className="text-[10px] leading-tight flex gap-2">
+                                                                                <span className="font-mono text-muted-foreground shrink-0 tabular-nums">
+                                                                                    {format(new Date(s.start_time), "HH:mm")} - {s.end_time ? format(new Date(s.end_time), "HH:mm") : "Now"}
+                                                                                </span>
+                                                                                <span className="break-words">
+                                                                                    {s.notes || <span className="italic opacity-50">No notes</span>}
+                                                                                </span>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </TooltipContent>
                                                             )}
-                                                        >
-                                                            {dayTotal > 0 && formatHours(dayTotal)}
-                                                        </td>
+                                                        </Tooltip>
                                                     );
                                                 })}
-                                                <td className="p-2 border-t text-center bg-primary/20">
-                                                    {formatHours(connectionTotal)}
+                                                <td className="p-2 border-b text-center font-bold bg-primary/5">
+                                                    {formatHours(itemTotal)}
                                                 </td>
                                             </tr>
-                                        </tbody>
-                                    </table>
+                                        );
+                                    })}
+                                    {/* Summary Row */}
+                                    <tr className="sticky bottom-0 bg-primary/20 backdrop-blur-md font-bold shadow-[0_-2px_4px_rgba(0,0,0,0.1)]">
+                                        <td colSpan={2} className="p-2 border-r border-t bg-primary/10">TOTAL</td>
+                                        {daysInMonth.map(day => {
+                                            const d = getDate(day);
+                                            let dayTotal = 0;
+                                            activeWorkItems.forEach(item => {
+                                                dayTotal += aggregation[item.id]?.[d] || 0;
+                                            });
+                                            return (
+                                                <td
+                                                    key={day.toISOString()}
+                                                    className={cn(
+                                                        "border-r border-t text-center h-10",
+                                                        isWeekend(day) && "bg-muted/60"
+                                                    )}
+                                                >
+                                                    {dayTotal > 0 && formatHours(dayTotal)}
+                                                </td>
+                                            );
+                                        })}
+                                        <td className="p-2 border-t text-center bg-primary/30">
+                                            {formatHours(slices.reduce((acc, s) => {
+                                                const start = new Date(s.start_time);
+                                                const end = s.end_time ? new Date(s.end_time) : new Date();
+                                                return acc + differenceInSeconds(end, start);
+                                            }, 0))}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            {loading && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-30">
+                                    <div className="flex flex-col items-center gap-2">
+                                        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                        <span className="text-sm font-medium animate-pulse">Loading monthly overview...</span>
+                                    </div>
+                                </div>
+                            )}
+                            {!loading && activeWorkItems.length === 0 && (
+                                <div className="flex flex-col items-center justify-center h-64 text-muted-foreground gap-2">
+                                    <p className="text-lg">No time tracked in {format(currentMonth, "MMMM")}.</p>
+                                    <p className="text-sm italic">Switch to the dashboard to start tracking!</p>
+                                </div>
+                            )}
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="by-connection" className="flex-1 min-h-0 mt-0 overflow-auto space-y-6">
+                        {Object.entries(itemsByConnection).map(([connectionName, items]) => {
+                            let connectionTotal = 0;
+                            const connection = connections.find(c => c.name === connectionName);
+                            const connColor = connection?.color || '#64748b';
+                            return (
+                                <div key={connectionName} className="border rounded-md bg-card shadow-sm overflow-hidden">
+                                    <div
+                                        className="p-3 font-bold text-sm border-b flex items-center gap-2"
+                                    >
+                                        <div
+                                            className="w-3 h-3 rounded-full shrink-0 border border-black/10"
+                                            style={{ backgroundColor: connColor }}
+                                        />
+                                        <span style={{ color: connColor }}>{connectionName}</span>
+                                    </div>
+                                    <div className="overflow-auto" onWheel={(e) => e.stopPropagation()}>
+                                        <table className="w-full border-collapse text-xs table-fixed">
+                                            <thead className="sticky top-0 bg-secondary/80 backdrop-blur-sm z-20 shadow-sm">
+                                                <tr>
+                                                    <th className="w-24 p-2 border-r border-b text-left bg-primary/5 font-bold">Jira Key</th>
+                                                    <th className="w-64 p-2 border-r border-b text-left bg-primary/5 font-bold">Work Item</th>
+                                                    {daysInMonth.map(day => (
+                                                        <th
+                                                            key={day.toISOString()}
+                                                            className={cn(
+                                                                "w-8 border-r border-b text-center font-medium",
+                                                                isWeekend(day) ? "bg-muted/60 text-muted-foreground" : "bg-primary/5"
+                                                            )}
+                                                        >
+                                                            {getDate(day)}
+                                                        </th>
+                                                    ))}
+                                                    <th className="w-16 p-2 border-b text-center bg-primary/5 font-bold">Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {items.map(item => {
+                                                    let itemTotal = 0;
+                                                    return (
+                                                        <tr key={item.id} className="hover:bg-accent/30 transition-colors">
+                                                            <td className="p-2 border-r border-b font-mono text-[10px] truncate">{item.jira_key || "-"}</td>
+                                                            <td className="p-2 border-r border-b truncate" title={item.description}>{item.description}</td>
+                                                            {daysInMonth.map(day => {
+                                                                const d = getDate(day);
+                                                                const seconds = aggregation[item.id]?.[d] || 0;
+                                                                itemTotal += seconds;
+                                                                connectionTotal += seconds;
+
+                                                                const daySlices = seconds > 0 ? slices.filter(s =>
+                                                                    s.work_item_id === item.id &&
+                                                                    getDate(new Date(s.start_time)) === d
+                                                                ).sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()) : [];
+
+                                                                return (
+                                                                    <Tooltip key={day.toISOString()}>
+                                                                        <TooltipTrigger asChild>
+                                                                            <td
+                                                                                onClick={() => handleCellClick(item, day, seconds)}
+                                                                                className={cn(
+                                                                                    "border-r border-b text-center p-0 h-8",
+                                                                                    isWeekend(day) && "bg-muted/40",
+                                                                                    seconds > 0 && "cursor-pointer hover:bg-primary/20 hover:text-primary transition-colors font-medium"
+                                                                                )}
+                                                                            >
+                                                                                {seconds > 0 && formatHours(seconds)}
+                                                                            </td>
+                                                                        </TooltipTrigger>
+                                                                        {seconds > 0 && (
+                                                                            <TooltipContent className="max-w-[400px] p-3 space-y-2">
+                                                                                <p className="font-bold text-xs border-b pb-1">{format(day, "EEEE, MMM do")}</p>
+                                                                                <div className="space-y-1">
+                                                                                    {daySlices.map(s => (
+                                                                                        <div key={s.id} className="text-[10px] leading-tight flex gap-2">
+                                                                                            <span className="font-mono text-muted-foreground shrink-0 tabular-nums">
+                                                                                                {format(new Date(s.start_time), "HH:mm")} - {s.end_time ? format(new Date(s.end_time), "HH:mm") : "Now"}
+                                                                                            </span>
+                                                                                            <span className="break-words">
+                                                                                                {s.notes || <span className="italic opacity-50">No notes</span>}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                            </TooltipContent>
+                                                                        )}
+                                                                    </Tooltip>
+                                                                );
+                                                            })}
+                                                            <td className="p-2 border-b text-center font-bold bg-primary/5">
+                                                                {formatHours(itemTotal)}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                                {/* Connection Total Row */}
+                                                <tr className="bg-primary/10 font-bold">
+                                                    <td colSpan={2} className="p-2 border-r border-t">Total</td>
+                                                    {daysInMonth.map(day => {
+                                                        const d = getDate(day);
+                                                        let dayTotal = 0;
+                                                        items.forEach(item => {
+                                                            dayTotal += aggregation[item.id]?.[d] || 0;
+                                                        });
+                                                        return (
+                                                            <td
+                                                                key={day.toISOString()}
+                                                                className={cn(
+                                                                    "border-r border-t text-center h-10",
+                                                                    isWeekend(day) && "bg-muted/60"
+                                                                )}
+                                                            >
+                                                                {dayTotal > 0 && formatHours(dayTotal)}
+                                                            </td>
+                                                        );
+                                                    })}
+                                                    <td className="p-2 border-t text-center bg-primary/20">
+                                                        {formatHours(connectionTotal)}
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        {loading && (
+                            <div className="flex items-center justify-center h-64 text-muted-foreground">
+                                <div className="flex flex-col items-center gap-2">
+                                    <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                    <span className="text-sm font-medium animate-pulse">Loading monthly overview...</span>
                                 </div>
                             </div>
-                        );
-                    })}
-                    {loading && (
-                        <div className="flex items-center justify-center h-64 text-muted-foreground">
-                            <div className="flex flex-col items-center gap-2">
-                                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                                <span className="text-sm font-medium animate-pulse">Loading monthly overview...</span>
+                        )}
+                        {!loading && Object.keys(itemsByConnection).length === 0 && (
+                            <div className="flex flex-col items-center justify-center h-64 text-muted-foreground gap-2">
+                                <p className="text-lg">No time tracked in {format(currentMonth, "MMMM")}.</p>
+                                <p className="text-sm italic">Switch to the dashboard to start tracking!</p>
                             </div>
-                        </div>
-                    )}
-                    {!loading && Object.keys(itemsByConnection).length === 0 && (
-                        <div className="flex flex-col items-center justify-center h-64 text-muted-foreground gap-2">
-                            <p className="text-lg">No time tracked in {format(currentMonth, "MMMM")}.</p>
-                            <p className="text-sm italic">Switch to the dashboard to start tracking!</p>
-                        </div>
-                    )}
-                </TabsContent>
-            </Tabs>
+                        )}
+                    </TabsContent>
+                </Tabs>
 
-            <MonthCellDialog
-                open={isDetailsOpen}
-                onOpenChange={setIsDetailsOpen}
-                workItem={selectedItem}
-                dateLabel={selectedDateLabel}
-                hours={selectedHours}
-                notes={selectedNotes}
-            />
-        </div>
+                <MonthCellDialog
+                    open={isDetailsOpen}
+                    onOpenChange={setIsDetailsOpen}
+                    workItem={selectedItem}
+                    dateLabel={selectedDateLabel}
+                    hours={selectedHours}
+                    notes={selectedNotes}
+                />
+            </div>
+        </TooltipProvider>
     );
 }
