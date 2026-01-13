@@ -15,12 +15,20 @@ import {
 } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { MonthCellDialog } from "@/components/MonthView/MonthCellDialog"
 
 export function MonthView() {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [slices, setSlices] = useState<TimeSlice[]>([]);
     const [connections, setConnections] = useState<JiraConnection[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // Dialog state
+    const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+    const [selectedItem, setSelectedItem] = useState<WorkItem | null>(null);
+    const [selectedDateLabel, setSelectedDateLabel] = useState("");
+    const [selectedHours, setSelectedHours] = useState("");
+    const [selectedNotes, setSelectedNotes] = useState("");
 
     const monthStart = useMemo(() => startOfMonth(currentMonth), [currentMonth]);
     const monthEnd = useMemo(() => endOfMonth(currentMonth), [currentMonth]);
@@ -159,6 +167,27 @@ export function MonthView() {
         return parseFloat(val.toFixed(2)).toString().replace(".", ",");
     };
 
+    const handleCellClick = (item: WorkItem, day: Date, seconds: number) => {
+        if (seconds <= 0) return;
+
+        const d = getDate(day);
+        const daySlices = slices.filter(s =>
+            s.work_item_id === item.id &&
+            getDate(new Date(s.start_time)) === d
+        );
+
+        const notes = daySlices
+            .map(s => s.notes?.trim())
+            .filter(Boolean)
+            .join("\n");
+
+        setSelectedItem(item);
+        setSelectedDateLabel(format(day, "EEEE, MMMM do, yyyy"));
+        setSelectedHours(formatHours(seconds));
+        setSelectedNotes(notes);
+        setIsDetailsOpen(true);
+    };
+
     return (
         <div className="flex flex-col h-full bg-background overflow-hidden p-6 space-y-4">
             <div className="flex items-center justify-between">
@@ -237,9 +266,11 @@ export function MonthView() {
                                                 return (
                                                     <td
                                                         key={day.toISOString()}
+                                                        onClick={() => handleCellClick(item, day, seconds)}
                                                         className={cn(
                                                             "border-r border-b text-center p-0 h-8",
-                                                            isWeekend(day) && "bg-muted/40"
+                                                            isWeekend(day) && "bg-muted/40",
+                                                            seconds > 0 && "cursor-pointer hover:bg-primary/20 hover:text-primary transition-colors font-medium"
                                                         )}
                                                     >
                                                         {seconds > 0 && formatHours(seconds)}
@@ -351,9 +382,11 @@ export function MonthView() {
                                                             return (
                                                                 <td
                                                                     key={day.toISOString()}
+                                                                    onClick={() => handleCellClick(item, day, seconds)}
                                                                     className={cn(
                                                                         "border-r border-b text-center p-0 h-8",
-                                                                        isWeekend(day) && "bg-muted/40"
+                                                                        isWeekend(day) && "bg-muted/40",
+                                                                        seconds > 0 && "cursor-pointer hover:bg-primary/20 hover:text-primary transition-colors font-medium"
                                                                     )}
                                                                 >
                                                                     {seconds > 0 && formatHours(seconds)}
@@ -413,6 +446,15 @@ export function MonthView() {
                     )}
                 </TabsContent>
             </Tabs>
+
+            <MonthCellDialog
+                open={isDetailsOpen}
+                onOpenChange={setIsDetailsOpen}
+                workItem={selectedItem}
+                dateLabel={selectedDateLabel}
+                hours={selectedHours}
+                notes={selectedNotes}
+            />
         </div>
     );
 }
