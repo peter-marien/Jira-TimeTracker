@@ -1,5 +1,5 @@
 import { autoUpdater } from 'electron-updater';
-import { BrowserWindow, ipcMain } from 'electron';
+import { BrowserWindow, ipcMain, app } from 'electron';
 import log from 'electron-log';
 
 // Configure logging
@@ -30,6 +30,22 @@ export function initializeAutoUpdater(window: BrowserWindow) {
     ipcMain.on('update:quit-and-install', () => {
         log.info('Quit and install update requested.');
         autoUpdater.quitAndInstall();
+    });
+
+    // Handle manual update check
+    ipcMain.handle('update:check', async () => {
+        log.info('Manual update check requested.');
+        try {
+            const result = await autoUpdater.checkForUpdates();
+            // Return simplified result
+            return {
+                updateAvailable: !!result && result.updateInfo.version !== app.getVersion(),
+                version: result?.updateInfo.version
+            };
+        } catch (error) {
+            log.error('Manual update check error:', error);
+            throw error;
+        }
     });
 }
 

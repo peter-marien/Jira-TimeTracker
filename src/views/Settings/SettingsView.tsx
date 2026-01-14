@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { FolderOpen, Moon, Sun, Monitor, Trash2, Upload, Loader2, Clock } from "lucide-react"
+import { FolderOpen, Moon, Sun, Monitor, Trash2, Upload, Loader2, Clock, RefreshCcw } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Switch } from "@/components/ui/switch"
 import {
@@ -51,6 +51,8 @@ export function SettingsView() {
     const [updateInterval, setUpdateInterval] = React.useState(60);
     const [appVersion, setAppVersion] = React.useState<string>("");
     const [otherColor, setOtherColor] = React.useState("#64748b");
+    const [checkingUpdate, setCheckingUpdate] = React.useState(false);
+    const [updateStatus, setUpdateStatus] = React.useState<{ type: 'current' | 'available' | 'error', message: string } | null>(null);
 
     React.useEffect(() => {
         api.getDatabasePath().then(setDbPath).catch(() => setDbPath("Error fetching path"));
@@ -137,6 +139,23 @@ export function SettingsView() {
             });
         } finally {
             setIsImporting(false);
+        }
+    };
+
+    const handleCheckUpdate = async () => {
+        setCheckingUpdate(true);
+        setUpdateStatus(null);
+        try {
+            const result = await api.checkForUpdates();
+            if (result.updateAvailable) {
+                setUpdateStatus({ type: 'available', message: `Update available: ${result.version}` });
+            } else {
+                setUpdateStatus({ type: 'current', message: "You are up to date." });
+            }
+        } catch (error) {
+            setUpdateStatus({ type: 'error', message: "Error checking for updates." });
+        } finally {
+            setCheckingUpdate(false);
         }
     };
 
@@ -365,6 +384,38 @@ export function SettingsView() {
                                 <p className="text-xs text-muted-foreground">
                                     The application will check for updates in the background.
                                 </p>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-4 border-t">
+                                <div className="space-y-0.5">
+                                    <Label>Manual Update Check</Label>
+                                    <p className="text-xs text-muted-foreground">
+                                        Check now for the latest version.
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {updateStatus && (
+                                        <span className={`text-sm ${updateStatus.type === 'available' ? 'text-green-500 font-medium' :
+                                                updateStatus.type === 'error' ? 'text-destructive' :
+                                                    'text-muted-foreground'
+                                            }`}>
+                                            {updateStatus.message}
+                                        </span>
+                                    )}
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleCheckUpdate}
+                                        disabled={checkingUpdate}
+                                    >
+                                        {checkingUpdate ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <RefreshCcw className="h-4 w-4 mr-2" />
+                                        )}
+                                        Check Now
+                                    </Button>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
