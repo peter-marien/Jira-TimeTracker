@@ -96,6 +96,21 @@ function App() {
     };
   }, [awayDialogOpen]);
 
+  // Listen for stop tracking command from mini player
+  const stopTracking = useTrackingStore(state => state.stopTracking);
+  useEffect(() => {
+    const handleMiniPlayerStop = () => {
+      console.log('[App] Stop tracking from mini player');
+      stopTracking();
+    };
+
+    window.ipcRenderer.on('mini-player:stop-tracking', handleMiniPlayerStop);
+
+    return () => {
+      window.ipcRenderer.removeListener('mini-player:stop-tracking', handleMiniPlayerStop);
+    };
+  }, [stopTracking]);
+
   const handleAwayAction = async (action: 'discard' | 'keep' | 'reassign', targetWorkItem?: WorkItem) => {
     if (awayData) {
       await handleAwayTime(action, awayData.awayStartTime, targetWorkItem);

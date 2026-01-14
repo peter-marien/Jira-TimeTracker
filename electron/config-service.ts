@@ -7,10 +7,12 @@ const configPath = path.join(app.getPath('userData'), CONFIG_FILE);
 
 export interface AppConfig {
     databasePath: string;
+    miniPlayer?: { width: number; height: number; x: number; y: number };
 }
 
 const DEFAULT_CONFIG: AppConfig = {
-    databasePath: path.join(app.getPath('userData'), 'jira-timetracker.db')
+    databasePath: path.join(app.getPath('userData'), 'jira-timetracker.db'),
+    miniPlayer: undefined
 };
 
 export function getAppConfig(): AppConfig {

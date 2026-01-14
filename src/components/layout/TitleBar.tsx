@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
-import { Minus, Square, X, Copy } from 'lucide-react'
+import { Minus, Square, X, Copy, PictureInPicture2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useTrackingStore } from '@/stores/useTrackingStore'
 import logoLight from '/logo.svg?url'
 import logoDark from '/logo-dark.svg?url'
 
 export function TitleBar() {
     const [isMaximized, setIsMaximized] = useState(false)
     const [isDark, setIsDark] = useState(false)
+    const { activeWorkItem, elapsedSeconds, activeTimeSliceId } = useTrackingStore()
+
+    const isTracking = !!activeTimeSliceId
 
     useEffect(() => {
         const checkMaximized = async () => {
@@ -34,6 +38,43 @@ export function TitleBar() {
         return () => observer.disconnect()
     }, [])
 
+    // Listen for mini player state request (when main window is minimized)
+    useEffect(() => {
+        const handleStateRequest = () => {
+            if (isTracking && activeWorkItem) {
+                api.showMiniPlayer({
+                    isTracking: true,
+                    elapsedSeconds,
+                    jiraKey: activeWorkItem.jira_key,
+                    description: activeWorkItem.description
+                })
+            }
+        }
+
+        window.ipcRenderer.on('mini-player:request-state', handleStateRequest)
+        return () => {
+            window.ipcRenderer.removeListener('mini-player:request-state', handleStateRequest)
+        }
+    }, [isTracking, activeWorkItem, elapsedSeconds])
+
+    // Update mini player state continuously when tracking
+    useEffect(() => {
+        if (isTracking && activeWorkItem) {
+            api.updateMiniPlayerState({
+                isTracking: true,
+                elapsedSeconds,
+                jiraKey: activeWorkItem.jira_key,
+                description: activeWorkItem.description
+            })
+        } else {
+            api.updateMiniPlayerState({
+                isTracking: false,
+                elapsedSeconds: 0,
+                description: ''
+            })
+        }
+    }, [isTracking, activeWorkItem, elapsedSeconds])
+
     const handleMaximizeToggle = async () => {
         if (isMaximized) {
             await api.unmaximizeWindow()
@@ -41,6 +82,18 @@ export function TitleBar() {
             await api.maximizeWindow()
         }
         setIsMaximized(!isMaximized)
+    }
+
+    const handleMinimizeToWidget = () => {
+        if (isTracking && activeWorkItem) {
+            api.showMiniPlayer({
+                isTracking: true,
+                elapsedSeconds,
+                jiraKey: activeWorkItem.jira_key,
+                description: activeWorkItem.description
+            })
+        }
+        api.minimizeWindow()
     }
 
     const logoSrc = isDark ? logoDark : logoLight
@@ -53,11 +106,22 @@ export function TitleBar() {
             </div>
 
             <div className="flex items-center no-drag-region">
+                {isTracking && (
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-10 hover:bg-primary/10 hover:text-primary rounded-none"
+                        onClick={handleMinimizeToWidget}
+                        title="Minimize to Widget"
+                    >
+                        <PictureInPicture2 className="h-3.5 w-3.5" />
+                    </Button>
+                )}
                 <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-10 hover:bg-muted rounded-none"
-                    onClick={() => api.minimizeWindow()}
+                    onClick={handleMinimizeToWidget}
                 >
                     <Minus className="h-3.5 w-3.5" />
                 </Button>
@@ -85,3 +149,4 @@ export function TitleBar() {
         </div>
     )
 }
+

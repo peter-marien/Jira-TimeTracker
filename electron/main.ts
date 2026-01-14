@@ -7,6 +7,7 @@ import { registerIpcHandlers } from './ipc-handlers'
 import { initializeTray } from './tray'
 import { initializeAutoUpdater } from './auto-updater'
 import { initializeAwayDetector } from './away-detector'
+import { initializeMiniPlayer } from './mini-player'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 process.env.APP_ROOT = path.join(__dirname, '..')
@@ -65,6 +66,7 @@ function createWindow() {
     initializeTray(win)
     initializeAutoUpdater(win)
     initializeAwayDetector(win)
+    initializeMiniPlayer(win)
   }
 }
 

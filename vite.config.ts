@@ -10,6 +10,14 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        'mini-player': path.resolve(__dirname, 'mini-player.html'),
+      },
+    },
+  },
   plugins: [
     react(),
     electron({

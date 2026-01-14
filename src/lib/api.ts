@@ -112,6 +112,14 @@ export const api = {
     isWindowMaximized: () => ipc.invoke('window:is-maximized') as Promise<boolean>,
     openDevTools: () => ipc.send('window:open-dev-tools'),
 
+    // Mini Player
+    showMiniPlayer: (data: { isTracking: boolean; elapsedSeconds: number; jiraKey?: string | null; description: string }) =>
+        ipc.send('mini-player:show', data),
+    hideMiniPlayer: () => ipc.send('mini-player:hide'),
+    updateMiniPlayerState: (data: { isTracking: boolean; elapsedSeconds: number; jiraKey?: string | null; description: string }) =>
+        ipc.send('mini-player:update-state', data),
+    minimizeToMiniPlayer: () => ipc.send('window:minimize-to-mini-player'),
+
     // App Info
     getAppVersion: () => ipc.invoke('app:get-version') as Promise<string>,
     quitAndInstallUpdate: () => ipc.send('update:quit-and-install'),
