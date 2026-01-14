@@ -19,7 +19,7 @@ interface TimeSliceContextMenuProps {
     onCopy: (slice: TimeSlice) => void;
     onMerge?: () => void;
     canMerge?: boolean;
-    onEditWorkItem: (slice: TimeSlice) => void;
+    onEditWorkItem?: (slice: TimeSlice) => void;
 }
 
 export function TimeSliceContextMenu({ children, slice, onEdit, onSplit, onMove, onDelete, onResume, onCopy, onMerge, canMerge, onEditWorkItem }: TimeSliceContextMenuProps) {
@@ -42,10 +42,12 @@ export function TimeSliceContextMenu({ children, slice, onEdit, onSplit, onMove,
                     <Edit2 className="mr-2 h-4 w-4" />
                     Edit Time / Notes
                 </ContextMenuItem>
-                <ContextMenuItem onClick={() => onEditWorkItem(slice)}>
-                    <FileEdit className="mr-2 h-4 w-4" />
-                    Edit Work Item
-                </ContextMenuItem>
+                {onEditWorkItem && (
+                    <ContextMenuItem onClick={() => onEditWorkItem(slice)}>
+                        <FileEdit className="mr-2 h-4 w-4" />
+                        Edit Work Item
+                    </ContextMenuItem>
+                )}
                 <ContextMenuItem onClick={() => onResume(slice)}>
                     <Play className="mr-2 h-4 w-4 text-primary" />
                     Resume Tracking

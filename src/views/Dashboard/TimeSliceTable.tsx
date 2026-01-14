@@ -29,7 +29,7 @@ interface TimeSliceTableProps {
     onDoubleClick?: (slice: TimeSlice) => void;
     connections?: JiraConnection[];
     otherColor?: string;
-    onEditWorkItem: (slice: TimeSlice) => void;
+    onEditWorkItem?: (slice: TimeSlice) => void;
 }
 
 import { useState } from "react";
@@ -234,10 +234,12 @@ export function TimeSliceTable({
                                             <Pencil className="mr-2 h-4 w-4" />
                                             Edit Time
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEditWorkItem(slice); }}>
-                                            <FileEdit className="mr-2 h-4 w-4" />
-                                            Edit Work Item
-                                        </DropdownMenuItem>
+                                        {onEditWorkItem && (
+                                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEditWorkItem(slice); }}>
+                                                <FileEdit className="mr-2 h-4 w-4" />
+                                                Edit Work Item
+                                            </DropdownMenuItem>
+                                        )}
                                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onResume(slice); }}>
                                             <Play className="mr-2 h-4 w-4 text-primary" />
                                             Resume
