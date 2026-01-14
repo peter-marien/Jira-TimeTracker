@@ -185,10 +185,19 @@ export function TimeSliceTable({
                             {/* Work Item Column */}
                             <div className="flex flex-col gap-1 min-w-0 py-1">
                                 <span className="font-medium truncate">{slice.work_item_description}</span>
-                                {slice.notes && (
+                                {slice.notes ? (
                                     <p className="text-xs text-muted-foreground break-words max-w-[500px] whitespace-pre-wrap">
                                         {slice.notes}
                                     </p>
+                                ) : (
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <AlertCircle className="h-4 w-4 text-destructive mt-0.5" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Missing notes</p>
+                                        </TooltipContent>
+                                    </Tooltip>
                                 )}
                             </div>
 
