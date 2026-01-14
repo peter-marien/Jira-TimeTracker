@@ -18,6 +18,7 @@ import {
 import { cn } from "@/lib/utils"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MonthCellDialog } from "@/components/MonthView/MonthCellDialog"
+import { MonthlyHoursChart } from "@/components/MonthView/MonthlyHoursChart"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
     ContextMenu,
@@ -251,6 +252,7 @@ export function MonthView() {
                     <TabsList className="w-fit mb-2">
                         <TabsTrigger value="all">All</TabsTrigger>
                         <TabsTrigger value="by-connection">By Connection</TabsTrigger>
+                        <TabsTrigger value="chart">Chart</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="all" className="flex-1 min-h-0 mt-0">
@@ -554,6 +556,14 @@ export function MonthView() {
                                 <p className="text-sm italic">Switch to the dashboard to start tracking!</p>
                             </div>
                         )}
+                    </TabsContent>
+
+                    <TabsContent value="chart" className="flex-1 min-h-0 mt-0 overflow-auto">
+                        <MonthlyHoursChart
+                            slices={slices}
+                            connections={connections}
+                            daysInMonth={daysInMonth}
+                        />
                     </TabsContent>
                 </Tabs>
 
