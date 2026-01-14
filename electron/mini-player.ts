@@ -1,7 +1,9 @@
 import { BrowserWindow, screen, ipcMain } from 'electron';
+import type { Rectangle } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { VITE_DEV_SERVER_URL, RENDERER_DIST } from './main';
+import { getAppConfig, saveAppConfig } from './config-service';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -69,31 +71,56 @@ export function initializeMiniPlayer(main: BrowserWindow) {
     });
 }
 
-import { getAppConfig, saveAppConfig } from './config-service';
+
+
+function isRectVisible(rect: Rectangle): boolean {
+    const displays = screen.getAllDisplays();
+    // Check if the center of the window is within any display
+    const centerX = rect.x + rect.width / 2;
+    const centerY = rect.y + rect.height / 2;
+
+    return displays.some(display => {
+        const { x, y, width, height } = display.bounds;
+        return (
+            centerX >= x &&
+            centerX < x + width &&
+            centerY >= y &&
+            centerY < y + height
+        );
+    });
+}
+
+function getSafeBounds(configBounds: Rectangle | undefined, defaultWidth = 360, defaultHeight = 80): Rectangle {
+    const { workArea } = screen.getPrimaryDisplay();
+    const defaultBounds = {
+        x: Math.floor(workArea.x + workArea.width - defaultWidth - 20),
+        y: Math.floor(workArea.y + workArea.height - defaultHeight - 20),
+        width: defaultWidth,
+        height: defaultHeight
+    };
+
+    if (!configBounds) return defaultBounds;
+
+    // Check visibility
+    if (isRectVisible(configBounds)) {
+        return configBounds;
+    }
+
+    // If not visible, return default on primary monitor
+    return defaultBounds;
+}
 
 function createMiniPlayerWindow(): BrowserWindow {
     const config = getAppConfig();
-    const { workArea } = screen.getPrimaryDisplay();
 
-    // Default size and position
-    let width = 360;
-    let height = 80;
-    let x = Math.floor(workArea.x + workArea.width - width - 20);
-    let y = Math.floor(workArea.y + workArea.height - height - 20);
-
-    // Override with saved config if available
-    if (config.miniPlayer) {
-        width = config.miniPlayer.width;
-        height = config.miniPlayer.height;
-        x = config.miniPlayer.x;
-        y = config.miniPlayer.y;
-    }
+    // Determine safe initial bounds
+    const safeBounds = getSafeBounds(config.miniPlayer);
 
     const win = new BrowserWindow({
-        width,
-        height,
-        x,
-        y,
+        width: safeBounds.width,
+        height: safeBounds.height,
+        x: safeBounds.x,
+        y: safeBounds.y,
         minWidth: 300,
         minHeight: 60,
         frame: false,
@@ -141,6 +168,13 @@ function createMiniPlayerWindow(): BrowserWindow {
 export function showMiniPlayer(data: TrackingData) {
     if (!miniPlayerWindow) {
         miniPlayerWindow = createMiniPlayerWindow();
+    } else {
+        // Ensure window is visible (in case monitors changed while app was running)
+        const bounds = miniPlayerWindow.getBounds();
+        if (!isRectVisible(bounds)) {
+            const safe = getSafeBounds(bounds, bounds.width, bounds.height);
+            miniPlayerWindow.setBounds(safe);
+        }
     }
 
     miniPlayerWindow.webContents.once('did-finish-load', () => {
