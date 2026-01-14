@@ -153,6 +153,7 @@ export function SettingsView() {
                 setUpdateStatus({ type: 'current', message: "You are up to date." });
             }
         } catch (error) {
+            console.error("Manual update check failed", error);
             setUpdateStatus({ type: 'error', message: "Error checking for updates." });
         } finally {
             setCheckingUpdate(false);
@@ -396,8 +397,8 @@ export function SettingsView() {
                                 <div className="flex items-center gap-2">
                                     {updateStatus && (
                                         <span className={`text-sm ${updateStatus.type === 'available' ? 'text-green-500 font-medium' :
-                                                updateStatus.type === 'error' ? 'text-destructive' :
-                                                    'text-muted-foreground'
+                                            updateStatus.type === 'error' ? 'text-destructive' :
+                                                'text-muted-foreground'
                                             }`}>
                                             {updateStatus.message}
                                         </span>
