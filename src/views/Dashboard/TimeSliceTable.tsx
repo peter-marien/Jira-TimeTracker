@@ -12,7 +12,7 @@ import {
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { AlertCircle, CheckCircle2, Copy, Pencil, Play, Trash2, ArrowRightLeft, MoreHorizontal, Split, Merge } from "lucide-react"
+import { AlertCircle, CheckCircle2, Copy, Pencil, Play, Trash2, ArrowRightLeft, MoreHorizontal, Split, Merge, FileEdit } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface TimeSliceTableProps {
@@ -29,6 +29,7 @@ interface TimeSliceTableProps {
     onDoubleClick?: (slice: TimeSlice) => void;
     connections?: JiraConnection[];
     otherColor?: string;
+    onEditWorkItem: (slice: TimeSlice) => void;
 }
 
 import { useState } from "react";
@@ -46,7 +47,8 @@ export function TimeSliceTable({
     onMerge,
     onDoubleClick,
     connections,
-    otherColor
+    otherColor,
+    onEditWorkItem
 }: TimeSliceTableProps) {
     const [lastClickedId, setLastClickedId] = useState<number | null>(null);
 
@@ -230,7 +232,11 @@ export function TimeSliceTable({
                                         )}
                                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(slice); }}>
                                             <Pencil className="mr-2 h-4 w-4" />
-                                            Edit
+                                            Edit Time
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEditWorkItem(slice); }}>
+                                            <FileEdit className="mr-2 h-4 w-4" />
+                                            Edit Work Item
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onResume(slice); }}>
                                             <Play className="mr-2 h-4 w-4 text-primary" />
@@ -271,6 +277,7 @@ export function TimeSliceTable({
                             onCopy={onCopy}
                             onMerge={onMerge}
                             canMerge={selectedIds.size > 1 && selectedIds.has(slice.id)}
+                            onEditWorkItem={onEditWorkItem}
                         >
                             {Content}
                         </TimeSliceContextMenu>

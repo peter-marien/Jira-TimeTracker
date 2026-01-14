@@ -6,8 +6,9 @@ import { ActiveTrackingBanner } from "./ActiveTrackingBanner"
 import { useDateStore } from "@/stores/useDateStore"
 import { useTrackingStore } from "@/stores/useTrackingStore"
 import { useTimeSlices } from "@/hooks/useTimeSlices"
-import { TimeSlice, api, JiraConnection } from "@/lib/api"
+import { TimeSlice, api, JiraConnection, WorkItem } from "@/lib/api"
 import { useState, useEffect, useRef, useMemo } from "react"
+import { EditWorkItemDialog } from "@/components/WorkItem/EditWorkItemDialog"
 import { EditTimeSliceDialog } from "@/components/TimeSlice/EditTimeSliceDialog"
 import { AddTimeSliceDialog } from "@/components/TimeSlice/AddTimeSliceDialog"
 import { SplitTimeSliceDialog } from "@/components/TimeSlice/SplitTimeSliceDialog"
@@ -30,6 +31,7 @@ export function Dashboard() {
 
     // Dialog States
     const [editSlice, setEditSlice] = useState<TimeSlice | null>(null);
+    const [editWorkItem, setEditWorkItem] = useState<WorkItem | null>(null);
     const [addSliceOpen, setAddSliceOpen] = useState(false);
     const [splitSlice, setSplitSlice] = useState<TimeSlice | null>(null);
     const [moveSlice, setMoveSlice] = useState<TimeSlice | null>(null);
@@ -68,6 +70,16 @@ export function Dashboard() {
 
     // Handlers
     const handleEdit = (slice: TimeSlice) => setEditSlice(slice);
+    const handleEditWorkItem = async (slice: TimeSlice) => {
+        try {
+            const workItem = await api.getWorkItem(slice.work_item_id);
+            if (workItem) {
+                setEditWorkItem(workItem);
+            }
+        } catch (error) {
+            console.error("Failed to fetch work item", error);
+        }
+    };
     const handleSplit = (slice: TimeSlice) => setSplitSlice(slice);
     const handleMove = (slice: TimeSlice) => setMoveSlice(slice);
     const handleDelete = (slice: TimeSlice) => setDeleteSlice(slice);
@@ -213,6 +225,7 @@ export function Dashboard() {
                             selectedIds={selectedIds}
                             onSelectionChange={setSelectedIds}
                             onEdit={handleEdit}
+                            onEditWorkItem={handleEditWorkItem}
                             onDelete={handleDelete}
                             onSplit={handleSplit}
                             onMove={handleMove}
@@ -226,6 +239,12 @@ export function Dashboard() {
                 </div>
             </div>
 
+            <EditWorkItemDialog
+                open={!!editWorkItem}
+                onOpenChange={(open) => !open && setEditWorkItem(null)}
+                item={editWorkItem}
+                onSave={refresh}
+            />
             <EditTimeSliceDialog
                 open={!!editSlice}
                 onOpenChange={(open) => !open && setEditSlice(null)}
