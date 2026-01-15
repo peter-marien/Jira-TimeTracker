@@ -8,6 +8,7 @@ import { useTrackingStore } from "@/stores/useTrackingStore"
 import { useTimeSlices } from "@/hooks/useTimeSlices"
 import { TimeSlice, api, JiraConnection, WorkItem } from "@/lib/api"
 import { useState, useEffect, useRef, useMemo } from "react"
+import { useSearchParams } from "react-router-dom";
 import { EditWorkItemDialog } from "@/components/WorkItem/EditWorkItemDialog"
 import { EditTimeSliceDialog } from "@/components/TimeSlice/EditTimeSliceDialog"
 import { AddTimeSliceDialog } from "@/components/TimeSlice/AddTimeSliceDialog"
@@ -21,10 +22,31 @@ import { ArrowLeftRight, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export function Dashboard() {
-    const { selectedDate } = useDateStore();
+    const { selectedDate, setSelectedDate } = useDateStore();
     const { slices, loading, refresh } = useTimeSlices(selectedDate);
     const activeTimeSliceId = useTrackingStore(state => state.activeTimeSliceId);
     const prevActiveIdRef = useRef<number | null>(activeTimeSliceId);
+
+    // Check for date param
+    // Check for date param
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    useEffect(() => {
+        const dateParam = searchParams.get('date');
+        console.log("Dashboard mount - dateParam:", dateParam);
+
+        if (dateParam) {
+            const newDate = new Date(dateParam);
+            if (!isNaN(newDate.getTime())) {
+                console.log("Setting selected date to:", newDate);
+                setSelectedDate(newDate);
+
+                // Remove the date param
+                searchParams.delete('date');
+                setSearchParams(searchParams);
+            }
+        }
+    }, [searchParams, setSearchParams, setSelectedDate]);
 
     // Selection State
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
