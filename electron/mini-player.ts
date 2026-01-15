@@ -15,6 +15,7 @@ export interface TrackingData {
     elapsedSeconds: number;
     jiraKey?: string | null;
     description: string;
+    startTime?: string;
 }
 
 export function initializeMiniPlayer(main: BrowserWindow) {

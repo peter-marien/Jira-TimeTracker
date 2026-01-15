@@ -9,7 +9,7 @@ import logoDark from '/logo-dark.svg?url'
 export function TitleBar() {
     const [isMaximized, setIsMaximized] = useState(false)
     const [isDark, setIsDark] = useState(false)
-    const { activeWorkItem, elapsedSeconds, activeTimeSliceId } = useTrackingStore()
+    const { activeWorkItem, elapsedSeconds, activeTimeSliceId, startTime } = useTrackingStore()
 
     const isTracking = !!activeTimeSliceId
 
@@ -45,7 +45,8 @@ export function TitleBar() {
                 isTracking: isTracking && !!activeWorkItem,
                 elapsedSeconds: isTracking ? elapsedSeconds : 0,
                 jiraKey: activeWorkItem?.jira_key,
-                description: activeWorkItem?.description || ''
+                description: activeWorkItem?.description || '',
+                startTime: startTime || undefined
             })
         }
 
@@ -53,7 +54,7 @@ export function TitleBar() {
         return () => {
             window.ipcRenderer.removeListener('mini-player:request-state', handleStateRequest)
         }
-    }, [isTracking, activeWorkItem, elapsedSeconds])
+    }, [isTracking, activeWorkItem, elapsedSeconds, startTime])
 
     // Update mini player state continuously when tracking
     useEffect(() => {
@@ -62,7 +63,8 @@ export function TitleBar() {
                 isTracking: true,
                 elapsedSeconds,
                 jiraKey: activeWorkItem.jira_key,
-                description: activeWorkItem.description
+                description: activeWorkItem.description,
+                startTime: startTime || undefined
             })
         } else {
             api.updateMiniPlayerState({
@@ -71,7 +73,7 @@ export function TitleBar() {
                 description: ''
             })
         }
-    }, [isTracking, activeWorkItem, elapsedSeconds])
+    }, [isTracking, activeWorkItem, elapsedSeconds, startTime])
 
     const handleMaximizeToggle = async () => {
         if (isMaximized) {
@@ -87,7 +89,8 @@ export function TitleBar() {
             isTracking: isTracking && !!activeWorkItem,
             elapsedSeconds: isTracking ? elapsedSeconds : 0,
             jiraKey: activeWorkItem?.jira_key,
-            description: activeWorkItem?.description || ''
+            description: activeWorkItem?.description || '',
+            startTime: startTime || undefined
         })
         api.minimizeWindow()
     }

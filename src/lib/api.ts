@@ -113,10 +113,10 @@ export const api = {
     openDevTools: () => ipc.send('window:open-dev-tools'),
 
     // Mini Player
-    showMiniPlayer: (data: { isTracking: boolean; elapsedSeconds: number; jiraKey?: string | null; description: string }) =>
+    showMiniPlayer: (data: { isTracking: boolean; elapsedSeconds: number; jiraKey?: string | null; description: string; startTime?: string }) =>
         ipc.send('mini-player:show', data),
     hideMiniPlayer: () => ipc.send('mini-player:hide'),
-    updateMiniPlayerState: (data: { isTracking: boolean; elapsedSeconds: number; jiraKey?: string | null; description: string }) =>
+    updateMiniPlayerState: (data: { isTracking: boolean; elapsedSeconds: number; jiraKey?: string | null; description: string; startTime?: string }) =>
         ipc.send('mini-player:update-state', data),
     minimizeToMiniPlayer: () => ipc.send('window:minimize-to-mini-player'),
 

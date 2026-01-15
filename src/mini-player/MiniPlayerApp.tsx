@@ -1,11 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { StopCircle, Maximize2, Search, Loader2, Play } from 'lucide-react';
+import { DurationDisplay } from '@/components/shared/DurationDisplay';
 
 interface TrackingData {
     isTracking: boolean;
     elapsedSeconds: number;
     jiraKey?: string | null;
     description: string;
+    startTime?: string;
 }
 
 interface WorkItem {
@@ -42,16 +44,7 @@ function roundToNearestInterval(date: Date, intervalMinutes: number): Date {
     return new Date(roundedMs);
 }
 
-function formatTime(seconds: number): string {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
 
-    if (hours > 0) {
-        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-}
 
 export function MiniPlayerApp() {
     const [trackingData, setTrackingData] = useState<TrackingData | null>(null);
@@ -122,7 +115,8 @@ export function MiniPlayerApp() {
                         isTracking: true,
                         elapsedSeconds: elapsed,
                         jiraKey: workItem.jira_key,
-                        description: workItem.description
+                        description: workItem.description,
+                        startTime: activeSlice.start_time
                     });
                 }
             }
@@ -135,7 +129,8 @@ export function MiniPlayerApp() {
                 isTracking: true,
                 elapsedSeconds: 0,
                 jiraKey: data.jiraKey,
-                description: data.description
+                description: data.description,
+                startTime: new Date().toISOString()
             });
         };
 
@@ -153,6 +148,21 @@ export function MiniPlayerApp() {
             window.ipcRenderer.removeListener('setting:updated', handleSettingUpdate);
         };
     }, []);
+
+    // Timer Tick
+    useEffect(() => {
+        if (!trackingData?.isTracking || !trackingData.startTime) return;
+
+        const interval = setInterval(() => {
+            const start = new Date(trackingData.startTime!).getTime();
+            const now = Date.now();
+            const elapsed = Math.floor((now - start) / 1000);
+
+            setTrackingData(prev => prev ? ({ ...prev, elapsedSeconds: elapsed }) : null);
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [trackingData?.isTracking, trackingData?.startTime]);
 
     // Handle clicks outside to close search results
     useEffect(() => {
@@ -276,9 +286,10 @@ export function MiniPlayerApp() {
                     </div>
 
                     {/* Time display */}
-                    <div className="time-display">
-                        {formatTime(trackingData.elapsedSeconds)}
-                    </div>
+                    <DurationDisplay
+                        seconds={trackingData.elapsedSeconds}
+                        className="time-display"
+                    />
 
                     {/* Divider */}
                     <div className="divider"></div>
