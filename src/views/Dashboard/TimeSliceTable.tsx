@@ -2,7 +2,7 @@ import { TimeSlice, JiraConnection } from "@/lib/api"
 import { TimeDisplay } from "@/components/shared/TimeDisplay"
 import { DurationDisplay } from "@/components/shared/DurationDisplay"
 import { TimeSliceContextMenu } from "./TimeSliceContextMenu"
-import { differenceInSeconds } from "date-fns"
+import { differenceInSeconds, format } from "date-fns"
 import { cn } from "@/lib/utils"
 import {
     DropdownMenu,
@@ -126,13 +126,31 @@ export function TimeSliceTable({
                         >
                             {/* Start Column */}
                             <div className="flex flex-col text-sm">
-                                <TimeDisplay date={start} className="font-semibold text-foreground/90" />
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <span className="w-fit cursor-help">
+                                            <TimeDisplay date={start} className="font-semibold text-foreground/90" />
+                                        </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right">
+                                        <p>{format(start, "PPP HH:mm:ss")}</p>
+                                    </TooltipContent>
+                                </Tooltip>
                             </div>
 
                             {/* End Column */}
                             <div className="flex flex-col text-sm">
                                 {end ? (
-                                    <TimeDisplay date={end} className="text-foreground/70" />
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <span className="w-fit cursor-help">
+                                                <TimeDisplay date={end} className="text-foreground/70" />
+                                            </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="right">
+                                            <p>{format(end, "PPP HH:mm:ss")}</p>
+                                        </TooltipContent>
+                                    </Tooltip>
                                 ) : (
                                     <span className="text-primary font-medium animate-pulse text-xs">Now</span>
                                 )}
