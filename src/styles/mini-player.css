@@ -27,8 +27,8 @@ body,
     -webkit-app-region: drag;
     /* Content is draggable */
     display: flex;
-    align-items: flex-end;
-    /* Align items to bottom for expanded state */
+    align-items: center;
+    /* Center items vertically */
     gap: 12px;
     padding: 12px 16px;
     background: rgba(15, 15, 20, 0.85);
@@ -49,8 +49,7 @@ body,
 .work-info,
 .search-container,
 .button-group {
-    margin-bottom: 2px;
-    /* Slight adjustment to look centered in the 80px row area */
+    margin-bottom: 0;
 }
 
 /* Pulse indicator */

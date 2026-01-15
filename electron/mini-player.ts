@@ -73,6 +73,8 @@ export function initializeMiniPlayer(main: BrowserWindow) {
 
         if (active && bounds.height < SEARCH_HEIGHT) {
             // Expand upwards
+            win.setMinimumSize(300, SEARCH_HEIGHT);
+            win.setMaximumSize(9999, SEARCH_HEIGHT);
             win.setBounds({
                 x: bounds.x,
                 y: bounds.y - (SEARCH_HEIGHT - IDLE_HEIGHT),
@@ -81,6 +83,8 @@ export function initializeMiniPlayer(main: BrowserWindow) {
             }, true);
         } else if (!active && bounds.height >= SEARCH_HEIGHT) {
             // Shrink downwards
+            win.setMinimumSize(300, IDLE_HEIGHT);
+            win.setMaximumSize(9999, IDLE_HEIGHT);
             win.setBounds({
                 x: bounds.x,
                 y: bounds.y + (SEARCH_HEIGHT - IDLE_HEIGHT),
@@ -148,11 +152,12 @@ function createMiniPlayerWindow(): BrowserWindow {
 
     const win = new BrowserWindow({
         width: safeBounds.width,
-        height: safeBounds.height,
+        height: 72, // Force idle height
         x: safeBounds.x,
         y: safeBounds.y,
         minWidth: 300,
-        minHeight: 60,
+        minHeight: 72,
+        maxHeight: 72, // Disable vertical resizing
         frame: false,
         transparent: true,
         alwaysOnTop: true,
