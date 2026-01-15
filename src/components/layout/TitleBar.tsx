@@ -41,14 +41,12 @@ export function TitleBar() {
     // Listen for mini player state request (when main window is minimized)
     useEffect(() => {
         const handleStateRequest = () => {
-            if (isTracking && activeWorkItem) {
-                api.showMiniPlayer({
-                    isTracking: true,
-                    elapsedSeconds,
-                    jiraKey: activeWorkItem.jira_key,
-                    description: activeWorkItem.description
-                })
-            }
+            api.showMiniPlayer({
+                isTracking: isTracking && !!activeWorkItem,
+                elapsedSeconds: isTracking ? elapsedSeconds : 0,
+                jiraKey: activeWorkItem?.jira_key,
+                description: activeWorkItem?.description || ''
+            })
         }
 
         window.ipcRenderer.on('mini-player:request-state', handleStateRequest)
@@ -85,14 +83,12 @@ export function TitleBar() {
     }
 
     const handleMinimizeToWidget = () => {
-        if (isTracking && activeWorkItem) {
-            api.showMiniPlayer({
-                isTracking: true,
-                elapsedSeconds,
-                jiraKey: activeWorkItem.jira_key,
-                description: activeWorkItem.description
-            })
-        }
+        api.showMiniPlayer({
+            isTracking: isTracking && !!activeWorkItem,
+            elapsedSeconds: isTracking ? elapsedSeconds : 0,
+            jiraKey: activeWorkItem?.jira_key,
+            description: activeWorkItem?.description || ''
+        })
         api.minimizeWindow()
     }
 
@@ -106,17 +102,15 @@ export function TitleBar() {
             </div>
 
             <div className="flex items-center no-drag-region">
-                {isTracking && (
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-10 hover:bg-primary/10 hover:text-primary rounded-none"
-                        onClick={handleMinimizeToWidget}
-                        title="Minimize to Widget"
-                    >
-                        <PictureInPicture2 className="h-3.5 w-3.5" />
-                    </Button>
-                )}
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-10 hover:bg-primary/10 hover:text-primary rounded-none"
+                    onClick={handleMinimizeToWidget}
+                    title="Minimize to Widget"
+                >
+                    <PictureInPicture2 className="h-3.5 w-3.5" />
+                </Button>
                 <Button
                     variant="ghost"
                     size="icon"

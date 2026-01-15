@@ -37,9 +37,7 @@ export function initializeMiniPlayer(main: BrowserWindow) {
 
     // Register IPC handlers
     ipcMain.on('mini-player:show', (_, data: TrackingData) => {
-        if (data.isTracking) {
-            showMiniPlayer(data);
-        }
+        showMiniPlayer(data);
     });
 
     ipcMain.on('mini-player:hide', () => {
@@ -63,6 +61,38 @@ export function initializeMiniPlayer(main: BrowserWindow) {
 
     ipcMain.on('mini-player:expand', () => {
         expandToMainWindow();
+    });
+
+    ipcMain.on('mini-player:set-search-active', (event, active: boolean) => {
+        const win = BrowserWindow.fromWebContents(event.sender);
+        if (!win) return;
+
+        const bounds = win.getBounds();
+        const IDLE_HEIGHT = 72;
+        const SEARCH_HEIGHT = 500;
+
+        if (active && bounds.height < SEARCH_HEIGHT) {
+            // Expand upwards
+            win.setBounds({
+                x: bounds.x,
+                y: bounds.y - (SEARCH_HEIGHT - IDLE_HEIGHT),
+                width: bounds.width,
+                height: SEARCH_HEIGHT
+            }, true);
+        } else if (!active && bounds.height >= SEARCH_HEIGHT) {
+            // Shrink downwards
+            win.setBounds({
+                x: bounds.x,
+                y: bounds.y + (SEARCH_HEIGHT - IDLE_HEIGHT),
+                width: bounds.width,
+                height: IDLE_HEIGHT
+            }, true);
+        }
+    });
+
+    // When tracking starts from mini-player, notify main window to sync state
+    ipcMain.on('mini-player:tracking-started', (_, data) => {
+        mainWindow?.webContents.send('mini-player:tracking-started', data);
     });
 
     ipcMain.on('window:minimize-to-mini-player', () => {
@@ -114,7 +144,7 @@ function createMiniPlayerWindow(): BrowserWindow {
     const config = getAppConfig();
 
     // Determine safe initial bounds
-    const safeBounds = getSafeBounds(config.miniPlayer);
+    const safeBounds = getSafeBounds(config.miniPlayer, 360, 72);
 
     const win = new BrowserWindow({
         width: safeBounds.width,
@@ -198,11 +228,6 @@ export function hideMiniPlayer() {
 export function updateMiniPlayerState(data: TrackingData) {
     if (miniPlayerWindow && !miniPlayerWindow.isDestroyed()) {
         miniPlayerWindow.webContents.send('mini-player:state', data);
-
-        // If tracking stopped, hide the mini player
-        if (!data.isTracking) {
-            hideMiniPlayer();
-        }
     }
 }
 

@@ -104,12 +104,19 @@ function App() {
       stopTracking();
     };
 
+    const handleMiniPlayerStart = () => {
+      console.log('[App] Tracking started from mini player - refreshing state');
+      checkActiveTracking();
+    };
+
     window.ipcRenderer.on('mini-player:stop-tracking', handleMiniPlayerStop);
+    window.ipcRenderer.on('mini-player:tracking-started', handleMiniPlayerStart);
 
     return () => {
       window.ipcRenderer.removeListener('mini-player:stop-tracking', handleMiniPlayerStop);
+      window.ipcRenderer.removeListener('mini-player:tracking-started', handleMiniPlayerStart);
     };
-  }, [stopTracking]);
+  }, [stopTracking, checkActiveTracking]);
 
   const handleAwayAction = async (action: 'discard' | 'keep' | 'reassign', targetWorkItem?: WorkItem) => {
     if (awayData) {

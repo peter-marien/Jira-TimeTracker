@@ -27,7 +27,8 @@ body,
     -webkit-app-region: drag;
     /* Content is draggable */
     display: flex;
-    align-items: center;
+    align-items: flex-end;
+    /* Align items to bottom for expanded state */
     gap: 12px;
     padding: 12px 16px;
     background: rgba(15, 15, 20, 0.85);
@@ -39,6 +40,17 @@ body,
         0 8px 10px rgba(0, 0, 0, 0.4),
         0 0 0 1px rgba(255, 255, 255, 0.05) inset;
     height: 100%;
+}
+
+/* Ensure pulse and other small items are still centered within their row */
+.pulse-container,
+.time-display,
+.divider,
+.work-info,
+.search-container,
+.button-group {
+    margin-bottom: 2px;
+    /* Slight adjustment to look centered in the 80px row area */
 }
 
 /* Pulse indicator */
@@ -127,6 +139,7 @@ body,
     text-overflow: ellipsis;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     /* Limit to 2 lines */
     -webkit-box-orient: vertical;
     line-height: 1.4;
@@ -174,4 +187,215 @@ body,
 .stop-btn:hover {
     background: rgba(239, 68, 68, 0.4);
     color: #fecaca;
+}
+
+/* Search Container */
+.search-container {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+}
+
+.search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 0 10px;
+    height: 36px;
+    transition: all 0.2s ease;
+}
+
+.search-input-wrapper:focus-within {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(124, 58, 237, 0.5);
+    box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+}
+
+.search-icon {
+    color: rgba(255, 255, 255, 0.4);
+    margin-right: 8px;
+}
+
+.search-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 13px;
+    outline: none;
+    width: 100%;
+}
+
+.search-input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.loading-icon {
+    color: rgba(124, 58, 237, 0.8);
+    margin-left: 8px;
+}
+
+/* Dropdown */
+.search-results-dropdown.upward {
+    position: absolute;
+    bottom: calc(100% + 12px);
+    left: 0;
+    right: -40px;
+    /* Give more space for descriptions */
+    background: rgba(20, 20, 25, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 100;
+    padding: 6px;
+}
+
+.no-results {
+    padding: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 13px;
+    text-align: center;
+}
+
+.result-group {
+    padding: 4px 0;
+}
+
+.group-label {
+    padding: 6px 10px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.3);
+    letter-spacing: 0.05em;
+}
+
+.result-item {
+    -webkit-app-region: no-drag;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    gap: 12px;
+}
+
+.result-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.result-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.result-description {
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.result-meta {
+    margin-top: 2px;
+}
+
+.result-key {
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.start-icon {
+    color: rgba(255, 255, 255, 0.2);
+    transition: color 0.15s ease;
+}
+
+.result-item:hover .start-icon {
+    color: #4ade80;
+}
+
+/* Custom Scrollbar */
+.search-results-dropdown::-webkit-scrollbar {
+    width: 4px;
+}
+
+.search-results-dropdown::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.search-results-dropdown::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+}
+
+.search-results-dropdown::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.mini-player.idle .mini-player-content {
+    background: rgba(15, 15, 20, 0.9);
+}
+
+/* New idle layout */
+.mini-player-idle-content {
+    -webkit-app-region: drag;
+    /* Enable window dragging */
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 8px;
+    background: rgba(15, 15, 20, 0.9);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow:
+        0 8px 10px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+    overflow: hidden;
+}
+
+/* Results area - fills available space with scrolling */
+.search-results-area {
+    -webkit-app-region: no-drag;
+    /* Allow clicking on results */
+    flex: 1 1 auto;
+    min-height: 100px;
+    max-height: 380px;
+    /* Limit height to enable scrolling */
+    overflow-y: auto;
+    overflow-x: hidden;
+    margin-bottom: 8px;
+    padding: 4px;
+}
+
+/* Search bar row at bottom - always visible */
+.search-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    /* Never grow or shrink */
+    padding: 4px;
+    height: 52px;
+    min-height: 52px;
+}
+
+.search-bar-row .search-input-wrapper {
+    flex: 1;
+}
+
+.search-bar-row .mini-btn {
+    flex-shrink: 0;
 }
