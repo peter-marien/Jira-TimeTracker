@@ -30,6 +30,7 @@ interface TimeSliceTableProps {
     connections?: JiraConnection[];
     otherColor?: string;
     onEditWorkItem?: (slice: TimeSlice) => void;
+    showDate?: boolean;
 }
 
 import { useState } from "react";
@@ -48,7 +49,8 @@ export function TimeSliceTable({
     onDoubleClick,
     connections,
     otherColor,
-    onEditWorkItem
+    onEditWorkItem,
+    showDate = false
 }: TimeSliceTableProps) {
     const [lastClickedId, setLastClickedId] = useState<number | null>(null);
 
@@ -89,9 +91,14 @@ export function TimeSliceTable({
         setLastClickedId(slice.id);
     };
 
+    const gridCols = showDate
+        ? "grid-cols-[6rem_6rem_6rem_8rem_1fr_6rem_3rem]"
+        : "grid-cols-[6rem_6rem_8rem_1fr_6rem_3rem]";
+
     return (
         <div className="rounded-md border bg-card">
-            <div className="grid grid-cols-[6rem_6rem_8rem_1fr_6rem_3rem] gap-4 p-4 border-b font-medium text-sm text-muted-foreground bg-secondary/20">
+            <div className={`grid ${gridCols} gap-4 p-4 border-b font-medium text-sm text-muted-foreground bg-secondary/20`}>
+                {showDate && <div>Date</div>}
                 <div>Start</div>
                 <div>End</div>
                 <div>Jira Key</div>
@@ -117,13 +124,20 @@ export function TimeSliceTable({
                     const Content = (
                         <div
                             className={cn(
-                                "grid grid-cols-[6rem_6rem_8rem_1fr_6rem_3rem] gap-4 p-4 items-center transition-colors cursor-default select-none",
+                                `grid ${gridCols} gap-4 p-4 items-center transition-colors cursor-default select-none`,
                                 isSelected ? "bg-primary/15 hover:bg-primary/20" : "hover:bg-accent/50",
                                 isActive && !isSelected && "bg-primary/5 hover:bg-primary/10 border-l-2 border-l-primary"
                             )}
                             onClick={(e) => handleRowClick(e, slice)}
                             onDoubleClick={() => onDoubleClick ? onDoubleClick(slice) : onEdit(slice)}
                         >
+                            {/* Date Column */}
+                            {showDate && (
+                                <div className="flex flex-col text-sm text-muted-foreground">
+                                    {format(start, "dd-MM-yyyy")}
+                                </div>
+                            )}
+
                             {/* Start Column */}
                             <div className="flex flex-col text-sm">
                                 <Tooltip>

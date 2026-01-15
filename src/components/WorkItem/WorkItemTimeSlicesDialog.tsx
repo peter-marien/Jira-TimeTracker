@@ -119,6 +119,7 @@ export function WorkItemTimeSlicesDialog({ open, onOpenChange, workItem }: WorkI
                                     onResume={handleResume}
                                     onCopy={handleCopy}
                                     onDoubleClick={handleDoubleClick}
+                                    showDate={true}
                                 />
                             )}
                         </ScrollArea>

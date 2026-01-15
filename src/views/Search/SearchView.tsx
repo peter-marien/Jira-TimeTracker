@@ -195,6 +195,7 @@ export function SearchView() {
                             onResume={handleResume}
                             onCopy={handleCopy}
                             onDoubleClick={handleDoubleClick}
+                            showDate={true}
                         />
 
                         {/* Pagination */}
