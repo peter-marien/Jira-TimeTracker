@@ -69,7 +69,7 @@ function updateTrayMenu(isTracking: boolean, currentWorkItem?: string) {
 function toggleWindow() {
     if (!mainWindow) return;
     if (mainWindow.isVisible()) {
-        mainWindow.hide();
+        mainWindow.minimize();
     } else {
         mainWindow.show();
         mainWindow.focus();
