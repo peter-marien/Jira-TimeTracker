@@ -340,6 +340,11 @@ export function registerIpcHandlers() {
             startUpdateInterval(interval);
         }
 
+        // Broadcast setting update to all windows (e.g. mini-player)
+        BrowserWindow.getAllWindows().forEach(win => {
+            win.webContents.send('setting:updated', { key, value });
+        });
+
         return { success: true };
     });
 

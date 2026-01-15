@@ -53,6 +53,7 @@ export function SettingsView() {
     const [otherColor, setOtherColor] = React.useState("#64748b");
     const [checkingUpdate, setCheckingUpdate] = React.useState(false);
     const [updateStatus, setUpdateStatus] = React.useState<{ type: 'current' | 'available' | 'error', message: string } | null>(null);
+    const [miniPlayerTheme, setMiniPlayerTheme] = React.useState("inverted");
 
     React.useEffect(() => {
         api.getDatabasePath().then(setDbPath).catch(() => setDbPath("Error fetching path"));
@@ -62,6 +63,10 @@ export function SettingsView() {
             const savedTheme = (settings.theme as Theme) || 'dark';
             setTheme(savedTheme);
             applyTheme(savedTheme);
+
+            // Load mini-player theme
+            setMiniPlayerTheme(settings.mini_player_theme || "inverted");
+
             // Load away detection settings
             const threshold = settings.away_threshold_minutes ? parseInt(settings.away_threshold_minutes, 10) : 5;
             setAwayThreshold(threshold);
@@ -208,6 +213,31 @@ export function SettingsView() {
                                     <Monitor className="h-6 w-6" />
                                     <span>System</span>
                                 </Button>
+                            </div>
+
+                            <div className="grid gap-2 pt-4 border-t">
+                                <Label>Mini-Player Theme</Label>
+                                <Select
+                                    value={miniPlayerTheme}
+                                    onValueChange={async (value) => {
+                                        setMiniPlayerTheme(value);
+                                        await api.saveSetting('mini_player_theme', value);
+                                    }}
+                                >
+                                    <SelectTrigger className="w-[300px]">
+                                        <SelectValue placeholder="Select theme" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="inverted">Inverted (Opposite of App)</SelectItem>
+                                        <SelectItem value="match">Match App Theme</SelectItem>
+                                        <SelectItem value="light">Always Light</SelectItem>
+                                        <SelectItem value="dark">Always Dark</SelectItem>
+                                        <SelectItem value="system">Follow System</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-xs text-muted-foreground">
+                                    Choose how the mini-player should look.
+                                </p>
                             </div>
 
                             <div className="grid gap-2 pt-4 border-t">

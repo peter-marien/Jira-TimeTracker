@@ -342,6 +342,84 @@ body,
     background: rgba(255, 255, 255, 0.2);
 }
 
+/* Light Theme Overrides */
+.mini-player.light .mini-player-content,
+.mini-player.light .mini-player-idle-content {
+    background: rgba(255, 255, 255, 0.95);
+    /* Increased opacity for readability */
+    border-color: rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    color: #1e293b;
+    /* Slate 800 */
+}
+
+.mini-player.light * {
+    color: #1e293b;
+}
+
+/* Ensure text visibility */
+.mini-player.light .time-display {
+    color: #0f172a !important;
+    font-weight: 700;
+}
+
+.mini-player.light .work-info .desc {
+    color: #1e293b;
+    font-weight: 500;
+}
+
+.mini-player.light .item-meta {
+    color: #64748b !important;
+}
+
+.mini-player.light .jira-badge {
+    color: white !important;
+    /* Keep badges distinct if they have background */
+}
+
+/* Search Input */
+.mini-player.light .search-input {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #0f172a;
+}
+
+.mini-player.light .search-input::placeholder {
+    color: #94a3b8;
+}
+
+/* Buttons */
+.mini-player.light .mini-btn {
+    color: #64748b;
+}
+
+.mini-player.light .mini-btn:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+/* Results */
+.mini-player.light .result-item:hover {
+    background: #f1f5f9;
+}
+
+.mini-player.light .result-item .item-main span {
+    color: #1e293b;
+}
+
+.mini-player.light .empty-state {
+    color: #64748b;
+}
+
+/* Scrollbar for Light Mode */
+.mini-player.light .search-results-dropdown::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.mini-player.light .search-results-dropdown::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
 .mini-player.idle .mini-player-content {
     background: rgba(15, 15, 20, 0.9);
 }

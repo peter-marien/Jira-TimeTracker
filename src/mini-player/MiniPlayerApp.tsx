@@ -61,18 +61,96 @@ export function MiniPlayerApp() {
     const [loading, setLoading] = useState(false);
     const [showResults, setShowResults] = useState(false);
     const [connections, setConnections] = useState<JiraConnection[]>([]);
+    const [invertedTheme, setInvertedTheme] = useState<'light' | 'dark'>('dark');
     const searchRef = useRef<HTMLDivElement>(null);
 
+    // Theme Logic
+    const updateTheme = (appTheme: string, miniTheme: string) => {
+        let effectiveMiniTheme: 'light' | 'dark' = 'dark';
+
+        if (miniTheme === 'light') {
+            effectiveMiniTheme = 'light';
+        } else if (miniTheme === 'dark') {
+            effectiveMiniTheme = 'dark';
+        } else if (miniTheme === 'system') {
+            effectiveMiniTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        } else {
+            // Determine Main App Effective Theme
+            let appEffective = appTheme;
+            if (appTheme === 'system') {
+                appEffective = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+
+            if (miniTheme === 'match') {
+                effectiveMiniTheme = appEffective as 'light' | 'dark';
+            } else {
+                // Inverted (default)
+                effectiveMiniTheme = appEffective === 'dark' ? 'light' : 'dark';
+            }
+        }
+        setInvertedTheme(effectiveMiniTheme);
+    };
+
+    // Initial load & Listeners
     useEffect(() => {
+        const loadSettings = async () => {
+            const settings = await window.ipcRenderer.invoke('db:get-settings');
+            const appTheme = (settings.theme as string) || 'dark';
+            const miniTheme = (settings.mini_player_theme as string) || 'inverted';
+            updateTheme(appTheme, miniTheme);
+        };
+        loadSettings();
+
+        // Listen for setting updates
+        const handleSettingUpdate = (_: any, { key }: { key: string }) => {
+            if (key === 'theme' || key === 'mini_player_theme') {
+                loadSettings(); // Re-fetch all to be safe and simple
+            }
+        };
+        window.ipcRenderer.on('setting:updated', handleSettingUpdate);
+
+        const loadInitial = async () => {
+            const activeSlice = await window.ipcRenderer.invoke('db:get-active-time-slice');
+            if (activeSlice) {
+                const workItem = await window.ipcRenderer.invoke('db:get-work-item', activeSlice.work_item_id);
+                if (workItem) {
+                    const now = Date.now();
+                    const start = new Date(activeSlice.start_time).getTime();
+                    const elapsed = Math.floor((now - start) / 1000);
+
+                    setTrackingData({
+                        isTracking: true,
+                        elapsedSeconds: elapsed,
+                        jiraKey: workItem.jira_key,
+                        description: workItem.description
+                    });
+                }
+            }
+        };
+        loadInitial();
+
+        // Listen for tracking started event from main window (sync)
+        const handleTrackingStarted = (_: any, data: any) => {
+            setTrackingData({
+                isTracking: true,
+                elapsedSeconds: 0,
+                jiraKey: data.jiraKey,
+                description: data.description
+            });
+        };
+
         const handleState = (_event: unknown, data: TrackingData) => {
             setTrackingData(data);
         };
 
         window.ipcRenderer.on('mini-player:state', handleState);
+        window.ipcRenderer.on('mini-player:tracking-started', handleTrackingStarted);
         window.ipcRenderer.invoke('db:get-all-connections').then(setConnections);
 
         return () => {
             window.ipcRenderer.removeListener('mini-player:state', handleState);
+            window.ipcRenderer.removeListener('mini-player:tracking-started', handleTrackingStarted);
+            window.ipcRenderer.removeListener('setting:updated', handleSettingUpdate);
         };
     }, []);
 
@@ -189,7 +267,7 @@ export function MiniPlayerApp() {
 
     if (trackingData?.isTracking) {
         return (
-            <div className="mini-player" onClick={handleClick}>
+            <div className={`mini-player ${invertedTheme}`} onClick={handleClick}>
                 <div className="mini-player-content">
                     {/* Pulse indicator */}
                     <div className="pulse-container">
@@ -231,7 +309,7 @@ export function MiniPlayerApp() {
 
     // Idle State with Search
     return (
-        <div className="mini-player idle">
+        <div className={`mini-player idle ${invertedTheme}`}>
             <div className="mini-player-idle-content">
                 {/* Results area (fills available space above search bar) */}
                 {showResults && (
