@@ -95,7 +95,8 @@ export function MiniPlayerApp() {
         loadSettings();
 
         // Listen for setting updates
-        const handleSettingUpdate = (_: any, { key }: { key: string }) => {
+        // Listen for setting updates
+        const handleSettingUpdate = (_: unknown, { key }: { key: string }) => {
             if (key === 'theme' || key === 'mini_player_theme') {
                 loadSettings(); // Re-fetch all to be safe and simple
             }
@@ -124,7 +125,7 @@ export function MiniPlayerApp() {
         loadInitial();
 
         // Listen for tracking started event from main window (sync)
-        const handleTrackingStarted = (_: any, data: any) => {
+        const handleTrackingStarted = (_: unknown, data: { jiraKey: string | null; description: string }) => {
             setTrackingData({
                 isTracking: true,
                 elapsedSeconds: 0,
