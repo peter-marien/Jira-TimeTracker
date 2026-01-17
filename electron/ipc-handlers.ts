@@ -1,5 +1,6 @@
 import { ipcMain, dialog, BrowserWindow, app } from 'electron'
 import path from 'node:path'
+import fs from 'node:fs'
 import { getDatabase } from '../src/database/db'
 import { updateTrayTooltip, updateTrayIcon } from './tray'
 import { getAppConfig, saveAppConfig } from './config-service'
@@ -506,23 +507,63 @@ export function registerIpcHandlers() {
         return getAppConfig().databasePath;
     });
 
-    ipcMain.handle('database:save-path', async (_, newFolderPath: string) => {
-        const fullPath = path.join(newFolderPath, 'jira-timetracker.db');
-        saveAppConfig({ databasePath: fullPath });
-        return fullPath;
+    ipcMain.handle('database:save-path', async (_, filePath: string) => {
+        saveAppConfig({ databasePath: filePath });
+        return filePath;
     });
 
-    ipcMain.handle('database:select-path', async () => {
+    // Select existing database file
+    ipcMain.handle('database:select-file', async () => {
         const result = await dialog.showOpenDialog({
-            properties: ['openDirectory'],
-            title: 'Select Database Folder'
+            properties: ['openFile'],
+            title: 'Select Database File',
+            filters: [{ name: 'SQLite Database', extensions: ['db', 'sqlite', 'sqlite3'] }]
         });
 
         if (result.canceled || result.filePaths.length === 0) {
-            return null;
+            return { success: false, canceled: true };
         }
 
-        return result.filePaths[0];
+        const filePath = result.filePaths[0];
+
+        // Validate SQLite file
+        try {
+            const buffer = Buffer.alloc(16);
+            const fd = fs.openSync(filePath, 'r');
+            fs.readSync(fd, buffer, 0, 16, 0);
+            fs.closeSync(fd);
+
+            // SQLite files start with "SQLite format 3\0"
+            const header = buffer.toString('utf8', 0, 15);
+            if (header !== 'SQLite format 3') {
+                return { success: false, error: 'The selected file is not a valid SQLite database.' };
+            }
+        } catch (e) {
+            return { success: false, error: 'Failed to read the selected file.' };
+        }
+
+        return { success: true, filePath };
+    });
+
+    // Create new database file
+    ipcMain.handle('database:create-file', async () => {
+        const result = await dialog.showSaveDialog({
+            title: 'Create New Database File',
+            defaultPath: path.join(app.getPath('documents'), 'jira-timetracker-app.db'),
+            filters: [{ name: 'SQLite Database', extensions: ['db'] }]
+        });
+
+        if (result.canceled || !result.filePath) {
+            return { success: false, canceled: true };
+        }
+
+        let filePath = result.filePath;
+        // Ensure .db extension
+        if (!filePath.endsWith('.db')) {
+            filePath += '.db';
+        }
+
+        return { success: true, filePath };
     });
 
     // CSV Import

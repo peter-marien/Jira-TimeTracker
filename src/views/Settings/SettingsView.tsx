@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { FolderOpen, Moon, Sun, Monitor, Trash2, Upload, Loader2, Clock, RefreshCcw } from "lucide-react"
+import { FolderOpen, Moon, Sun, Monitor, Trash2, Upload, Loader2, Clock, RefreshCcw, FilePlus2 } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Switch } from "@/components/ui/switch"
 import {
@@ -90,17 +90,41 @@ export function SettingsView() {
         await api.saveSetting('theme', newTheme);
     };
 
-    const handleBrowse = async () => {
-        const newFolder = await api.selectDatabasePath();
-        if (newFolder) {
-            const fullPath = await api.saveDatabasePath(newFolder);
-            setDbPath(fullPath);
+    const handleOpenExisting = async () => {
+        const result = await api.selectDatabaseFile();
+        if (result.canceled) return;
+
+        if (!result.success) {
             setMessage({
-                title: "Database Location Set",
-                description: `Database location set to: ${fullPath}\nPlease restart the application to apply changes.`
+                title: "Invalid File",
+                description: result.error || "Failed to open the selected file."
+            });
+            return;
+        }
+
+        if (result.filePath) {
+            await api.saveDatabasePath(result.filePath);
+            setDbPath(result.filePath);
+            setMessage({
+                title: "Database File Selected",
+                description: `Database set to: ${result.filePath}\nPlease restart the application to apply changes.`
             });
         }
-    }
+    };
+
+    const handleCreateNew = async () => {
+        const result = await api.createDatabaseFile();
+        if (result.canceled) return;
+
+        if (result.success && result.filePath) {
+            await api.saveDatabasePath(result.filePath);
+            setDbPath(result.filePath);
+            setMessage({
+                title: "Database Location Set",
+                description: `New database will be created at: ${result.filePath}\nPlease restart the application to apply changes.`
+            });
+        }
+    };
 
     const handleClearDatabase = async () => {
         try {
@@ -460,14 +484,19 @@ export function SettingsView() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="grid gap-2">
-                                <Label>Database Path</Label>
-                                <div className="flex gap-2">
-                                    <Input value={dbPath} readOnly className="font-mono text-sm" />
-                                    <Button variant="secondary" onClick={handleBrowse}>
-                                        <FolderOpen className="h-4 w-4 mr-2" /> Browse...
+                                <Label>Current Database File</Label>
+                                <Input value={dbPath} readOnly className="font-mono text-sm" />
+                                <div className="flex gap-2 mt-2">
+                                    <Button variant="secondary" onClick={handleOpenExisting}>
+                                        <FolderOpen className="h-4 w-4 mr-2" /> Open Existing...
+                                    </Button>
+                                    <Button variant="outline" onClick={handleCreateNew}>
+                                        <FilePlus2 className="h-4 w-4 mr-2" /> Create New...
                                     </Button>
                                 </div>
-                                <p className="text-xs text-muted-foreground">Restart required after changing location.</p>
+                                <p className="text-xs text-muted-foreground">
+                                    Select an existing database file or create a new one. Restart required after changing.
+                                </p>
                             </div>
                         </CardContent>
                     </Card>

@@ -91,9 +91,10 @@ export const api = {
         ipc.invoke('jira:update-worklog', { issueKey, worklogId, ...data }),
     getJiraWorklogs: (issueKey: string) => ipc.invoke('jira:get-worklogs', { issueKey }),
     testJiraConnection: (config: { baseUrl: string, email: string, apiToken: string }) => ipc.invoke('jira:test-connection', config),
-    getDatabasePath: () => ipc.invoke('database:get-path'),
-    selectDatabasePath: () => ipc.invoke('database:select-path'),
-    saveDatabasePath: (path: string) => ipc.invoke('database:save-path', path),
+    getDatabasePath: () => ipc.invoke('database:get-path') as Promise<string>,
+    selectDatabaseFile: () => ipc.invoke('database:select-file') as Promise<{ success: boolean; filePath?: string; error?: string; canceled?: boolean }>,
+    createDatabaseFile: () => ipc.invoke('database:create-file') as Promise<{ success: boolean; filePath?: string; canceled?: boolean }>,
+    saveDatabasePath: (filePath: string) => ipc.invoke('database:save-path', filePath) as Promise<string>,
 
     // System
     setTrayTooltip: (text: string) => ipc.invoke('tray:set-tooltip', text),
