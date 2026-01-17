@@ -5,6 +5,8 @@ import { getDatabase } from '../src/database/db'
 import { updateTrayTooltip, updateTrayIcon } from './tray'
 import { getAppConfig, saveAppConfig } from './config-service'
 import { startUpdateInterval } from './auto-updater'
+import { startOAuthFlow, saveOAuthTokens, getValidAccessToken } from './oauth-service'
+import { encrypt } from './crypto-service'
 
 export function registerIpcHandlers() {
     const db = getDatabase()
@@ -349,21 +351,46 @@ export function registerIpcHandlers() {
         return { success: true };
     });
 
+    // Helper type for connection with OAuth fields
+    type ConnectionRow = {
+        id: number;
+        name: string;
+        base_url: string;
+        email: string;
+        api_token: string;
+        auth_type?: string;
+        cloud_id?: string;
+    };
+
+    // Helper function to create JiraClient for a connection
+    async function createJiraClientForConnection(conn: ConnectionRow) {
+        const { JiraClient } = await import('../src/services/jira/jira-client');
+
+        if (conn.auth_type === 'oauth' && conn.cloud_id) {
+            const accessToken = await getValidAccessToken(conn.id);
+            return new JiraClient({
+                cloudId: conn.cloud_id,
+                accessToken: accessToken
+            });
+        } else {
+            return new JiraClient({
+                baseUrl: conn.base_url,
+                email: conn.email,
+                apiToken: conn.api_token
+            });
+        }
+    }
+
     // Jira API
     ipcMain.handle('jira:search-issues', async (_, query: string) => {
         const stmt = db.prepare('SELECT * FROM jira_connections WHERE is_default = 1 AND is_enabled = 1 LIMIT 1');
-        const conn = stmt.get() as { base_url: string; email: string; api_token: string } | undefined;
+        const conn = stmt.get() as ConnectionRow | undefined;
 
         if (!conn) {
             throw new Error("No default Jira connection found");
         }
 
-        const { JiraClient } = await import('../src/services/jira/jira-client');
-        const client = new JiraClient({
-            baseUrl: conn.base_url,
-            email: conn.email,
-            apiToken: conn.api_token
-        });
+        const client = await createJiraClientForConnection(conn);
 
         let jql = query.trim();
         if (jql && !jql.includes('=') && !jql.includes('~')) {
@@ -379,13 +406,11 @@ export function registerIpcHandlers() {
     });
 
     ipcMain.handle('jira:search-issues-all-connections', async (_, query: string) => {
-        const connections = db.prepare('SELECT * FROM jira_connections WHERE is_enabled = 1').all() as { id: number; name: string; base_url: string; email: string; api_token: string }[];
+        const connections = db.prepare('SELECT * FROM jira_connections WHERE is_enabled = 1').all() as ConnectionRow[];
 
         if (connections.length === 0) {
             return [];
         }
-
-        const { JiraClient } = await import('../src/services/jira/jira-client');
 
         let jql = query.trim();
         if (jql && !jql.includes('=') && !jql.includes('~')) {
@@ -399,11 +424,7 @@ export function registerIpcHandlers() {
 
         const results = await Promise.allSettled(
             connections.map(async (conn) => {
-                const client = new JiraClient({
-                    baseUrl: conn.base_url,
-                    email: conn.email,
-                    apiToken: conn.api_token
-                });
+                const client = await createJiraClientForConnection(conn);
                 const issues = await client.searchIssues(jql);
                 return issues.map((issue: { key: string; fields?: { summary?: string } }) => ({
                     key: issue.key,
@@ -422,15 +443,10 @@ export function registerIpcHandlers() {
 
     ipcMain.handle('jira:add-worklog', async (_, { issueKey, timeSpentSeconds, comment, started }) => {
         const stmt = db.prepare('SELECT * FROM jira_connections WHERE is_default = 1 LIMIT 1');
-        const conn = stmt.get() as { base_url: string; email: string; api_token: string } | undefined;
+        const conn = stmt.get() as ConnectionRow | undefined;
         if (!conn) throw new Error("No connection");
 
-        const { JiraClient } = await import('../src/services/jira/jira-client');
-        const client = new JiraClient({
-            baseUrl: conn.base_url,
-            email: conn.email,
-            apiToken: conn.api_token
-        });
+        const client = await createJiraClientForConnection(conn);
 
         return await client.addWorklog(issueKey, {
             timeSpentSeconds,
@@ -441,30 +457,20 @@ export function registerIpcHandlers() {
 
     ipcMain.handle('jira:get-worklogs', async (_, { issueKey }) => {
         const stmt = db.prepare('SELECT * FROM jira_connections WHERE is_default = 1 LIMIT 1');
-        const conn = stmt.get() as { base_url: string; email: string; api_token: string } | undefined;
+        const conn = stmt.get() as ConnectionRow | undefined;
         if (!conn) throw new Error("No connection");
 
-        const { JiraClient } = await import('../src/services/jira/jira-client');
-        const client = new JiraClient({
-            baseUrl: conn.base_url,
-            email: conn.email,
-            apiToken: conn.api_token
-        });
+        const client = await createJiraClientForConnection(conn);
 
         return await client.getWorklogs(issueKey);
     });
 
     ipcMain.handle('jira:update-worklog', async (_, { issueKey, worklogId, timeSpentSeconds, comment, started }) => {
         const stmt = db.prepare('SELECT * FROM jira_connections WHERE is_default = 1 LIMIT 1');
-        const conn = stmt.get() as { base_url: string; email: string; api_token: string } | undefined;
+        const conn = stmt.get() as ConnectionRow | undefined;
         if (!conn) throw new Error("No default Jira connection configured");
 
-        const { JiraClient } = await import('../src/services/jira/jira-client');
-        const client = new JiraClient({
-            baseUrl: conn.base_url,
-            email: conn.email,
-            apiToken: conn.api_token
-        });
+        const client = await createJiraClientForConnection(conn);
 
         return await client.updateWorklog(issueKey, worklogId, {
             timeSpentSeconds,
@@ -490,6 +496,189 @@ export function registerIpcHandlers() {
                 err.code === 'ENOTFOUND' ? 'Host not found. Check URL.' :
                     err.message;
             return { success: false, error: msg };
+        }
+    });
+
+    // OAuth Flow
+    ipcMain.handle('oauth:start-flow', async (_, { clientId, clientSecret, connectionId }: { clientId: string; clientSecret: string; connectionId?: number }) => {
+        try {
+            const result = await startOAuthFlow(clientId, clientSecret, connectionId || null);
+
+            if (result.success && result.accessToken && result.refreshToken && result.cloudId) {
+                // If connectionId exists, save the OAuth tokens
+                if (connectionId) {
+                    saveOAuthTokens(
+                        connectionId,
+                        clientId,
+                        clientSecret,
+                        result.accessToken,
+                        result.refreshToken,
+                        result.expiresIn || 3600,
+                        result.cloudId
+                    );
+                }
+
+                return {
+                    success: true,
+                    cloudId: result.cloudId,
+                    siteName: result.siteName,
+                    siteUrl: result.siteUrl,
+                    // Return encrypted tokens for new connections (will be saved with the connection)
+                    accessTokenEncrypted: encrypt(result.accessToken),
+                    refreshTokenEncrypted: encrypt(result.refreshToken),
+                    clientSecretEncrypted: encrypt(clientSecret),
+                    expiresIn: result.expiresIn
+                };
+            }
+
+            return { success: false, error: result.error || 'OAuth flow failed' };
+        } catch (e: unknown) {
+            const err = e as { message?: string };
+            console.error('[IPC] OAuth flow error:', err);
+            return { success: false, error: err.message || 'OAuth flow failed' };
+        }
+    });
+
+    ipcMain.handle('oauth:test-connection', async (_, { connectionId }: { connectionId: number }) => {
+        try {
+            const conn = db.prepare(`
+                SELECT cloud_id FROM jira_connections 
+                WHERE id = ? AND auth_type = 'oauth'
+            `).get(connectionId) as { cloud_id: string } | undefined;
+
+            if (!conn) {
+                return { success: false, error: 'OAuth connection not found' };
+            }
+
+            const accessToken = await getValidAccessToken(connectionId);
+
+            const { JiraClient } = await import('../src/services/jira/jira-client');
+            const client = new JiraClient({
+                cloudId: conn.cloud_id,
+                accessToken: accessToken
+            });
+
+            const user = await client.getCurrentUser();
+            return { success: true, displayName: user.displayName };
+        } catch (e: unknown) {
+            const err = e as { response?: { status?: number }; message?: string };
+            const msg = err.response?.status === 401 ? 'OAuth token expired or revoked. Please re-authorize.' :
+                err.message;
+            return { success: false, error: msg };
+        }
+    });
+
+    // Save connection with OAuth support
+    ipcMain.handle('db:save-connection-oauth', (_, connection: {
+        id?: number;
+        name: string;
+        base_url: string;
+        is_default: number;
+        color?: string;
+        is_enabled: number;
+        auth_type: 'api_token' | 'oauth';
+        // API Token fields
+        email?: string;
+        api_token?: string;
+        // OAuth fields (already encrypted from frontend)
+        client_id?: string;
+        client_secret_encrypted?: string;
+        access_token_encrypted?: string;
+        refresh_token_encrypted?: string;
+        token_expires_at?: number;
+        cloud_id?: string;
+    }) => {
+        if (connection.id) {
+            // Update existing connection
+            if (connection.auth_type === 'oauth') {
+                const stmt = db.prepare(`
+                    UPDATE jira_connections 
+                    SET name = @name, base_url = @base_url, is_default = @is_default, 
+                        color = @color, is_enabled = @is_enabled, auth_type = @auth_type,
+                        client_id = @client_id, client_secret_encrypted = @client_secret_encrypted,
+                        access_token_encrypted = @access_token_encrypted, refresh_token_encrypted = @refresh_token_encrypted,
+                        token_expires_at = @token_expires_at, cloud_id = @cloud_id,
+                        email = '', api_token = '',
+                        updated_at = unixepoch()
+                    WHERE id = @id
+                `);
+                return stmt.run({
+                    id: connection.id,
+                    name: connection.name,
+                    base_url: connection.base_url,
+                    is_default: connection.is_default,
+                    color: connection.color || null,
+                    is_enabled: connection.is_enabled,
+                    auth_type: connection.auth_type,
+                    client_id: connection.client_id,
+                    client_secret_encrypted: connection.client_secret_encrypted,
+                    access_token_encrypted: connection.access_token_encrypted,
+                    refresh_token_encrypted: connection.refresh_token_encrypted,
+                    token_expires_at: connection.token_expires_at,
+                    cloud_id: connection.cloud_id
+                });
+            } else {
+                // API Token update
+                const stmt = db.prepare(`
+                    UPDATE jira_connections 
+                    SET name = @name, base_url = @base_url, email = @email, api_token = @api_token,
+                        is_default = @is_default, color = @color, is_enabled = @is_enabled, 
+                        auth_type = 'api_token', updated_at = unixepoch()
+                    WHERE id = @id
+                `);
+                return stmt.run({
+                    id: connection.id,
+                    name: connection.name,
+                    base_url: connection.base_url,
+                    email: connection.email,
+                    api_token: connection.api_token,
+                    is_default: connection.is_default,
+                    color: connection.color || null,
+                    is_enabled: connection.is_enabled
+                });
+            }
+        } else {
+            // Insert new connection
+            if (connection.auth_type === 'oauth') {
+                const stmt = db.prepare(`
+                    INSERT INTO jira_connections (name, base_url, email, api_token, is_default, color, is_enabled, 
+                        auth_type, client_id, client_secret_encrypted, access_token_encrypted, refresh_token_encrypted,
+                        token_expires_at, cloud_id)
+                    VALUES (@name, @base_url, '', '', @is_default, @color, @is_enabled,
+                        @auth_type, @client_id, @client_secret_encrypted, @access_token_encrypted, @refresh_token_encrypted,
+                        @token_expires_at, @cloud_id)
+                `);
+                const result = stmt.run({
+                    name: connection.name,
+                    base_url: connection.base_url,
+                    is_default: connection.is_default,
+                    color: connection.color || null,
+                    is_enabled: connection.is_enabled,
+                    auth_type: connection.auth_type,
+                    client_id: connection.client_id,
+                    client_secret_encrypted: connection.client_secret_encrypted,
+                    access_token_encrypted: connection.access_token_encrypted,
+                    refresh_token_encrypted: connection.refresh_token_encrypted,
+                    token_expires_at: connection.token_expires_at,
+                    cloud_id: connection.cloud_id
+                });
+                return { id: result.lastInsertRowid, ...connection };
+            } else {
+                const stmt = db.prepare(`
+                    INSERT INTO jira_connections (name, base_url, email, api_token, is_default, color, is_enabled, auth_type)
+                    VALUES (@name, @base_url, @email, @api_token, @is_default, @color, @is_enabled, 'api_token')
+                `);
+                const result = stmt.run({
+                    name: connection.name,
+                    base_url: connection.base_url,
+                    email: connection.email,
+                    api_token: connection.api_token,
+                    is_default: connection.is_default,
+                    color: connection.color || null,
+                    is_enabled: connection.is_enabled
+                });
+                return { id: result.lastInsertRowid, ...connection };
+            }
         }
     });
 

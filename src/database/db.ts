@@ -190,6 +190,23 @@ function runMigrations(database: Database.Database) {
     `);
     console.log('Migration completed successfully');
   }
+
+  // Migration: Add OAuth columns to jira_connections
+  try {
+    database.prepare('SELECT auth_type FROM jira_connections LIMIT 1').get();
+  } catch {
+    console.log('Running migration: Adding OAuth columns to jira_connections');
+    database.exec(`
+      ALTER TABLE jira_connections ADD COLUMN auth_type TEXT DEFAULT 'api_token';
+      ALTER TABLE jira_connections ADD COLUMN client_id TEXT;
+      ALTER TABLE jira_connections ADD COLUMN client_secret_encrypted TEXT;
+      ALTER TABLE jira_connections ADD COLUMN access_token_encrypted TEXT;
+      ALTER TABLE jira_connections ADD COLUMN refresh_token_encrypted TEXT;
+      ALTER TABLE jira_connections ADD COLUMN token_expires_at INTEGER;
+      ALTER TABLE jira_connections ADD COLUMN cloud_id TEXT;
+    `);
+    console.log('Migration completed successfully');
+  }
 }
 
 export function getDatabase(): Database.Database {

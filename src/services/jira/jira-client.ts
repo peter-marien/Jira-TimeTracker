@@ -1,10 +1,25 @@
 import axios, { AxiosInstance } from 'axios';
 import { format } from 'date-fns';
 
-export interface JiraConfig {
+// Configuration for API Token authentication (Basic Auth)
+export interface JiraApiTokenConfig {
     baseUrl: string;
     email: string;
     apiToken: string;
+}
+
+// Configuration for OAuth authentication (Bearer Token)
+export interface JiraOAuthConfig {
+    cloudId: string;
+    accessToken: string;
+}
+
+// Union type for all config options
+export type JiraConfig = JiraApiTokenConfig | JiraOAuthConfig;
+
+// Type guard to check if config is OAuth
+export function isOAuthConfig(config: JiraConfig): config is JiraOAuthConfig {
+    return 'cloudId' in config && 'accessToken' in config;
 }
 
 export interface JiraWorklog {
@@ -19,22 +34,34 @@ export class JiraClient {
     private client: AxiosInstance;
 
     constructor(config: JiraConfig) {
-        // Enforce HTTPS for atlassian.net domains
-        let baseUrl = config.baseUrl;
-        if (baseUrl.includes('atlassian.net') && !baseUrl.startsWith('https://')) {
-            baseUrl = baseUrl.replace(/^http:\/\//, 'https://');
-        }
-
-        this.client = axios.create({
-            baseURL: `${baseUrl}/rest/api/3`,
-            auth: {
-                username: config.email,
-                password: config.apiToken
-            },
-            headers: {
-                'Content-Type': 'application/json'
+        if (isOAuthConfig(config)) {
+            // OAuth configuration - uses Atlassian API with Bearer token
+            this.client = axios.create({
+                baseURL: `https://api.atlassian.com/ex/jira/${config.cloudId}/rest/api/3`,
+                headers: {
+                    'Authorization': `Bearer ${config.accessToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+        } else {
+            // API Token configuration - uses direct Jira URL with Basic Auth
+            let baseUrl = config.baseUrl;
+            // Enforce HTTPS for atlassian.net domains
+            if (baseUrl.includes('atlassian.net') && !baseUrl.startsWith('https://')) {
+                baseUrl = baseUrl.replace(/^http:\/\//, 'https://');
             }
-        });
+
+            this.client = axios.create({
+                baseURL: `${baseUrl}/rest/api/3`,
+                auth: {
+                    username: config.email,
+                    password: config.apiToken
+                },
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+        }
     }
 
     async searchIssues(jql: string): Promise<{ id: string; key: string; fields: { summary: string } }[]> {

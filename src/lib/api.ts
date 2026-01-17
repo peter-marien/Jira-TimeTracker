@@ -43,6 +43,43 @@ export interface JiraConnection {
     is_default: number;
     color?: string;
     is_enabled: number;
+    // OAuth fields
+    auth_type?: 'api_token' | 'oauth';
+    client_id?: string;
+    cloud_id?: string;
+    token_expires_at?: number;
+}
+
+export interface OAuthFlowResult {
+    success: boolean;
+    cloudId?: string;
+    siteName?: string;
+    siteUrl?: string;
+    accessTokenEncrypted?: string;
+    refreshTokenEncrypted?: string;
+    clientSecretEncrypted?: string;
+    expiresIn?: number;
+    error?: string;
+}
+
+export interface JiraConnectionOAuth {
+    id?: number;
+    name: string;
+    base_url: string;
+    is_default: number;
+    color?: string;
+    is_enabled: number;
+    auth_type: 'api_token' | 'oauth';
+    // API Token fields
+    email?: string;
+    api_token?: string;
+    // OAuth fields
+    client_id?: string;
+    client_secret_encrypted?: string;
+    access_token_encrypted?: string;
+    refresh_token_encrypted?: string;
+    token_expires_at?: number;
+    cloud_id?: string;
 }
 
 const ipc = window.ipcRenderer;
@@ -51,7 +88,14 @@ export const api = {
     // Jira Connections
     getJiraConnections: () => ipc.invoke('db:get-all-connections') as Promise<JiraConnection[]>,
     saveJiraConnection: (conn: Partial<JiraConnection>) => ipc.invoke('db:save-connection', conn),
+    saveJiraConnectionOAuth: (conn: JiraConnectionOAuth) => ipc.invoke('db:save-connection-oauth', conn),
     deleteJiraConnection: (id: number) => ipc.invoke('db:delete-connection', id),
+
+    // OAuth
+    startOAuthFlow: (clientId: string, clientSecret: string, connectionId?: number) =>
+        ipc.invoke('oauth:start-flow', { clientId, clientSecret, connectionId }) as Promise<OAuthFlowResult>,
+    testOAuthConnection: (connectionId: number) =>
+        ipc.invoke('oauth:test-connection', { connectionId }) as Promise<{ success: boolean; displayName?: string; error?: string }>,
 
     // Work Items
     getWorkItems: (params: { query?: string, limit?: number, offset?: number, showCompleted?: boolean } = {}) =>

@@ -74,8 +74,8 @@ export function JiraConnections() {
                         <TableRow>
                             <TableHead className="w-[200px]">Name</TableHead>
                             <TableHead>Base URL</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead className="w-[100px]">Status</TableHead>
+                            <TableHead className="w-[150px]">Auth</TableHead>
+                            <TableHead className="w-[150px]">Status</TableHead>
                             <TableHead className="w-[100px] text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -96,8 +96,16 @@ export function JiraConnections() {
                                 <TableCell className="text-muted-foreground truncate max-w-[300px]" title={conn.base_url}>
                                     {conn.base_url}
                                 </TableCell>
-                                <TableCell className="text-muted-foreground truncate max-w-[200px]" title={conn.email}>
-                                    {conn.email}
+                                <TableCell>
+                                    {conn.auth_type === 'oauth' ? (
+                                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800">
+                                            OAuth
+                                        </Badge>
+                                    ) : (
+                                        <span className="text-muted-foreground truncate max-w-[200px]" title={conn.email}>
+                                            {conn.email}
+                                        </span>
+                                    )}
                                 </TableCell>
                                 <TableCell>
                                     <div className="flex flex-wrap gap-1">

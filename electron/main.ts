@@ -8,6 +8,7 @@ import { initializeTray } from './tray'
 import { initializeAutoUpdater } from './auto-updater'
 import { initializeAwayDetector } from './away-detector'
 import { initializeMiniPlayer } from './mini-player'
+import { handleOAuthCallback } from './oauth-service'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 process.env.APP_ROOT = path.join(__dirname, '..')
@@ -21,6 +22,54 @@ app.name = pkg.productName || 'Jira Time Tracker';
 if (process.platform === 'win32') {
   app.setAppUserModelId(appId)
 }
+
+// Custom URL scheme for OAuth
+const PROTOCOL = 'jira-timetracker-app';
+
+// Register as default protocol client (for OAuth callbacks)
+if (process.defaultApp) {
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [path.resolve(process.argv[1])])
+  }
+} else {
+  app.setAsDefaultProtocolClient(PROTOCOL)
+}
+
+// Handle protocol URL on macOS
+app.on('open-url', (event, url) => {
+  event.preventDefault()
+  console.log('[Main] Received open-url:', url)
+  if (url.startsWith(`${PROTOCOL}://oauth/callback`)) {
+    handleOAuthCallback(url)
+  }
+})
+
+// Prevent multiple instances and handle protocol URL on Windows/Linux
+const gotTheLock = app.requestSingleInstanceLock()
+
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', (_event, commandLine) => {
+    console.log('[Main] Second instance detected, command line:', commandLine)
+
+    // Handle protocol URL from command line (Windows/Linux)
+    const url = commandLine.find(arg => arg.startsWith(`${PROTOCOL}://`))
+    if (url) {
+      console.log('[Main] Found protocol URL:', url)
+      handleOAuthCallback(url)
+    }
+
+    // Focus the main window
+    const windows = BrowserWindow.getAllWindows()
+    if (windows.length > 0) {
+      const mainWindow = windows.find(w => !w.webContents.getURL().includes('mini-player')) || windows[0]
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.focus()
+    }
+  })
+}
+
 //
 // ├─┬─┬ dist
 // │ │ └── index.html
@@ -92,4 +141,13 @@ app.whenReady().then(() => {
   initializeDatabase()
   registerIpcHandlers()
   createWindow()
+
+  // Handle protocol URL if app was started with one (Windows/Linux)
+  const url = process.argv.find(arg => arg.startsWith(`${PROTOCOL}://`))
+  if (url) {
+    console.log('[Main] App started with protocol URL:', url)
+    // Delay slightly to ensure handlers are registered
+    setTimeout(() => handleOAuthCallback(url), 500)
+  }
 })
+

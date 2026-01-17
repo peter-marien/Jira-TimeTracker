@@ -11,6 +11,10 @@
     "dist",
     "dist-electron"
   ],
+  "protocols": {
+    "name": "Jira Time Tracker OAuth",
+    "schemes": ["jira-timetracker-app"]
+  },
   "publish": {
     "provider": "github",
     "owner": "peter-marien",
@@ -46,3 +50,4 @@
     "artifactName": "${productName}-Linux-${version}.${ext}"
   }
 }
+
