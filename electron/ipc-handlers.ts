@@ -727,7 +727,7 @@ export function registerIpcHandlers() {
             if (header !== 'SQLite format 3') {
                 return { success: false, error: 'The selected file is not a valid SQLite database.' };
             }
-        } catch (e) {
+        } catch {
             return { success: false, error: 'Failed to read the selected file.' };
         }
 
