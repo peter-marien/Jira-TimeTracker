@@ -21,6 +21,7 @@ interface ImportFromJiraDialogProps {
 export function ImportFromJiraDialog({ open, onOpenChange, onImport }: ImportFromJiraDialogProps) {
     const [query, setQuery] = useState("");
     const [results, setResults] = useState<{ key: string; summary: string; connectionId: number; connectionName: string }[]>([]);
+    const [connectionErrors, setConnectionErrors] = useState<{ connectionId: number; connectionName: string; error: string }[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [selectedIssue, setSelectedIssue] = useState<{ key: string; summary: string; connectionId: number; connectionName: string } | null>(null);
@@ -37,12 +38,14 @@ export function ImportFromJiraDialog({ open, onOpenChange, onImport }: ImportFro
             setLoading(true);
             setError(null);
             try {
-                const issues = await api.searchJiraIssuesAllConnections(query);
-                setResults(issues);
+                const response = await api.searchJiraIssuesAllConnections(query);
+                setResults(response.results);
+                setConnectionErrors(response.errors);
             } catch (err: unknown) {
                 const error = err as { message?: string };
                 setError(error.message || "Failed to search Jira.");
                 setResults([]);
+                setConnectionErrors([]);
             } finally {
                 setLoading(false);
             }
@@ -56,6 +59,7 @@ export function ImportFromJiraDialog({ open, onOpenChange, onImport }: ImportFro
         if (!open) {
             setQuery("");
             setResults([]);
+            setConnectionErrors([]);
             setError(null);
             setSelectedIssue(null);
             setImporting(false);
@@ -124,8 +128,14 @@ export function ImportFromJiraDialog({ open, onOpenChange, onImport }: ImportFro
                         </div>
 
                         {/* Autocomplete dropdown */}
-                        {results.length > 0 && !selectedIssue && (
-                            <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-[250px] overflow-y-auto" onWheel={(e) => e.stopPropagation()}>
+                        {(results.length > 0 || connectionErrors.length > 0) && !selectedIssue && (
+                            <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-[300px] overflow-y-auto" onWheel={(e) => e.stopPropagation()}>
+                                {connectionErrors.map((err) => (
+                                    <div key={`err-${err.connectionId}`} className="px-3 py-2 border-b bg-destructive/10 text-destructive text-sm flex flex-col">
+                                        <span className="font-semibold text-xs">{err.connectionName}</span>
+                                        <span>{err.error}</span>
+                                    </div>
+                                ))}
                                 {results.map((issue) => (
                                     <div
                                         key={`${issue.connectionId}-${issue.key}`}

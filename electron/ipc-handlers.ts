@@ -422,23 +422,36 @@ export function registerIpcHandlers() {
             }
         }
 
-        const results = await Promise.allSettled(
-            connections.map(async (conn) => {
+        const errors: { connectionId: number; connectionName: string; error: string }[] = [];
+        const successful: { key: string; summary: string; connectionId: number; connectionName: string }[] = [];
+
+        await Promise.all(connections.map(async (conn) => {
+            try {
+                console.log(`[IPC] Searching connection ${conn.id} (${conn.name})`);
                 const client = await createJiraClientForConnection(conn);
                 const issues = await client.searchIssues(jql);
-                return issues.map((issue: { key: string; fields?: { summary?: string } }) => ({
+                console.log(`[IPC] Connection ${conn.id} found ${issues.length} issues`);
+
+                const mappedIssues = issues.map((issue: { key: string; fields?: { summary?: string } }) => ({
                     key: issue.key,
                     summary: issue.fields?.summary || '',
                     connectionId: conn.id,
                     connectionName: conn.name
                 }));
-            })
-        );
+                successful.push(...mappedIssues);
+            } catch (error: unknown) {
+                const err = error as { message?: string };
+                console.error(`[IPC] Connection ${conn.id} search failed:`, error);
+                errors.push({
+                    connectionId: conn.id,
+                    connectionName: conn.name,
+                    error: err.message || 'Unknown error'
+                });
+            }
+        }));
 
-        // Flatten successful results
-        return results
-            .filter((r): r is PromiseFulfilledResult<{ key: string; summary: string; connectionId: number; connectionName: string }[]> => r.status === 'fulfilled')
-            .flatMap(r => r.value);
+        console.log(`[IPC] Total combined issues found: ${successful.length}, Errors: ${errors.length}`);
+        return { results: successful, errors };
     });
 
     ipcMain.handle('jira:add-worklog', async (_, { issueKey, timeSpentSeconds, comment, started }) => {

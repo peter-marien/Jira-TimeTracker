@@ -81,7 +81,10 @@ export function WorkItemSearchBar({ onSelect, className, placeholder = "Search w
         const timer = setTimeout(() => {
             setJiraLoading(true);
             api.searchJiraIssuesAllConnections(query).then(res => {
-                setJiraItems(res || []);
+                setJiraItems(res.results || []);
+                if (res.errors && res.errors.length > 0) {
+                    console.error("Jira search errors:", res.errors);
+                }
             }).catch(err => {
                 console.error("Jira search failed:", err);
                 setJiraItems([]);
