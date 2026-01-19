@@ -5,7 +5,7 @@ import { WorkItemsView } from "@/views/WorkItems/WorkItemsView"
 import { SettingsView } from "@/views/Settings/SettingsView"
 import { MonthView } from "@/views/MonthView/MonthView"
 import { SearchView } from "@/views/Search/SearchView"
-import { AwayTimeDialog } from "@/components/Tracking/AwayTimeDialog"
+import { AwayDialogPage } from "@/views/Away/AwayDialogPage"
 
 import { useTrayEvents } from "@/hooks/useTrayEvents"
 
@@ -38,12 +38,7 @@ function applyTheme(theme: 'light' | 'dark' | 'system') {
 function App() {
   useTrayEvents();
   const checkActiveTracking = useTrackingStore(state => state.checkActiveTracking);
-  const activeWorkItem = useTrackingStore(state => state.activeWorkItem);
   const handleAwayTime = useTrackingStore(state => state.handleAwayTime);
-
-  // Away detection state
-  const [awayDialogOpen, setAwayDialogOpen] = useState(false);
-  const [awayData, setAwayData] = useState<{ awayStartTime: string; awayDurationSeconds: number } | null>(null);
 
   // Update state
   const [updateInfo, setUpdateInfo] = useState<{ version: string; releaseNotes?: string } | null>(null);
@@ -71,30 +66,19 @@ function App() {
     };
   }, []);
 
-  // Listen for away:detected events from main process
+  // Listen for away actions from the standalone window
   useEffect(() => {
-    const handleAwayDetected = (_event: unknown, data: { awayStartTime: string; awayDurationSeconds: number }) => {
-      console.log('[App] Away detected:', data);
-      if (awayDialogOpen) {
-        // Dialog already open - accumulate time
-        setAwayData(prev => prev ? {
-          awayStartTime: prev.awayStartTime, // Keep original start time
-          awayDurationSeconds: data.awayDurationSeconds // Update duration
-        } : data);
-      } else {
-        // New away detection
-        setAwayData(data);
-        setAwayDialogOpen(true);
-        window.ipcRenderer.send('away:dialog-opened');
-      }
+    const handleAwayActionForwarded = (_event: unknown, data: { action: 'discard' | 'keep' | 'reassign', awayStartTime: string, targetWorkItem?: WorkItem }) => {
+      console.log('[App] Received away action:', data);
+      handleAwayTime(data.action, data.awayStartTime, data.targetWorkItem);
     };
 
-    window.ipcRenderer.on('away:detected', handleAwayDetected);
+    window.ipcRenderer.on('away:action-forwarded', handleAwayActionForwarded);
 
     return () => {
-      window.ipcRenderer.removeListener('away:detected', handleAwayDetected);
+      window.ipcRenderer.removeListener('away:action-forwarded', handleAwayActionForwarded);
     };
-  }, [awayDialogOpen]);
+  }, [handleAwayTime]);
 
   // Listen for stop tracking command from mini player
   const stopTracking = useTrackingStore(state => state.stopTracking);
@@ -118,19 +102,11 @@ function App() {
     };
   }, [stopTracking, checkActiveTracking]);
 
-  const handleAwayAction = async (action: 'discard' | 'keep' | 'reassign', targetWorkItem?: WorkItem) => {
-    if (awayData) {
-      await handleAwayTime(action, awayData.awayStartTime, targetWorkItem);
-    }
-    setAwayDialogOpen(false);
-    setAwayData(null);
-    window.ipcRenderer.send('away:dialog-closed');
-  };
-
   return (
     <TooltipProvider delayDuration={300}>
       <Router>
         <Routes>
+          <Route path="/away" element={<AwayDialogPage />} />
           <Route element={<AppLayout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/work-items" element={<WorkItemsView />} />
@@ -140,15 +116,6 @@ function App() {
           </Route>
         </Routes>
       </Router>
-
-      <AwayTimeDialog
-        open={awayDialogOpen}
-        onOpenChange={setAwayDialogOpen}
-        awayDurationSeconds={awayData?.awayDurationSeconds || 0}
-        awayStartTime={awayData?.awayStartTime || ''}
-        currentWorkItem={activeWorkItem}
-        onAction={handleAwayAction}
-      />
 
       <AlertDialog open={!!updateInfo} onOpenChange={(open) => !open && setUpdateInfo(null)}>
         <AlertDialogContent>

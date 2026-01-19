@@ -22,6 +22,7 @@ interface AwayTimeDialogProps {
     awayStartTime: string;
     currentWorkItem: WorkItem | null;
     onAction: (action: 'discard' | 'keep' | 'reassign', targetWorkItem?: WorkItem) => void;
+    contentClassName?: string;
 }
 
 export function AwayTimeDialog({
@@ -29,7 +30,8 @@ export function AwayTimeDialog({
     onOpenChange,
     awayDurationSeconds,
     currentWorkItem,
-    onAction
+    onAction,
+    contentClassName
 }: AwayTimeDialogProps) {
     const [selectedAction, setSelectedAction] = useState<'discard' | 'keep' | 'reassign' | 'importJira'>('keep');
     const [targetWorkItem, setTargetWorkItem] = useState<WorkItem | null>(null);
@@ -142,7 +144,7 @@ export function AwayTimeDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className={`sm:max-w-[500px] ${contentClassName || ''}`}>
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Clock className="h-5 w-5 text-primary" />

@@ -1,5 +1,6 @@
 import { powerMonitor, BrowserWindow, ipcMain, Notification } from 'electron';
 import { getDatabase } from '../src/database/db';
+import { createAwayWindow, closeAwayWindow } from './away-window';
 
 let mainWindow: BrowserWindow | null = null;
 let awayStartTime: Date | null = null;
@@ -52,24 +53,30 @@ async function isSoundEnabled(): Promise<boolean> {
     }
 }
 
-// Get work item description for the active time slice
-function getActiveWorkItemDescription(): string {
+// Get full work item for the active time slice
+function getActiveWorkItem() {
     try {
         const db = getDatabase();
         const result = db.prepare(`
-            SELECT wi.description, wi.jira_key 
+            SELECT wi.* 
             FROM time_slices ts 
             JOIN work_items wi ON ts.work_item_id = wi.id 
             WHERE ts.end_time IS NULL 
             LIMIT 1
-        `).get() as { description: string; jira_key: string | null } | undefined;
-        if (result) {
-            return result.jira_key ? `${result.jira_key} - ${result.description}` : result.description;
-        }
-        return 'Unknown task';
+        `).get();
+        return result;
     } catch {
-        return 'Unknown task';
+        return null;
     }
+}
+
+// Get description for notification text
+function getActiveWorkItemDescription(): string {
+    const item = getActiveWorkItem() as any;
+    if (item) {
+        return item.jira_key ? `${item.jira_key} - ${item.description}` : item.description;
+    }
+    return 'Unknown task';
 }
 
 function handleAwayStart(reason: string) {
@@ -100,18 +107,25 @@ async function handleAwayEnd(reason: string) {
 
     console.log(`[AwayDetector] User returned (${reason}). Away for ${awayDurationSeconds}s (threshold: ${thresholdSeconds}s)`);
 
-    if (awayDurationSeconds >= thresholdSeconds && mainWindow) {
+    if (awayDurationSeconds >= thresholdSeconds) {
         // Capture values for the click handler closure
         const capturedAwayStartTime = awayStartTime;
         const capturedAwayDurationSeconds = awayDurationSeconds;
 
-        // Get work item description for notification
+        // Get work item for dialog
+        const workItem = getActiveWorkItem();
         const workItemDescription = getActiveWorkItemDescription();
         const soundEnabled = await isSoundEnabled();
 
         // Format duration for notification
         const minutes = Math.floor(awayDurationSeconds / 60);
         const durationText = minutes > 0 ? `${minutes}m` : `${awayDurationSeconds}s`;
+
+        const awayData = {
+            awayStartTime: capturedAwayStartTime.toISOString(),
+            awayDurationSeconds: capturedAwayDurationSeconds,
+            currentWorkItem: workItem
+        };
 
         // Show system notification
         const notification = new Notification({
@@ -121,29 +135,21 @@ async function handleAwayEnd(reason: string) {
         });
 
         notification.on('click', () => {
-            if (mainWindow && capturedAwayStartTime) {
-                mainWindow.show();
-                mainWindow.focus();
-                // Send the event to open the dialog
-                mainWindow.webContents.send('away:detected', {
-                    awayStartTime: capturedAwayStartTime.toISOString(),
-                    awayDurationSeconds: capturedAwayDurationSeconds
-                });
-            }
+            // Focus the away window if clicked
+            createAwayWindow(awayData);
         });
 
         notification.show();
         console.log('[AwayDetector] Showed notification for away time');
 
-        // Also send to renderer in case user is already looking at the app
-        mainWindow.webContents.send('away:detected', {
-            awayStartTime: capturedAwayStartTime.toISOString(),
-            awayDurationSeconds: capturedAwayDurationSeconds
-        });
-        console.log('[AwayDetector] Sent away:detected event to renderer');
+        // OPEN STANDALONE WINDOW
+        isDialogOpen = true;
+        createAwayWindow(awayData);
+        console.log('[AwayDetector] Opened standalone away window');
     }
 
     // Only reset if dialog is NOT open
+    // Note: We set isDialogOpen = true above if we opened it
     if (!isDialogOpen) {
         awayStartTime = null;
         isTrackingActive = false;
@@ -222,29 +228,18 @@ async function checkAwayOnStartup() {
 
     console.log(`[AwayDetector] Startup check: Gap is ${gapSeconds}s (threshold: ${thresholdSeconds}s)`);
 
-    if (gapSeconds >= thresholdSeconds && mainWindow) {
+    if (gapSeconds >= thresholdSeconds) {
         console.log('[AwayDetector] Startup: Gap exceeds threshold, triggering away detection');
 
-        // Wait for renderer to be ready before sending
-        // The App component in the renderer might not have attached the listener yet
-        // if we send immediately after initializeAwayDetector.
-        // We can check if webContents is loading or just use a small delay/did-finish-load listener.
-        const sendStartupAway = () => {
-            if (mainWindow) {
-                mainWindow.webContents.send('away:detected', {
-                    awayStartTime: lastHeartbeatDate.toISOString(),
-                    awayDurationSeconds: gapSeconds
-                });
-                console.log('[AwayDetector] Startup: Sent away:detected to renderer');
-            }
-        };
+        const workItem = getActiveWorkItem();
 
-        if (mainWindow.webContents.isLoading()) {
-            mainWindow.webContents.once('did-finish-load', sendStartupAway);
-        } else {
-            // Small delay to ensure React effects have run
-            setTimeout(sendStartupAway, 3000);
-        }
+        // Open window immediately
+        isDialogOpen = true;
+        createAwayWindow({
+            awayStartTime: lastHeartbeatDate.toISOString(),
+            awayDurationSeconds: gapSeconds,
+            currentWorkItem: workItem
+        });
     }
 }
 
@@ -294,13 +289,35 @@ export async function initializeAwayDetector(win: BrowserWindow) {
         return await isEnabled();
     });
 
-    ipcMain.on('away:dialog-opened', () => {
-        isDialogOpen = true;
-        console.log('[AwayDetector] Dialog opened');
+    // Handle action from the away window
+    ipcMain.on('away:action', (_event, data) => {
+        console.log('[AwayDetector] Received action, closing window');
+
+        // Close window
+        closeAwayWindow();
+        isDialogOpen = false;
+
+        // Forward to main window to update state
+        if (mainWindow) {
+            mainWindow.webContents.send('away:action-forwarded', data);
+        }
+
+        // Reset state
+        awayStartTime = null;
+        isTrackingActive = false;
     });
 
+    // Handle manual window close (via X button if enabled, or if we called closeAwayWindow)
     ipcMain.on('away:dialog-closed', () => {
         isDialogOpen = false;
+        // If closed without action, we might assume 'keep' implicitly if we didn't receive an action.
+        // But usually away:action is sent before close.
+        // If user ALT+F4s the window, this fires.
+        // We just reset state so next away can trigger.
+
+        // Note: If the user just closed the window, we assume they are "back" and keeping time (default behavior of missing logic).
+        // Since we didn't stop tracking, it continues.
+
         awayStartTime = null;
         isTrackingActive = false;
         console.log('[AwayDetector] Dialog closed, reset state');
