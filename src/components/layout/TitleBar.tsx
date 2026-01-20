@@ -9,9 +9,18 @@ import logoDark from '/logo-dark.svg?url'
 export function TitleBar() {
     const [isMaximized, setIsMaximized] = useState(false)
     const [isDark, setIsDark] = useState(false)
+    const [version, setVersion] = useState<string | null>(null)
     const { activeWorkItem, elapsedSeconds, activeTimeSliceId, startTime } = useTrackingStore()
 
     const isTracking = !!activeTimeSliceId
+
+    useEffect(() => {
+        const fetchVersion = async () => {
+            const v = await api.getAppVersion();
+            setVersion(v);
+        };
+        fetchVersion();
+    }, []);
 
     useEffect(() => {
         const checkMaximized = async () => {
@@ -101,7 +110,10 @@ export function TitleBar() {
         <div className="h-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-4 border-b select-none drag-region">
             <div className="flex items-center gap-2">
                 <img src={logoSrc} className="w-5 h-5" alt="Icon" />
-                <span className="text-xs font-semibold text-muted-foreground tracking-tight">Jira Time Tracker</span>
+                <div className="flex items-baseline gap-1.5">
+                    <span className="text-xs font-semibold text-muted-foreground tracking-tight">Jira Time Tracker</span>
+                    {version && <span className="text-[10px] text-muted-foreground/50 font-medium">v{version}</span>}
+                </div>
             </div>
 
             <div className="flex items-center no-drag-region">
