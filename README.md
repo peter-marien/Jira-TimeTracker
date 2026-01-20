@@ -56,20 +56,25 @@ npm run build
 
 ### Deploy new version to GitHub
 
- **_NOTE:_**  Ensure that you have a .env file with a valid GitHub token in the root.
+The project includes an agentic workflow for safe and automated releases.
 
- ```
- GH_TOKEN=[YOUR_GITHUB_TOKEN]
- ```
+**Prerequisites:**
+- Ensure you have a `.env` file with a valid GitHub token in the root: `GH_TOKEN=[YOUR_GITHUB_TOKEN]`.
+- Be on the `master` branch with a clean working tree.
 
-Update version number in package.json and run:
-
-```bash
-# Release new version to GitHub
-npm run release 
+**Execution:**
+You can trigger the release by asking the AI assistant:
+```text
+/release-github [new-version]
 ```
+Where `[new-version]` can be a specific version (e.g., `0.8.4`) or an npm version keyword (`patch`, `minor`, `major`).
 
-New draft release will created in Github and a new tag tag is set in Git.
+**The workflow automatically:**
+1. Validates the branch and working tree.
+2. Fixes linting issues automatically.
+3. Bumps `package.json` version and creates a Git commit/tag.
+4. Pushes changes and tags to GitHub.
+5. Builds the production installer and uploads it to GitHub Releases.
 
 ## 📂 Data & Configuration
 
