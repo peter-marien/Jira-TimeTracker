@@ -454,11 +454,24 @@ export function registerIpcHandlers() {
         return { results: successful, errors };
     });
 
-    ipcMain.handle('jira:add-worklog', async (_, { issueKey, timeSpentSeconds, comment, started }) => {
-        const stmt = db.prepare('SELECT * FROM jira_connections WHERE is_default = 1 LIMIT 1');
-        const conn = stmt.get() as ConnectionRow | undefined;
-        if (!conn) throw new Error("No connection");
+    // Helper to get connection for an issue (by key) or fall back to default
+    const getConnectionForIssue = (issueKey: string): ConnectionRow => {
+        // 1. Try to find connection linked to this work item
+        const workItem = db.prepare('SELECT jira_connection_id FROM work_items WHERE jira_key = ?').get(issueKey) as { jira_connection_id: number } | undefined;
 
+        if (workItem?.jira_connection_id) {
+            const conn = db.prepare('SELECT * FROM jira_connections WHERE id = ?').get(workItem.jira_connection_id) as ConnectionRow | undefined;
+            if (conn) return conn; // Return it even if disabled? Usually yes for read/write if the user explicitly asks.
+        }
+
+        // 2. Fallback to default
+        const defaultConn = db.prepare('SELECT * FROM jira_connections WHERE is_default = 1 LIMIT 1').get() as ConnectionRow | undefined;
+        if (!defaultConn) throw new Error("No default Jira connection found, and issue is not linked to a specific connection.");
+        return defaultConn;
+    };
+
+    ipcMain.handle('jira:add-worklog', async (_, { issueKey, timeSpentSeconds, comment, started }) => {
+        const conn = getConnectionForIssue(issueKey);
         const client = await createJiraClientForConnection(conn);
 
         return await client.addWorklog(issueKey, {
@@ -469,20 +482,14 @@ export function registerIpcHandlers() {
     });
 
     ipcMain.handle('jira:get-worklogs', async (_, { issueKey }) => {
-        const stmt = db.prepare('SELECT * FROM jira_connections WHERE is_default = 1 LIMIT 1');
-        const conn = stmt.get() as ConnectionRow | undefined;
-        if (!conn) throw new Error("No connection");
-
+        const conn = getConnectionForIssue(issueKey);
         const client = await createJiraClientForConnection(conn);
 
         return await client.getWorklogs(issueKey);
     });
 
     ipcMain.handle('jira:update-worklog', async (_, { issueKey, worklogId, timeSpentSeconds, comment, started }) => {
-        const stmt = db.prepare('SELECT * FROM jira_connections WHERE is_default = 1 LIMIT 1');
-        const conn = stmt.get() as ConnectionRow | undefined;
-        if (!conn) throw new Error("No default Jira connection configured");
-
+        const conn = getConnectionForIssue(issueKey);
         const client = await createJiraClientForConnection(conn);
 
         return await client.updateWorklog(issueKey, worklogId, {
