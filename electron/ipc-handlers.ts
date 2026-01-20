@@ -192,7 +192,18 @@ export function registerIpcHandlers() {
     ipcMain.handle('db:save-time-slice', (_, slice) => {
         if (slice.id) {
             // Fetch existing record to preserve fields not provided in the update
-            const existing = db.prepare('SELECT * FROM time_slices WHERE id = ?').get(slice.id) as any;
+            const existing = db.prepare('SELECT * FROM time_slices WHERE id = ?').get(slice.id) as {
+                id: number;
+                work_item_id: number;
+                start_time: string;
+                end_time: string | null;
+                notes: string;
+                synced_to_jira: number;
+                jira_worklog_id: string | null;
+                synced_start_time: string | null;
+                synced_end_time: string | null;
+                synced_notes: string | null;
+            };
             const merged = { ...existing, ...slice };
 
             // Determine if we should reset the sync status
