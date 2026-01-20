@@ -33,7 +33,7 @@ npm run lint
 5. Bump the version and create commit/tag
 ```powershell
 # Parameter: new-version (e.g. 0.8.4, patch, minor, major)
-npm version {{new-version}}
+npm version {{new-version}} -m "Bump verion to %s"
 ```
 
 6. Push changes and tags to Git
