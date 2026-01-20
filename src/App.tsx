@@ -95,10 +95,12 @@ function App() {
 
     window.ipcRenderer.on('mini-player:stop-tracking', handleMiniPlayerStop);
     window.ipcRenderer.on('mini-player:tracking-started', handleMiniPlayerStart);
+    window.ipcRenderer.on('tracking:refresh', checkActiveTracking);
 
     return () => {
       window.ipcRenderer.removeListener('mini-player:stop-tracking', handleMiniPlayerStop);
       window.ipcRenderer.removeListener('mini-player:tracking-started', handleMiniPlayerStart);
+      window.ipcRenderer.removeListener('tracking:refresh', checkActiveTracking);
     };
   }, [stopTracking, checkActiveTracking]);
 

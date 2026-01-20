@@ -100,6 +100,10 @@ export function initializeMiniPlayer(main: BrowserWindow) {
         mainWindow?.webContents.send('mini-player:tracking-started', data);
     });
 
+    ipcMain.on('mini-player:stopped-for-switch', () => {
+        mainWindow?.webContents.send('tracking:refresh');
+    });
+
     ipcMain.on('window:minimize-to-mini-player', () => {
         mainWindow?.minimize();
         // The minimize event will trigger request-state

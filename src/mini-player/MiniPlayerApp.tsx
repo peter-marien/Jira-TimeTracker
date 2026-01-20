@@ -211,17 +211,45 @@ export function MiniPlayerApp() {
 
         try {
             const settings = await window.ipcRenderer.invoke('db:get-settings');
-            if (settings.rounding_enabled === 'true') {
-                const intervalMinutes = parseInt(settings.rounding_interval || '15', 10);
+            const roundingEnabled = settings.rounding_enabled === 'true';
+            const intervalMinutes = parseInt(settings.rounding_interval || '15', 10);
+
+            // 1. STOP any currently active time slice first to prevent duplicates
+            const activeSlice = await window.ipcRenderer.invoke('db:get-active-time-slice');
+            if (activeSlice) {
+                const endNow = new Date();
+                let endTime = endNow.toISOString();
+
+                if (roundingEnabled) {
+                    const roundedEnd = roundToNearestInterval(endNow, intervalMinutes);
+                    endTime = roundedEnd.toISOString();
+                    // Use the rounded end time as the start of the new slice
+                    startTime = endTime;
+                    console.log(`[MiniPlayer] Stopping existing slice ${activeSlice.id}, rounded end: ${endTime}`);
+                }
+
+                await window.ipcRenderer.invoke('db:save-time-slice', {
+                    id: activeSlice.id,
+                    work_item_id: activeSlice.work_item_id,
+                    start_time: activeSlice.start_time,
+                    end_time: endTime
+                });
+                console.log(`[MiniPlayer] Stopped active slice ${activeSlice.id}`);
+
+                // Notify main window that tracking was stopped (so it can refresh its state)
+                window.ipcRenderer.send('mini-player:stopped-for-switch');
+            } else if (roundingEnabled) {
+                // No active slice, but still apply rounding to start time
                 const now = new Date();
                 const roundedStart = roundToNearestInterval(now, intervalMinutes);
                 startTime = roundedStart.toISOString();
                 console.log(`[MiniPlayer] Rounded start time from ${now.toISOString()} to ${startTime}`);
             }
         } catch (err) {
-            console.error('[MiniPlayer] Failed to apply time rounding:', err);
+            console.error('[MiniPlayer] Failed to handle time rounding or stop existing slice:', err);
         }
 
+        // 2. Create new time slice
         await window.ipcRenderer.invoke('db:save-time-slice', {
             work_item_id: workItem.id,
             start_time: startTime,

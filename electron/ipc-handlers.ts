@@ -208,6 +208,24 @@ export function registerIpcHandlers() {
             };
             return stmt.run(params)
         } else {
+            // SAFEGUARD: If starting a NEW active time slice (no end_time), close any other active slices
+            if (!slice.end_time) {
+                const activeSlices = db.prepare('SELECT id FROM time_slices WHERE end_time IS NULL').all() as { id: number }[];
+                if (activeSlices.length > 0) {
+                    const now = new Date().toISOString();
+                    console.log(`[IPC:save-time-slice] Closing ${activeSlices.length} orphaned active slices before creating new one`);
+                    const closeStmt = db.prepare('UPDATE time_slices SET end_time = ?, updated_at = unixepoch() WHERE id = ?');
+                    for (const active of activeSlices) {
+                        closeStmt.run(now, active.id);
+                    }
+
+                    // Broadcast refresh to all windows
+                    BrowserWindow.getAllWindows().forEach(win => {
+                        win.webContents.send('tracking:refresh');
+                    });
+                }
+            }
+
             const stmt = db.prepare(`
                 INSERT INTO time_slices (work_item_id, start_time, end_time, notes, synced_to_jira, jira_worklog_id, synced_start_time, synced_end_time)
                 VALUES (@work_item_id, @start_time, @end_time, @notes, @synced_to_jira, @jira_worklog_id, @synced_start_time, @synced_end_time)
