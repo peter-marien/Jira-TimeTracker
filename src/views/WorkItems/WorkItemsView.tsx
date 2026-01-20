@@ -3,7 +3,7 @@ import { api, WorkItem, JiraConnection } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Search, Trash2, Edit2, Download, MoreHorizontal, History, Clock, CheckCircle2, XCircle, ArrowRightLeft } from "lucide-react"
+import { Plus, Search, Trash2, Edit2, Download, MoreHorizontal, History, Clock, CheckCircle2, XCircle, ArrowRightLeft, ExternalLink } from "lucide-react"
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog"
 import { ImportFromJiraDialog } from "@/components/WorkItem/ImportFromJiraDialog"
 import { CreateWorkItemDialog } from "@/components/WorkItem/CreateWorkItemDialog"
@@ -125,6 +125,16 @@ export function WorkItemsView() {
 
         if (hours === 0) return `${minutes}m`;
         return `${hours}h ${minutes}m`;
+    };
+
+    const handleOpenInJira = (item: WorkItem) => {
+        if (!item.jira_key) return;
+        const connection = item.jira_connection_id ? jiraConnections.find(c => c.id === item.jira_connection_id) : null;
+        const baseUrl = connection?.base_url;
+        if (baseUrl) {
+            const url = `${baseUrl.replace(/\/$/, '')}/browse/${item.jira_key}`;
+            api.openExternal(url);
+        }
     };
 
     const totalPages = Math.ceil(totalCount / itemsPerPage);
@@ -287,6 +297,7 @@ export function WorkItemsView() {
                                         onToggleCompletion={handleToggleCompletion}
                                         onChangeConnection={() => setBulkConnectionOpen(true)}
                                         selectedIds={selectedIds}
+                                        onOpenInJira={handleOpenInJira}
                                     >
                                         <TableRow
                                             className={cn(
@@ -378,6 +389,13 @@ export function WorkItemsView() {
                                                                 <DropdownMenuItem onClick={() => setEditItem(item)}>
                                                                     <Edit2 className="mr-2 h-4 w-4" />
                                                                     Edit
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem
+                                                                    onClick={() => handleOpenInJira(item)}
+                                                                    disabled={!item.jira_key || selectedIds.length > 1}
+                                                                >
+                                                                    <ExternalLink className="mr-2 h-4 w-4" />
+                                                                    Open in Jira
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuItem onClick={() => setTimeSlicesItem(item)}>
                                                                     <History className="mr-2 h-4 w-4" />

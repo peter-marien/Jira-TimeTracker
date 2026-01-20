@@ -1,4 +1,4 @@
-import { TimeSlice, JiraConnection } from "@/lib/api"
+import { TimeSlice, JiraConnection, api } from "@/lib/api"
 import { TimeDisplay } from "@/components/shared/TimeDisplay"
 import { DurationDisplay } from "@/components/shared/DurationDisplay"
 import { TimeSliceContextMenu } from "./TimeSliceContextMenu"
@@ -12,7 +12,7 @@ import {
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { AlertCircle, CheckCircle2, Copy, Pencil, Play, Trash2, ArrowRightLeft, MoreHorizontal, Split, Merge, FileEdit } from "lucide-react"
+import { AlertCircle, CheckCircle2, Copy, Pencil, Play, Trash2, ArrowRightLeft, MoreHorizontal, Split, Merge, FileEdit, ExternalLink } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface TimeSliceTableProps {
@@ -89,6 +89,16 @@ export function TimeSliceTable({
         }
 
         setLastClickedId(slice.id);
+    };
+
+    const handleOpenInJira = (slice: TimeSlice) => {
+        if (!slice.jira_key) return;
+        const connection = connections?.find(c => c.id === slice.jira_connection_id);
+        const baseUrl = connection?.base_url;
+        if (baseUrl) {
+            const url = `${baseUrl.replace(/\/$/, '')}/browse/${slice.jira_key}`;
+            api.openExternal(url);
+        }
     };
 
     const gridCols = showDate
@@ -266,6 +276,13 @@ export function TimeSliceTable({
                                             <Pencil className="mr-2 h-4 w-4" />
                                             Edit Time
                                         </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            onClick={(e) => { e.stopPropagation(); handleOpenInJira(slice); }}
+                                            disabled={!slice.jira_key || selectedIds.size > 1}
+                                        >
+                                            <ExternalLink className="mr-2 h-4 w-4" />
+                                            Open in Jira
+                                        </DropdownMenuItem>
                                         {onEditWorkItem && (
                                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEditWorkItem(slice); }}>
                                                 <FileEdit className="mr-2 h-4 w-4" />
@@ -312,6 +329,8 @@ export function TimeSliceTable({
                             onMerge={onMerge}
                             canMerge={selectedIds.size > 1 && selectedIds.has(slice.id)}
                             onEditWorkItem={onEditWorkItem}
+                            onOpenInJira={handleOpenInJira}
+                            multiSelectActive={selectedIds.size > 1}
                         >
                             {Content}
                         </TimeSliceContextMenu>

@@ -1,4 +1,4 @@
-import { ipcMain, dialog, BrowserWindow, app } from 'electron'
+import { ipcMain, dialog, BrowserWindow, app, shell } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
 import { getDatabase } from '../src/database/db'
@@ -949,6 +949,10 @@ export function registerIpcHandlers() {
         } catch {
             return 'Unknown';
         }
+    });
+
+    ipcMain.handle('shell:open-external', async (_, url: string) => {
+        return shell.openExternal(url);
     });
 }
 

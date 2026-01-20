@@ -6,7 +6,7 @@ import {
     ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import { WorkItem } from "@/lib/api"
-import { Edit2, Trash2, History, CheckCircle2, XCircle, ArrowRightLeft } from "lucide-react"
+import { Edit2, Trash2, History, CheckCircle2, XCircle, ArrowRightLeft, ExternalLink } from "lucide-react"
 
 interface WorkItemContextMenuProps {
     children: React.ReactNode;
@@ -19,6 +19,7 @@ interface WorkItemContextMenuProps {
     onToggleCompletion: (ids: number[], completed: boolean) => void;
     onChangeConnection: () => void;
     selectedIds: number[];
+    onOpenInJira?: (item: WorkItem) => void;
 }
 
 export function WorkItemContextMenu({
@@ -31,7 +32,8 @@ export function WorkItemContextMenu({
     onShowHistory,
     onToggleCompletion,
     onChangeConnection,
-    selectedIds
+    selectedIds,
+    onOpenInJira
 }: WorkItemContextMenuProps) {
     return (
         <ContextMenu>
@@ -74,6 +76,13 @@ export function WorkItemContextMenu({
                         <ContextMenuItem onClick={() => onEdit(item)}>
                             <Edit2 className="mr-2 h-4 w-4" />
                             Edit Work Item
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                            onClick={() => onOpenInJira?.(item)}
+                            disabled={!item.jira_key || selectedCount > 1}
+                        >
+                            <ExternalLink className="mr-2 h-4 w-4" />
+                            Open in Jira
                         </ContextMenuItem>
                         <ContextMenuItem onClick={onChangeConnection}>
                             <ArrowRightLeft className="mr-2 h-4 w-4" />

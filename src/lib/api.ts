@@ -176,6 +176,9 @@ export const api = {
     // Merge logic
     mergeTimeSlices: (ids: number[]) => ipc.invoke('db:merge-time-slices', { ids }),
 
+    // Utils
+    openExternal: (url: string) => ipc.invoke('shell:open-external', url),
+
     // General passthrough for custom handlers
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     invoke: (channel: string, ...args: any[]) => ipc.invoke(channel, ...args),

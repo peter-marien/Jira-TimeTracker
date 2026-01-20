@@ -6,7 +6,7 @@ import {
     ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import { TimeSlice } from "@/lib/api"
-import { Edit2, Trash2, SplitSquareHorizontal, MoveRight, Play, Copy, Merge, FileEdit } from "lucide-react"
+import { Edit2, Trash2, SplitSquareHorizontal, MoveRight, Play, Copy, Merge, FileEdit, ExternalLink } from "lucide-react"
 
 interface TimeSliceContextMenuProps {
     children: React.ReactNode;
@@ -20,9 +20,11 @@ interface TimeSliceContextMenuProps {
     onMerge?: () => void;
     canMerge?: boolean;
     onEditWorkItem?: (slice: TimeSlice) => void;
+    onOpenInJira?: (slice: TimeSlice) => void;
+    multiSelectActive?: boolean;
 }
 
-export function TimeSliceContextMenu({ children, slice, onEdit, onSplit, onMove, onDelete, onResume, onCopy, onMerge, canMerge, onEditWorkItem }: TimeSliceContextMenuProps) {
+export function TimeSliceContextMenu({ children, slice, onEdit, onSplit, onMove, onDelete, onResume, onCopy, onMerge, canMerge, onEditWorkItem, onOpenInJira, multiSelectActive }: TimeSliceContextMenuProps) {
     return (
         <ContextMenu>
             <ContextMenuTrigger asChild>
@@ -41,6 +43,13 @@ export function TimeSliceContextMenu({ children, slice, onEdit, onSplit, onMove,
                 <ContextMenuItem onClick={() => onEdit(slice)}>
                     <Edit2 className="mr-2 h-4 w-4" />
                     Edit Time / Notes
+                </ContextMenuItem>
+                <ContextMenuItem
+                    onClick={() => onOpenInJira?.(slice)}
+                    disabled={!slice.jira_key || multiSelectActive}
+                >
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Open in Jira
                 </ContextMenuItem>
                 {onEditWorkItem && (
                     <ContextMenuItem onClick={() => onEditWorkItem(slice)}>
