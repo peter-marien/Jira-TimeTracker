@@ -39,12 +39,17 @@ export function registerIpcHandlers() {
                 is_enabled: connection.is_enabled !== undefined ? connection.is_enabled : 1
             })
         } else {
+            // Check if any default connection exists
+            const defaultExists = db.prepare('SELECT id FROM jira_connections WHERE is_default = 1').get();
+            const is_default = defaultExists ? (connection.is_default || 0) : 1;
+
             const stmt = db.prepare(`
         INSERT INTO jira_connections (name, base_url, email, api_token, is_default, color, is_enabled)
         VALUES (@name, @base_url, @email, @api_token, @is_default, @color, @is_enabled)
       `)
             return stmt.run({
                 ...connection,
+                is_default,
                 color: connection.color || null,
                 is_enabled: connection.is_enabled !== undefined ? connection.is_enabled : 1
             })
@@ -683,6 +688,10 @@ export function registerIpcHandlers() {
                 });
             }
         } else {
+            // Check if any default connection exists
+            const defaultExists = db.prepare('SELECT id FROM jira_connections WHERE is_default = 1').get();
+            const is_default = defaultExists ? (connection.is_default || 0) : 1;
+
             // Insert new connection
             if (connection.auth_type === 'oauth') {
                 const stmt = db.prepare(`
@@ -696,7 +705,7 @@ export function registerIpcHandlers() {
                 const result = stmt.run({
                     name: connection.name,
                     base_url: connection.base_url,
-                    is_default: connection.is_default,
+                    is_default,
                     color: connection.color || null,
                     is_enabled: connection.is_enabled,
                     auth_type: connection.auth_type,
@@ -707,7 +716,7 @@ export function registerIpcHandlers() {
                     token_expires_at: connection.token_expires_at,
                     cloud_id: connection.cloud_id
                 });
-                return { id: result.lastInsertRowid, ...connection };
+                return { id: result.lastInsertRowid, ...connection, is_default };
             } else {
                 const stmt = db.prepare(`
                     INSERT INTO jira_connections (name, base_url, email, api_token, is_default, color, is_enabled, auth_type)
@@ -718,11 +727,11 @@ export function registerIpcHandlers() {
                     base_url: connection.base_url,
                     email: connection.email,
                     api_token: connection.api_token,
-                    is_default: connection.is_default,
+                    is_default,
                     color: connection.color || null,
                     is_enabled: connection.is_enabled
                 });
-                return { id: result.lastInsertRowid, ...connection };
+                return { id: result.lastInsertRowid, ...connection, is_default };
             }
         }
     });
