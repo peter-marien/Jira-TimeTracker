@@ -125,18 +125,29 @@ export function MiniPlayerApp() {
         loadInitial();
 
         // Listen for tracking started event from main window (sync)
-        const handleTrackingStarted = (_: unknown, data: { jiraKey: string | null; description: string }) => {
+        const handleTrackingStarted = (_: unknown, data: { jiraKey: string | null; description: string; startTime?: string }) => {
+            const startStr = data.startTime || new Date().toISOString();
+            const elapsed = Math.floor((Date.now() - new Date(startStr).getTime()) / 1000);
+
             setTrackingData({
                 isTracking: true,
-                elapsedSeconds: 0,
+                elapsedSeconds: Math.max(0, elapsed),
                 jiraKey: data.jiraKey,
                 description: data.description,
-                startTime: new Date().toISOString()
+                startTime: startStr
             });
         };
 
         const handleState = (_event: unknown, data: TrackingData) => {
-            setTrackingData(data);
+            if (data.isTracking && data.startTime) {
+                const elapsed = Math.floor((Date.now() - new Date(data.startTime).getTime()) / 1000);
+                setTrackingData({
+                    ...data,
+                    elapsedSeconds: Math.max(0, elapsed)
+                });
+            } else {
+                setTrackingData(data);
+            }
         };
 
         window.ipcRenderer.on('mini-player:state', handleState);
@@ -260,11 +271,13 @@ export function MiniPlayerApp() {
         window.ipcRenderer.send('mini-player:set-search-active', false);
 
         // Update local state to show tracking view immediately
+        const elapsed = Math.floor((Date.now() - new Date(startTime).getTime()) / 1000);
         setTrackingData({
             isTracking: true,
-            elapsedSeconds: 0,
+            elapsedSeconds: Math.max(0, elapsed),
             jiraKey: workItem.jira_key,
-            description: workItem.description
+            description: workItem.description,
+            startTime: startTime
         });
 
         // Notify main window to refresh its tracking state

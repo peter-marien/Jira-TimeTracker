@@ -133,6 +133,8 @@ export function Dashboard() {
             await api.mergeTimeSlices(ids);
             setMergeOpen(false);
             setSelectedIds(new Set());
+            // Refresh tracking state in case merged slices included the active one
+            await useTrackingStore.getState().checkActiveTracking();
             refresh();
         } catch (err) {
             console.error("Failed to merge slices", err);

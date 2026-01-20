@@ -330,7 +330,7 @@ export function registerIpcHandlers() {
             synced_end_time: null
         };
 
-        const transaction = db.transaction(() => {
+        const runMerge = db.transaction(() => {
             // Delete all original slices
             db.prepare(`DELETE FROM time_slices WHERE id IN (${ids.map(() => '?').join(',')})`).run(...ids);
 
@@ -342,7 +342,14 @@ export function registerIpcHandlers() {
             return insertStmt.run(mergedData);
         });
 
-        return transaction();
+        const result = runMerge();
+
+        // Broadcast refresh to all windows so they update active tracking state
+        BrowserWindow.getAllWindows().forEach(win => {
+            win.webContents.send('tracking:refresh');
+        });
+
+        return result;
     });
 
     // Settings

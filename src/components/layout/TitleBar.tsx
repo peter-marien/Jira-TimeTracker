@@ -56,12 +56,12 @@ export function TitleBar() {
         }
     }, [isTracking, activeWorkItem, elapsedSeconds, startTime])
 
-    // Update mini player state continuously when tracking
+    // Update mini player state when tracking start/stop/switch
     useEffect(() => {
         if (isTracking && activeWorkItem) {
             api.updateMiniPlayerState({
                 isTracking: true,
-                elapsedSeconds,
+                elapsedSeconds: 0, // Not used by mini-player for display anymore
                 jiraKey: activeWorkItem.jira_key,
                 description: activeWorkItem.description,
                 startTime: startTime || undefined
@@ -73,7 +73,7 @@ export function TitleBar() {
                 description: ''
             })
         }
-    }, [isTracking, activeWorkItem, elapsedSeconds, startTime])
+    }, [isTracking, activeWorkItem, startTime])
 
     const handleMaximizeToggle = async () => {
         if (isMaximized) {

@@ -156,21 +156,16 @@ export const useTrackingStore = create<TrackingStore>((set, get) => ({
         if (startTime) {
             const start = new Date(startTime).getTime();
             const now = Date.now();
-            const elapsed = Math.floor((now - start) / 1000);
+            const elapsed = Math.max(0, Math.floor((now - start) / 1000));
 
             // We need to know the historical time to add to elapsed
             // But totalTimeSpent in state is actually already updated if we do it right.
             // Actually, let's keep totalTimeSpent as the "running total" including current session.
             // To do that, we need to know the historical base.
             set((state) => {
-                const historicalBase = state.activeWorkItem?.total_seconds || 0;
-                // If the freshWorkItem above already included the current slice (which it might as it's open-ended),
-                // we need to be careful not to double count.
-                // Actually, the freshWorkItem fetch in startTracking happens right after saveTimeSlice.
-                // The SQL sum(now - start) for an open slice will be roughly 0 at that moment.
                 return {
                     elapsedSeconds: elapsed,
-                    totalTimeSpent: historicalBase + elapsed
+                    totalTimeSpent: state.historicalBase + elapsed
                 };
             });
         }
@@ -264,7 +259,7 @@ export const useTrackingStore = create<TrackingStore>((set, get) => ({
             const workItem = await api.getWorkItem(activeSlice.work_item_id);
 
             if (workItem) {
-                const elapsed = Math.floor((Date.now() - new Date(activeSlice.start_time).getTime()) / 1000);
+                const elapsed = Math.max(0, Math.floor((Date.now() - new Date(activeSlice.start_time).getTime()) / 1000));
                 const totalIncludingActive = workItem.total_seconds || 0;
                 const historicalBase = Math.max(0, totalIncludingActive - elapsed);
 
