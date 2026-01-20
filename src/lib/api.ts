@@ -24,6 +24,7 @@ export interface TimeSlice {
     jira_worklog_id?: string | null;
     synced_start_time?: string | null;
     synced_end_time?: string | null;
+    synced_notes?: string | null;
     created_at?: number;
     updated_at?: number;
 

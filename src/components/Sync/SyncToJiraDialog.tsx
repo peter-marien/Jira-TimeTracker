@@ -65,7 +65,9 @@ export function SyncToJiraDialog({ date, slices, open, onOpenChange, onSuccess }
             // Already synced?
             if (s.synced_to_jira) {
                 // Check if changed
-                const isOutOfSync = s.start_time !== s.synced_start_time || s.end_time !== s.synced_end_time;
+                const isOutOfSync = s.start_time !== s.synced_start_time ||
+                    s.end_time !== s.synced_end_time ||
+                    s.notes !== s.synced_notes;
                 if (!isOutOfSync) return; // Already synced and up to date
             }
 
@@ -147,7 +149,8 @@ export function SyncToJiraDialog({ date, slices, open, onOpenChange, onSuccess }
                         synced_to_jira: 1,
                         jira_worklog_id: logResult.id,
                         synced_start_time: slice.start_time,
-                        synced_end_time: slice.end_time
+                        synced_end_time: slice.end_time,
+                        synced_notes: slice.notes
                     });
 
                     result.synced.push(slice);

@@ -192,12 +192,23 @@ export function registerIpcHandlers() {
     ipcMain.handle('db:save-time-slice', (_, slice) => {
         if (slice.id) {
             // Fetch existing record to preserve fields not provided in the update
-            const existing = db.prepare('SELECT * FROM time_slices WHERE id = ?').get(slice.id) as Record<string, unknown>;
+            const existing = db.prepare('SELECT * FROM time_slices WHERE id = ?').get(slice.id) as any;
             const merged = { ...existing, ...slice };
+
+            // Determine if we should reset the sync status
+            let synced_to_jira = merged.synced_to_jira || 0;
+            const notesChanged = slice.notes !== undefined && existing.notes !== slice.notes;
+            const startChanged = slice.start_time !== undefined && existing.start_time !== slice.start_time;
+            const endChanged = slice.end_time !== undefined && existing.end_time !== slice.end_time;
+
+            if ((notesChanged || startChanged || endChanged) && existing.synced_to_jira === 1) {
+                console.log(`[IPC:save-time-slice] Drift detected (Notes: ${notesChanged}, Start: ${startChanged}, End: ${endChanged}) for synced slice ${slice.id}. Marking as out-of-sync.`);
+                synced_to_jira = 0;
+            }
 
             const stmt = db.prepare(`
             UPDATE time_slices
-            SET work_item_id = @work_item_id, start_time = @start_time, end_time = @end_time, notes = @notes, synced_to_jira = @synced_to_jira, jira_worklog_id = @jira_worklog_id, synced_start_time = @synced_start_time, synced_end_time = @synced_end_time, updated_at = unixepoch()
+            SET work_item_id = @work_item_id, start_time = @start_time, end_time = @end_time, notes = @notes, synced_to_jira = @synced_to_jira, jira_worklog_id = @jira_worklog_id, synced_start_time = @synced_start_time, synced_end_time = @synced_end_time, synced_notes = @synced_notes, updated_at = unixepoch()
             WHERE id = @id
         `)
             const params = {
@@ -206,10 +217,11 @@ export function registerIpcHandlers() {
                 start_time: merged.start_time,
                 end_time: merged.end_time || null,
                 notes: merged.notes || '',
-                synced_to_jira: merged.synced_to_jira || 0,
+                synced_to_jira: synced_to_jira,
                 jira_worklog_id: merged.jira_worklog_id || null,
                 synced_start_time: merged.synced_start_time || null,
-                synced_end_time: merged.synced_end_time || null
+                synced_end_time: merged.synced_end_time || null,
+                synced_notes: merged.synced_notes || null
             };
             return stmt.run(params)
         } else {
@@ -232,8 +244,8 @@ export function registerIpcHandlers() {
             }
 
             const stmt = db.prepare(`
-                INSERT INTO time_slices (work_item_id, start_time, end_time, notes, synced_to_jira, jira_worklog_id, synced_start_time, synced_end_time)
-                VALUES (@work_item_id, @start_time, @end_time, @notes, @synced_to_jira, @jira_worklog_id, @synced_start_time, @synced_end_time)
+                INSERT INTO time_slices (work_item_id, start_time, end_time, notes, synced_to_jira, jira_worklog_id, synced_start_time, synced_end_time, synced_notes)
+                VALUES (@work_item_id, @start_time, @end_time, @notes, @synced_to_jira, @jira_worklog_id, @synced_start_time, @synced_end_time, @synced_notes)
             `)
             const params = {
                 work_item_id: slice.work_item_id,
@@ -243,7 +255,8 @@ export function registerIpcHandlers() {
                 synced_to_jira: slice.synced_to_jira || 0,
                 jira_worklog_id: slice.jira_worklog_id || null,
                 synced_start_time: slice.synced_start_time || null,
-                synced_end_time: slice.synced_end_time || null
+                synced_end_time: slice.synced_end_time || null,
+                synced_notes: slice.synced_notes || null
             };
             const info = stmt.run(params)
             return { id: info.lastInsertRowid, ...slice }

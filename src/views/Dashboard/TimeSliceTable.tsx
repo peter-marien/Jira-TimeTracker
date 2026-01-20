@@ -124,12 +124,9 @@ export function TimeSliceTable({
                     const isActive = !slice.end_time;
                     const isSelected = selectedIds.has(slice.id);
 
-                    // Check if synced and if times have changed
+                    // Check if synced and if times/notes have changed
                     const isSynced = slice.synced_to_jira === 1;
-                    const isOutOfSync = isSynced && (
-                        slice.start_time !== slice.synced_start_time ||
-                        slice.end_time !== slice.synced_end_time
-                    );
+                    const isOutOfSync = !isSynced && !!slice.jira_worklog_id;
 
                     const Content = (
                         <div

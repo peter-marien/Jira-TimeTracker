@@ -78,6 +78,7 @@ function initSchema(database: Database.Database) {
       jira_worklog_id TEXT,
       synced_start_time TEXT,
       synced_end_time TEXT,
+      synced_notes TEXT,
       created_at INTEGER DEFAULT (unixepoch()),
       updated_at INTEGER DEFAULT (unixepoch()),
       FOREIGN KEY (work_item_id) REFERENCES work_items(id) ON DELETE CASCADE
@@ -97,7 +98,7 @@ function initSchema(database: Database.Database) {
 }
 
 function runMigrations(database: Database.Database) {
-  // Migration: Add synced_start_time and synced_end_time columns if they don't exist
+  // Migration: Add synced_start_time, synced_end_time, synced_notes columns if they don't exist
   try {
     // Check if columns exist by trying to select them
     database.prepare('SELECT synced_start_time FROM time_slices LIMIT 1').get();
@@ -107,6 +108,16 @@ function runMigrations(database: Database.Database) {
     database.exec(`
       ALTER TABLE time_slices ADD COLUMN synced_start_time TEXT;
       ALTER TABLE time_slices ADD COLUMN synced_end_time TEXT;
+    `);
+    console.log('Migration completed successfully');
+  }
+
+  try {
+    database.prepare('SELECT synced_notes FROM time_slices LIMIT 1').get();
+  } catch {
+    console.log('Running migration: Adding synced_notes column');
+    database.exec(`
+      ALTER TABLE time_slices ADD COLUMN synced_notes TEXT;
     `);
     console.log('Migration completed successfully');
   }
