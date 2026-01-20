@@ -7,10 +7,20 @@ const APP_ROOT = path.join(__dirname, '..');
 const RENDERER_DIST = path.join(APP_ROOT, 'dist');
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
 
-let awayWindow: BrowserWindow | null = null;
-let pendingAwayData: any = null;
+export interface AwayData {
+    awayStartTime: string;
+    awayDurationSeconds: number;
+    currentWorkItem: unknown;
+    // Actually, let's use Record<string, unknown> or just 'any' but explicitly.
+    // Given the previous file used 'any', let's try to be better.
+    // Use 'unknown' or define a partial shape.
+    // In away-detector.ts we pass `WorkItemRow`.
+}
 
-export function createAwayWindow(data: any) {
+let awayWindow: BrowserWindow | null = null;
+let pendingAwayData: AwayData | null = null;
+
+export function createAwayWindow(data: AwayData) {
     if (awayWindow && !awayWindow.isDestroyed()) {
         awayWindow.focus();
         awayWindow.webContents.send('away:data', data);

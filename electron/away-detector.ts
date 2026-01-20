@@ -53,8 +53,15 @@ async function isSoundEnabled(): Promise<boolean> {
     }
 }
 
+interface WorkItemRow {
+    id: number;
+    description: string;
+    jira_key: string | null;
+    jira_connection_id: number | null;
+}
+
 // Get full work item for the active time slice
-function getActiveWorkItem() {
+function getActiveWorkItem(): WorkItemRow | undefined {
     try {
         const db = getDatabase();
         const result = db.prepare(`
@@ -63,16 +70,16 @@ function getActiveWorkItem() {
             JOIN work_items wi ON ts.work_item_id = wi.id 
             WHERE ts.end_time IS NULL 
             LIMIT 1
-        `).get();
+        `).get() as WorkItemRow | undefined;
         return result;
     } catch {
-        return null;
+        return undefined;
     }
 }
 
 // Get description for notification text
 function getActiveWorkItemDescription(): string {
-    const item = getActiveWorkItem() as any;
+    const item = getActiveWorkItem();
     if (item) {
         return item.jira_key ? `${item.jira_key} - ${item.description}` : item.description;
     }
