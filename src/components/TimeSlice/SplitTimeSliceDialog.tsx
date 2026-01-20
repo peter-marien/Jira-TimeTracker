@@ -15,6 +15,7 @@ import { WorkItemSearchBar } from "@/components/shared/WorkItemSearchBar"
 import { TimePicker } from "@/components/shared/TimePicker"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Plus, Trash2, AlertCircle } from "lucide-react"
+import { useTrackingStore } from "@/stores/useTrackingStore"
 
 interface SplitSegment {
     id: string;
@@ -88,16 +89,41 @@ export function SplitTimeSliceDialog({ slice, open, onOpenChange, onSave }: Spli
         for (let i = 0; i < sorted.length; i++) {
             const s = sorted[i];
             const start = new Date(`${dateBase}T${s.startTime}`);
-            const end = new Date(`${dateBase}T${s.endTime}`);
 
-            if (isBefore(start, sliceStart) || isAfter(end, sliceEnd)) {
-                setError("Segments must be within original time range.");
+            // Check start time range
+            if (isBefore(start, sliceStart)) {
+                setError("Segment cannot start before original slice.");
                 return false;
             }
-            if (!isBefore(start, end)) {
-                setError("Segment end time must be after start time.");
-                return false;
+
+            // End Time Checks
+            if (s.endTime) {
+                const end = new Date(`${dateBase}T${s.endTime}`);
+
+                if (isAfter(end, sliceEnd) && slice.end_time) {
+                    setError("Segments must be within original time range.");
+                    return false;
+                }
+
+                if (!isBefore(start, end)) {
+                    setError("Segment end time must be after start time.");
+                    return false;
+                }
+            } else {
+                // Empty End Time (Open/Active)
+                // ONLY allowed if:
+                // 1. Original slice is active (!slice.end_time).
+                // 2. This is the LAST segment.
+                if (slice.end_time) {
+                    setError("Cannot have open-ended segment on a completed time slice.");
+                    return false;
+                }
+                if (i !== sorted.length - 1) {
+                    setError("Only the last segment can be open-ended.");
+                    return false;
+                }
             }
+
             if (!s.workItem) {
                 setError("Each segment must have a work item assigned.");
                 return false;
@@ -106,6 +132,10 @@ export function SplitTimeSliceDialog({ slice, open, onOpenChange, onSave }: Spli
             // Check overlap
             if (i > 0) {
                 const prev = sorted[i - 1];
+                if (!prev.endTime) {
+                    setError("Invalid segment configuration (internal error).");
+                    return false;
+                }
                 if (s.startTime < prev.endTime) {
                     setError("Segments cannot overlap.");
                     return false;
@@ -127,13 +157,12 @@ export function SplitTimeSliceDialog({ slice, open, onOpenChange, onSave }: Spli
 
         // 1. Calculate all intervals (gaps + segments)
         const sorted = [...segments].sort((a, b) => a.startTime.localeCompare(b.startTime));
-        const finalSlices: { start: string, end: string, itemId: number, notes?: string }[] = [];
+        const finalSlices: { start: string, end: string | null, itemId: number, notes?: string }[] = [];
 
         let currentPos = originalStart;
 
         for (const seg of sorted) {
             const segStartISO = `${dateBase}T${seg.startTime}`;
-            const segEndISO = `${dateBase}T${seg.endTime}`;
 
             // Gap
             if (isAfter(new Date(segStartISO), new Date(currentPos))) {
@@ -146,18 +175,27 @@ export function SplitTimeSliceDialog({ slice, open, onOpenChange, onSave }: Spli
             }
 
             // Segment
-            finalSlices.push({
-                start: segStartISO,
-                end: segEndISO,
-                itemId: seg.workItem!.id,
-                notes: "" // New segments start fresh? Or copy notes? User said "assign work item", usually new context.
-            });
-
-            currentPos = segEndISO;
+            if (seg.endTime) {
+                const segEndISO = `${dateBase}T${seg.endTime}`;
+                finalSlices.push({
+                    start: segStartISO,
+                    end: segEndISO,
+                    itemId: seg.workItem!.id,
+                });
+                currentPos = segEndISO;
+            } else {
+                // Open-ended segment!
+                finalSlices.push({
+                    start: segStartISO,
+                    end: null, // Active
+                    itemId: seg.workItem!.id,
+                });
+                currentPos = "FUTURE";
+            }
         }
 
         // Final Gap
-        if (isAfter(new Date(originalEnd), new Date(currentPos))) {
+        if (currentPos !== "FUTURE" && isAfter(new Date(originalEnd), new Date(currentPos))) {
             finalSlices.push({
                 start: currentPos,
                 end: originalEnd,
@@ -169,13 +207,20 @@ export function SplitTimeSliceDialog({ slice, open, onOpenChange, onSave }: Spli
         // 2. Perform DB operations
         // We delete original and insert all new ones
         await api.deleteTimeSlice(slice.id);
+
         for (const f of finalSlices) {
             await api.saveTimeSlice({
                 work_item_id: f.itemId,
                 start_time: f.start,
-                end_time: f.end,
+                end_time: f.end || undefined,
                 notes: f.notes
             });
+        }
+
+        // If we modified the active slice (original was active OR we created a new active one)
+        // we must update the global tracking store to point to the new ID (or null).
+        if (!slice.end_time || finalSlices.some(f => !f.end)) {
+            await useTrackingStore.getState().checkActiveTracking();
         }
 
         onSave();
@@ -223,6 +268,7 @@ export function SplitTimeSliceDialog({ slice, open, onOpenChange, onSave }: Spli
                                             <TimePicker
                                                 value={seg.endTime}
                                                 onChange={(val) => updateSegment(seg.id, { endTime: val })}
+                                                allowEmpty={!slice?.end_time && index === segments.length - 1}
                                             />
                                         </div>
                                     </div>

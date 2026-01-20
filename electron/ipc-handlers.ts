@@ -203,7 +203,15 @@ export function registerIpcHandlers() {
                 synced_start_time: string | null;
                 synced_end_time: string | null;
                 synced_notes: string | null;
-            };
+            } | undefined;
+
+            if (!existing) {
+                console.error(`[IPC:save-time-slice] Attempted to update non-existent time slice ${slice.id}`);
+                // Return safely or throw? Throwing might be caught by frontend.
+                // If we assume it's a stale update, maybe we just stop?
+                throw new Error(`Time slice ${slice.id} not found.`);
+            }
+
             const merged = { ...existing, ...slice };
 
             // Determine if we should reset the sync status
