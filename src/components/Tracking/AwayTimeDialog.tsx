@@ -144,8 +144,8 @@ export function AwayTimeDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className={`sm:max-w-[500px] ${contentClassName || ''}`}>
-                <DialogHeader>
+            <DialogContent className={`sm:max-w-[500px] flex flex-col gap-0 max-h-[calc(100vh-2rem)] ${contentClassName || ''}`}>
+                <DialogHeader className="flex-none pb-4">
                     <DialogTitle className="flex items-center gap-2">
                         <Clock className="h-5 w-5 text-primary" />
                         You Were Away
@@ -160,7 +160,7 @@ export function AwayTimeDialog({
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="py-4">
+                <div className="flex-1 overflow-y-auto min-h-0 pr-2">
                     <RadioGroup
                         value={selectedAction}
                         onValueChange={(value: string) => {
@@ -244,7 +244,7 @@ export function AwayTimeDialog({
                     )}
 
                     {selectedAction === 'importJira' && (
-                        <div className="mt-4 space-y-2">
+                        <div className="mt-4 space-y-2 pb-2">
                             <Label>Search Jira issues:</Label>
                             <div className="relative">
                                 <div className="relative">
@@ -298,7 +298,7 @@ export function AwayTimeDialog({
                     )}
                 </div>
 
-                <DialogFooter>
+                <DialogFooter className="flex-none pt-6">
                     <Button variant="outline" onClick={() => onOpenChange(false)}>
                         Cancel
                     </Button>
