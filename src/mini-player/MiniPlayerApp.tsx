@@ -110,7 +110,7 @@ export function MiniPlayerApp() {
                 if (workItem) {
                     const now = Date.now();
                     const start = new Date(activeSlice.start_time).getTime();
-                    const elapsed = Math.floor((now - start) / 1000);
+                    const elapsed = Math.max(0, Math.floor((now - start) / 1000));
 
                     setTrackingData({
                         isTracking: true,
@@ -168,7 +168,7 @@ export function MiniPlayerApp() {
         const interval = setInterval(() => {
             const start = new Date(trackingData.startTime!).getTime();
             const now = Date.now();
-            const elapsed = Math.floor((now - start) / 1000);
+            const elapsed = Math.max(0, Math.floor((now - start) / 1000));
 
             setTrackingData(prev => prev ? ({ ...prev, elapsedSeconds: elapsed }) : null);
         }, 1000);
