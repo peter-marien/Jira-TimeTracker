@@ -206,6 +206,12 @@ function createMiniPlayerWindow(): BrowserWindow {
 }
 
 export function showMiniPlayer(data: TrackingData) {
+    // Only allow showing if main window is minimized
+    // This enforces the rule: "When app is not minimized, mini-player should not be visible"
+    if (mainWindow && !mainWindow.isMinimized()) {
+        return;
+    }
+
     if (!miniPlayerWindow) {
         miniPlayerWindow = createMiniPlayerWindow();
     } else {
