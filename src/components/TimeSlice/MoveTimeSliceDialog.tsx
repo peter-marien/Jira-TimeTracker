@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { TimeSlice, api, WorkItem } from "@/lib/api"
 import { useState } from "react"
 import { WorkItemSearchBar } from "@/components/shared/WorkItemSearchBar"
+import { useTrackingStore } from "@/stores/useTrackingStore"
 
 interface MoveTimeSliceDialogProps {
     slice: TimeSlice | null;
@@ -21,6 +22,7 @@ interface MoveTimeSliceDialogProps {
 
 export function MoveTimeSliceDialog({ slice, open, onOpenChange, onSave }: MoveTimeSliceDialogProps) {
     const [newItem, setNewItem] = useState<WorkItem | null>(null);
+    const { activeTimeSliceId, updateActiveWorkItem } = useTrackingStore();
 
     const handleMove = async () => {
         if (!slice || !newItem) return;
@@ -32,6 +34,11 @@ export function MoveTimeSliceDialog({ slice, open, onOpenChange, onSave }: MoveT
             end_time: slice.end_time,
             notes: slice.notes
         });
+
+        // If we are moving the currently active time slice, update the store
+        if (activeTimeSliceId === slice.id) {
+            await updateActiveWorkItem(newItem);
+        }
 
         onSave();
         onOpenChange(false);

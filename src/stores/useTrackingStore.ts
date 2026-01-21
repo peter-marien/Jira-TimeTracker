@@ -34,6 +34,8 @@ interface TrackingStore {
     setElapsedSeconds: (seconds: number) => void;
     handleAwayTime: (action: 'discard' | 'keep' | 'reassign', awayStartTime: string, targetWorkItem?: WorkItem) => Promise<void>;
 
+    updateActiveWorkItem: (workItem: WorkItem) => Promise<void>;
+
     // Initialize from DB if possible? 
     // We'll need a way to check if tracking is active on load.
     checkActiveTracking: () => Promise<void>;
@@ -249,6 +251,26 @@ export const useTrackingStore = create<TrackingStore>((set, get) => ({
                 historicalBase: historicalSeconds
             });
         }
+    },
+
+    updateActiveWorkItem: async (workItem: WorkItem) => {
+        const { activeTimeSliceId, elapsedSeconds } = get();
+
+        if (!activeTimeSliceId) return;
+
+        // Fetch fresh work item to get updated total_seconds
+        const freshWorkItem = await api.getWorkItem(workItem.id);
+        const historicalSeconds = freshWorkItem?.total_seconds || 0;
+
+        set({
+            activeWorkItem: workItem,
+            historicalBase: historicalSeconds,
+            totalTimeSpent: historicalSeconds + elapsedSeconds
+        });
+
+        // Notify main process for tray update
+        api.setTrayIcon('active', workItem.description);
+        api.setTrayTooltip(`Tracking: ${workItem.description}`);
     },
 
     checkActiveTracking: async () => {
