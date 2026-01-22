@@ -19,7 +19,8 @@ import { cn } from "@/lib/utils"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MonthCellDialog } from "@/components/MonthView/MonthCellDialog"
 import { MonthlyHoursChart } from "@/components/MonthView/MonthlyHoursChart"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Tooltip, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { TimeSliceTooltipContent } from "@/components/shared/TimeSliceTooltip"
 import {
     ContextMenu,
     ContextMenuContent,
@@ -321,27 +322,17 @@ export function MonthView() {
                                                                     </ContextMenuItem>
                                                                 </ContextMenuContent>
                                                             </ContextMenu>
-                                                            {seconds > 0 && (
-                                                                <TooltipContent className="max-w-[400px] p-3 space-y-2">
-                                                                    <p className="font-bold text-xs border-b pb-1">{format(day, "EEEE, MMM do")}</p>
-                                                                    <div className="space-y-1">
-                                                                        {daySlices.length > 0 ? daySlices.map(s => (
-                                                                            <div key={s.id} className="text-[10px] leading-tight flex gap-2">
-                                                                                <span className="font-mono text-muted-foreground shrink-0 tabular-nums">
-                                                                                    {format(new Date(s.start_time), "HH:mm")} - {s.end_time ? format(new Date(s.end_time), "HH:mm") : "Now"}:
-                                                                                </span>
-                                                                                <span className="break-words">
-                                                                                    {s.notes?.trim() || <span className="italic opacity-50">No notes</span>}
-                                                                                </span>
-                                                                            </div>
-                                                                        )) : (
-                                                                            <div className="text-[10px] italic opacity-50 text-center py-1">
-                                                                                No slices recorded
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                </TooltipContent>
-                                                            )}
+                                                            <TimeSliceTooltipContent
+                                                                dateLabel={format(day, "EEEE, MMM do")}
+                                                                jiraKey={item.jira_key}
+                                                                description={item.description}
+                                                                items={daySlices.map(s => ({
+                                                                    id: s.id,
+                                                                    startTime: s.start_time,
+                                                                    endTime: s.end_time,
+                                                                    text: s.notes
+                                                                }))}
+                                                            />
                                                         </Tooltip>
                                                     );
                                                 })}
@@ -482,25 +473,17 @@ export function MonthView() {
                                                                             </ContextMenuContent>
                                                                         </ContextMenu>
                                                                         {seconds > 0 && (
-                                                                            <TooltipContent className="max-w-[400px] p-3 space-y-2">
-                                                                                <p className="font-bold text-xs border-b pb-1">{format(day, "EEEE, MMM do")}</p>
-                                                                                <div className="space-y-1">
-                                                                                    {daySlices.length > 0 ? daySlices.map(s => (
-                                                                                        <div key={s.id} className="text-[10px] leading-tight flex gap-2">
-                                                                                            <span className="font-mono text-muted-foreground shrink-0 tabular-nums">
-                                                                                                {format(new Date(s.start_time), "HH:mm")} - {s.end_time ? format(new Date(s.end_time), "HH:mm") : "Now"}:
-                                                                                            </span>
-                                                                                            <span className="break-words">
-                                                                                                {s.notes?.trim() || <span className="italic opacity-50">No notes</span>}
-                                                                                            </span>
-                                                                                        </div>
-                                                                                    )) : (
-                                                                                        <div className="text-[10px] italic opacity-50 text-center py-1">
-                                                                                            No slices recorded
-                                                                                        </div>
-                                                                                    )}
-                                                                                </div>
-                                                                            </TooltipContent>
+                                                                            <TimeSliceTooltipContent
+                                                                                dateLabel={format(day, "EEEE, MMM do")}
+                                                                                jiraKey={item.jira_key}
+                                                                                description={item.description}
+                                                                                items={daySlices.map(s => ({
+                                                                                    id: s.id,
+                                                                                    startTime: s.start_time,
+                                                                                    endTime: s.end_time,
+                                                                                    text: s.notes
+                                                                                }))}
+                                                                            />
                                                                         )}
                                                                     </Tooltip>
                                                                 );

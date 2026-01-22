@@ -14,6 +14,8 @@ import { format, differenceInSeconds, intervalToDuration } from "date-fns"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip"
+import { TimeSliceTooltipContent } from "@/components/shared/TimeSliceTooltip"
 
 interface SyncToJiraDialogProps {
     date: Date;
@@ -293,17 +295,42 @@ export function SyncToJiraDialog({ date, slices, open, onOpenChange, onSuccess }
                     </div>
 
                     {syncable.length > 0 ? (
-                        <ScrollArea className="h-[160px] border rounded bg-white dark:bg-slate-950" onWheel={(e) => e.stopPropagation()}>
+                        <ScrollArea className="max-h-[60vh] h-auto border rounded bg-white dark:bg-slate-950" onWheel={(e) => e.stopPropagation()}>
                             <div className="p-1">
-                                {syncable.map(s => (
-                                    <div key={s.id} className="flex justify-between items-center p-2 text-sm border-b last:border-0 hover:bg-slate-50 dark:hover:bg-slate-900">
-                                        <div className="flex items-center gap-3">
-                                            <span className="font-mono font-medium text-emerald-600 dark:text-emerald-500 w-[80px]">{s.jira_key}</span>
-                                            <span className="text-muted-foreground truncate max-w-[220px]" title={s.notes || s.work_item_description}>{s.notes || s.work_item_description}</span>
+                                {syncable.map(s => {
+                                    const RowContent = (
+                                        <div className={cn("flex justify-between items-center p-2 text-sm border-b last:border-0 hover:bg-slate-50 dark:hover:bg-slate-900 group cursor-default transition-colors", s.notes && "cursor-help hover:bg-muted/50")}>
+                                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                <span className="font-mono font-medium text-emerald-600 dark:text-emerald-500 w-[80px] shrink-0">{s.jira_key}</span>
+                                                <span className={cn("text-muted-foreground truncate group-hover:text-foreground transition-colors", s.notes && "decoration-dotted underline underline-offset-4")}>
+                                                    {s.work_item_description}
+                                                </span>
+                                            </div>
+                                            <span className="font-mono text-xs text-muted-foreground shrink-0 ml-4">{formatDuration(s)}</span>
                                         </div>
-                                        <span className="font-mono text-xs text-muted-foreground">{formatDuration(s)}</span>
-                                    </div>
-                                ))}
+                                    );
+
+                                    if (!s.notes) return <div key={s.id}>{RowContent}</div>;
+
+                                    return (
+                                        <Tooltip key={s.id}>
+                                            <TooltipTrigger asChild>
+                                                {RowContent}
+                                            </TooltipTrigger>
+                                            <TimeSliceTooltipContent
+                                                dateLabel={format(date, "EEEE, MMM do")}
+                                                jiraKey={s.jira_key}
+                                                description={s.work_item_description}
+                                                items={[{
+                                                    id: s.id,
+                                                    startTime: s.start_time,
+                                                    endTime: s.end_time,
+                                                    text: s.notes
+                                                }]}
+                                            />
+                                        </Tooltip>
+                                    );
+                                })}
                             </div>
                         </ScrollArea>
                     ) : (
@@ -357,7 +384,7 @@ export function SyncToJiraDialog({ date, slices, open, onOpenChange, onSuccess }
             if (!v) handleClose();
             else onOpenChange(true);
         }}>
-            <DialogContent className="sm:max-w-[550px]">
+            <DialogContent className="sm:max-w-[800px]">
                 <DialogHeader>
                     <DialogTitle>Sync to Jira</DialogTitle>
                     <DialogDescription>
