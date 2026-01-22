@@ -144,8 +144,11 @@ export function AwayTimeDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className={`sm:max-w-[500px] flex flex-col gap-0 max-h-[calc(100vh-2rem)] ${contentClassName || ''}`}>
-                <DialogHeader className="flex-none pb-4">
+            <DialogContent
+                className={`sm:max-w-[500px] ${contentClassName || ''}`}
+                overlayClassName="bg-transparent"
+            >
+                <DialogHeader className="pb-4">
                     <DialogTitle className="flex items-center gap-2">
                         <Clock className="h-5 w-5 text-primary" />
                         You Were Away
@@ -160,7 +163,7 @@ export function AwayTimeDialog({
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="flex-1 overflow-y-auto min-h-0 pr-2">
+                <div className="space-y-4">
                     <RadioGroup
                         value={selectedAction}
                         onValueChange={(value: string) => {
@@ -228,77 +231,80 @@ export function AwayTimeDialog({
                         </div>
                     </RadioGroup>
 
-                    {selectedAction === 'reassign' && (
-                        <div className="mt-4 space-y-2">
-                            <Label>Select work item for away time:</Label>
-                            <WorkItemSearchBar
-                                onSelect={setTargetWorkItem}
-                                placeholder="Search for a work item..."
-                            />
-                            {targetWorkItem && (
-                                <p className="text-sm text-muted-foreground">
-                                    Selected: <span className="font-medium">{targetWorkItem.description}</span>
-                                </p>
-                            )}
-                        </div>
-                    )}
+                    {/* Dynamic Search Sections - Reserved space to prevent dialog resizing */}
+                    <div className="min-h-[90px] border-t">
+                        {selectedAction === 'reassign' && (
+                            <div className="space-y-2">
+                                <Label>Select work item for away time:</Label>
+                                <WorkItemSearchBar
+                                    onSelect={setTargetWorkItem}
+                                    placeholder="Search for a work item..."
+                                />
+                                {targetWorkItem && (
+                                    <p className="text-sm text-muted-foreground">
+                                        Selected: <span className="font-medium">{targetWorkItem.description}</span>
+                                    </p>
+                                )}
+                            </div>
+                        )}
 
-                    {selectedAction === 'importJira' && (
-                        <div className="mt-4 space-y-2 pb-2">
-                            <Label>Search Jira issues:</Label>
-                            <div className="relative">
+                        {selectedAction === 'importJira' && (
+                            <div className="space-y-2 pb-2">
+                                <Label>Search Jira issues:</Label>
                                 <div className="relative">
-                                    <Input
-                                        value={jiraQuery}
-                                        onChange={e => {
-                                            setJiraQuery(e.target.value);
-                                            setSelectedJiraIssue(null); // Clear selection when typing
-                                        }}
-                                        placeholder="Search by key or summary (e.g. PROJ-123)"
-                                        className="pr-8"
-                                    />
-                                    {jiraLoading && (
-                                        <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                                    <div className="relative">
+                                        <Input
+                                            value={jiraQuery}
+                                            onChange={e => {
+                                                setJiraQuery(e.target.value);
+                                                setSelectedJiraIssue(null); // Clear selection when typing
+                                            }}
+                                            placeholder="Search by key or summary (e.g. PROJ-123)"
+                                            className="pr-8"
+                                        />
+                                        {jiraLoading && (
+                                            <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                                        )}
+                                    </div>
+
+                                    {/* Autocomplete dropdown */}
+                                    {jiraResults.length > 0 && !selectedJiraIssue && (
+                                        <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-[200px] overflow-y-auto">
+                                            {jiraResults.map(issue => (
+                                                <div
+                                                    key={issue.id}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    className="w-full text-left px-3 py-2 hover:bg-accent transition-colors flex items-start gap-2 cursor-pointer"
+                                                    onClick={() => handleSelectJiraIssue(issue)}
+                                                    onKeyDown={(e) => e.key === 'Enter' && handleSelectJiraIssue(issue)}
+                                                >
+                                                    <span className="font-mono text-xs font-semibold bg-secondary px-1.5 py-0.5 rounded shrink-0">
+                                                        {issue.key}
+                                                    </span>
+                                                    <span className="text-sm line-clamp-1">{issue.fields.summary}</span>
+                                                </div>
+                                            ))}
+                                        </div>
                                     )}
                                 </div>
 
-                                {/* Autocomplete dropdown */}
-                                {jiraResults.length > 0 && !selectedJiraIssue && (
-                                    <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-[200px] overflow-y-auto">
-                                        {jiraResults.map(issue => (
-                                            <div
-                                                key={issue.id}
-                                                role="button"
-                                                tabIndex={0}
-                                                className="w-full text-left px-3 py-2 hover:bg-accent transition-colors flex items-start gap-2 cursor-pointer"
-                                                onClick={() => handleSelectJiraIssue(issue)}
-                                                onKeyDown={(e) => e.key === 'Enter' && handleSelectJiraIssue(issue)}
-                                            >
-                                                <span className="font-mono text-xs font-semibold bg-secondary px-1.5 py-0.5 rounded shrink-0">
-                                                    {issue.key}
-                                                </span>
-                                                <span className="text-sm line-clamp-1">{issue.fields.summary}</span>
-                                            </div>
-                                        ))}
+                                {jiraError && (
+                                    <p className="text-destructive text-sm">{jiraError}</p>
+                                )}
+
+                                {selectedJiraIssue && (
+                                    <div className="p-2 bg-muted/50 rounded-md border text-sm">
+                                        <span className="font-mono font-semibold text-primary">{selectedJiraIssue.key}</span>
+                                        <span className="ml-2 text-muted-foreground">{selectedJiraIssue.fields.summary}</span>
                                     </div>
                                 )}
                             </div>
-
-                            {jiraError && (
-                                <p className="text-destructive text-sm">{jiraError}</p>
-                            )}
-
-                            {selectedJiraIssue && (
-                                <div className="p-2 bg-muted/50 rounded-md border text-sm">
-                                    <span className="font-mono font-semibold text-primary">{selectedJiraIssue.key}</span>
-                                    <span className="ml-2 text-muted-foreground">{selectedJiraIssue.fields.summary}</span>
-                                </div>
-                            )}
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
 
-                <DialogFooter className="flex-none pt-6">
+                <DialogFooter>
                     <Button variant="outline" onClick={() => onOpenChange(false)}>
                         Cancel
                     </Button>

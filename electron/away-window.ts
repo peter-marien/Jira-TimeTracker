@@ -31,7 +31,7 @@ export function createAwayWindow(data: AwayData) {
 
     awayWindow = new BrowserWindow({
         width: 550,
-        height: 600, // Adjusted for content
+        height: 730, // Adjusted for content without scrollbar
         resizable: false,
         frame: false,
         // alwaysOnTop: true, // Optional: User might find this annoying if debugging, but requested "standalone" usually implies interrupting.

@@ -60,7 +60,7 @@ export function AwayDialogPage() {
                 awayStartTime={data.awayStartTime}
                 currentWorkItem={data.currentWorkItem}
                 onAction={handleAction}
-                contentClassName="fixed inset-4 w-auto max-w-none translate-x-0 translate-y-0 sm:max-w-none data-[state=open]:slide-in-from-top-0 data-[state=open]:slide-in-from-left-0 data-[state=open]:zoom-in-100"
+                contentClassName="sm:max-w-none w-full"
             />
         </div>
     );
