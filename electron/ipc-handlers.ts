@@ -1,4 +1,5 @@
 import { ipcMain, dialog, BrowserWindow, app, shell } from 'electron'
+import { formatISO } from 'date-fns'
 import path from 'node:path'
 import fs from 'node:fs'
 import { getDatabase } from '../src/database/db'
@@ -10,6 +11,9 @@ import { encrypt } from './crypto-service'
 
 export function registerIpcHandlers() {
     const db = getDatabase()
+
+    // Run database migrations/standardization
+    runMigrations(db);
 
     // Initialize auto-update interval
     try {
@@ -248,7 +252,7 @@ export function registerIpcHandlers() {
             if (!slice.end_time) {
                 const activeSlices = db.prepare('SELECT id FROM time_slices WHERE end_time IS NULL').all() as { id: number }[];
                 if (activeSlices.length > 0) {
-                    const now = new Date().toISOString();
+                    const now = formatISO(new Date());
                     console.log(`[IPC:save-time-slice] Closing ${activeSlices.length} orphaned active slices before creating new one`);
                     const closeStmt = db.prepare('UPDATE time_slices SET end_time = ?, updated_at = unixepoch() WHERE id = ?');
                     for (const active of activeSlices) {
@@ -883,8 +887,11 @@ export function registerIpcHandlers() {
                 continue;
             }
 
-            const startTime = startTimeStr.trim().replace(' ', 'T') + 'Z';
-            const endTime = endTimeStr?.trim() ? endTimeStr.trim().replace(' ', 'T') + 'Z' : null;
+            // CSV Import format handling
+            // If it already looks like ISO (has T and Z or +/-), formatISO will handle it
+            // If it's a simple date string, formatISO will add local offset
+            const startTime = formatISO(new Date(startTimeStr.trim()));
+            const endTime = endTimeStr?.trim() ? formatISO(new Date(endTimeStr.trim())) : null;
 
             let workItem: { id: number } | undefined;
             if (jiraKey && jiraKey.trim()) {
@@ -1050,4 +1057,49 @@ function parseCSV(content: string): string[][] {
     }
 
     return rows;
+}
+
+function runMigrations(db: any) {
+    console.log('[Migration] Checking for date format standardization...');
+    try {
+        const slices = db.prepare('SELECT id, start_time, end_time FROM time_slices').all();
+        const updateStmt = db.prepare('UPDATE time_slices SET start_time = ?, end_time = ? WHERE id = ?');
+
+        let updateCount = 0;
+
+        db.transaction(() => {
+            for (const slice of slices) {
+                const newStart = standardizeDate(slice.start_time);
+                const newEnd = standardizeDate(slice.end_time);
+
+                if (newStart || newEnd) {
+                    const finalStart = newStart || slice.start_time;
+                    const finalEnd = newEnd || slice.end_time;
+                    updateStmt.run(finalStart, finalEnd, slice.id);
+                    updateCount++;
+                }
+            }
+        })();
+
+        if (updateCount > 0) {
+            console.log(`[Migration] Standardized ${updateCount} time slices.`);
+        }
+    } catch (e) {
+        console.error('[Migration] Failed to run date standardization:', e);
+    }
+}
+
+function standardizeDate(dateStr: string | null) {
+    if (!dateStr) return null;
+
+    // date-fns parseISO is good for standard ISO
+    // But we use new Date() as a fallback for missing offsets or Z
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return null;
+
+    const standardized = formatISO(date);
+    if (standardized !== dateStr) {
+        return standardized;
+    }
+    return null;
 }

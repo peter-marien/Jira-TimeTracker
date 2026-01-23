@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { StopCircle, Maximize2, Search, Loader2, Play } from 'lucide-react';
 import { DurationDisplay } from '@/components/shared/DurationDisplay';
+import { formatISO } from 'date-fns';
 
 interface TrackingData {
     isTracking: boolean;
@@ -126,7 +127,7 @@ export function MiniPlayerApp() {
 
         // Listen for tracking started event from main window (sync)
         const handleTrackingStarted = (_: unknown, data: { jiraKey: string | null; description: string; startTime?: string }) => {
-            const startStr = data.startTime || new Date().toISOString();
+            const startStr = data.startTime || formatISO(new Date());
             const elapsed = Math.floor((Date.now() - new Date(startStr).getTime()) / 1000);
 
             setTrackingData({
@@ -218,7 +219,7 @@ export function MiniPlayerApp() {
     }, [query]);
 
     const handleStartTracking = async (workItem: WorkItem) => {
-        let startTime = new Date().toISOString();
+        let startTime = formatISO(new Date());
 
         try {
             const settings = await window.ipcRenderer.invoke('db:get-settings');
@@ -229,11 +230,11 @@ export function MiniPlayerApp() {
             const activeSlice = await window.ipcRenderer.invoke('db:get-active-time-slice');
             if (activeSlice) {
                 const endNow = new Date();
-                let endTime = endNow.toISOString();
+                let endTime = formatISO(endNow);
 
                 if (roundingEnabled) {
                     const roundedEnd = roundToNearestInterval(endNow, intervalMinutes);
-                    endTime = roundedEnd.toISOString();
+                    endTime = formatISO(roundedEnd);
                     // Use the rounded end time as the start of the new slice
                     startTime = endTime;
                     console.log(`[MiniPlayer] Stopping existing slice ${activeSlice.id}, rounded end: ${endTime}`);
@@ -253,8 +254,8 @@ export function MiniPlayerApp() {
                 // No active slice, but still apply rounding to start time
                 const now = new Date();
                 const roundedStart = roundToNearestInterval(now, intervalMinutes);
-                startTime = roundedStart.toISOString();
-                console.log(`[MiniPlayer] Rounded start time from ${now.toISOString()} to ${startTime}`);
+                startTime = formatISO(roundedStart);
+                console.log(`[MiniPlayer] Rounded start time from ${formatISO(now)} to ${startTime}`);
             }
         } catch (err) {
             console.error('[MiniPlayer] Failed to handle time rounding or stop existing slice:', err);

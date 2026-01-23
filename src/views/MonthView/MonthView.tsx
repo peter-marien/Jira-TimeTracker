@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import {
     format,
+    formatISO,
     startOfMonth,
     endOfMonth,
     eachDayOfInterval,
@@ -52,8 +53,8 @@ export function MonthView() {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const startStr = monthStart.toISOString();
-                const endStr = monthEnd.toISOString();
+                const startStr = formatISO(monthStart);
+                const endStr = formatISO(monthEnd);
 
                 const fetchedSlices = await api.getTimeSlices(startStr, endStr);
                 setSlices(fetchedSlices);

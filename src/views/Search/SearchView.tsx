@@ -8,7 +8,7 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog"
 import { Input } from "@/components/ui/input"
 import { Search, Loader2 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
-import { format, parseISO } from "date-fns"
+import { format, parseISO, formatISO } from "date-fns"
 import {
     Pagination,
     PaginationContent,
@@ -138,7 +138,7 @@ export function SearchView() {
     };
 
     const handleResume = async (slice: TimeSlice) => {
-        const now = new Date().toISOString();
+        const now = formatISO(new Date());
         await api.saveTimeSlice({
             work_item_id: slice.work_item_id,
             start_time: now,
@@ -149,10 +149,11 @@ export function SearchView() {
 
     const handleCopy = async (slice: TimeSlice) => {
         const now = new Date();
+        const nowStr = formatISO(now);
         await api.saveTimeSlice({
             work_item_id: slice.work_item_id,
-            start_time: now.toISOString(),
-            end_time: now.toISOString(),
+            start_time: nowStr,
+            end_time: nowStr,
             notes: slice.notes,
         });
         fetchResults();

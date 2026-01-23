@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { TimeSlice, api, WorkItem } from "@/lib/api"
 import { useState, useEffect } from "react"
-import { format, differenceInMinutes, addMinutes, isBefore, isAfter } from "date-fns"
+import { format, differenceInMinutes, addMinutes, isBefore, isAfter, formatISO } from "date-fns"
 import { WorkItemSearchBar } from "@/components/shared/WorkItemSearchBar"
 import { TimePicker } from "@/components/shared/TimePicker"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -152,7 +152,7 @@ export function SplitTimeSliceDialog({ slice, open, onOpenChange, onSave }: Spli
 
         const dateBase = format(new Date(slice.start_time), "yyyy-MM-dd");
         const originalStart = slice.start_time;
-        const originalEnd = slice.end_time || new Date().toISOString();
+        const originalEnd = slice.end_time || formatISO(new Date());
         const originalWorkItemId = slice.work_item_id;
 
         // 1. Calculate all intervals (gaps + segments)

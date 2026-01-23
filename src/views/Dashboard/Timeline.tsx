@@ -1,5 +1,5 @@
 import { TimeSlice, JiraConnection, api } from "@/lib/api"
-import { startOfDay, setHours, endOfDay, format } from "date-fns"
+import { startOfDay, setHours, endOfDay, format, formatISO } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import {
@@ -175,8 +175,8 @@ export function Timeline({ date, slices, className, onSliceClick, connections, o
         // Validation: end must be after start
         if (newEndMs <= newStartMs) return;
 
-        const newStart = new Date(newStartMs).toISOString();
-        const newEnd = new Date(newEndMs).toISOString();
+        const newStart = formatISO(new Date(newStartMs));
+        const newEnd = formatISO(new Date(newEndMs));
 
         // Check for conflicts
         const conflictingSlice = slices.find(other => {
@@ -230,7 +230,7 @@ export function Timeline({ date, slices, className, onSliceClick, connections, o
                         jira_connection_id: target.jira_connection_id,
                         notes: target.notes,
                         start_time: newEnd,
-                        end_time: new Date(movedEndMs + remainingDurationMs).toISOString()
+                        end_time: formatISO(new Date(movedEndMs + remainingDurationMs))
                     });
                 }
             } else {
