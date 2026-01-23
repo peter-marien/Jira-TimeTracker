@@ -121,6 +121,30 @@ export function MonthView() {
         return data;
     }, [slices]);
 
+    // Fast lookup for slices: "workItemId-day" -> TimeSlice[]
+    const dailySliceMap = useMemo(() => {
+        const map = new Map<string, TimeSlice[]>();
+        slices.forEach(s => {
+            const start = new Date(s.start_time);
+            const d = getDate(start);
+            const key = `${s.work_item_id}-${d}`;
+
+            if (!map.has(key)) map.set(key, []);
+            map.get(key)!.push(s);
+        });
+
+        // Sort each entry once
+        map.forEach(list => {
+            list.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+        });
+
+        return map;
+    }, [slices]);
+
+    const getDaySlices = (itemId: number, day: number) => {
+        return dailySliceMap.get(`${itemId}-${day}`) || [];
+    };
+
     // Group work items by connection name
     const itemsByConnection = useMemo(() => {
         const grouped: Record<string, WorkItem[]> = {};
@@ -194,10 +218,7 @@ export function MonthView() {
         if (seconds <= 0) return;
 
         const d = getDate(day);
-        const daySlices = slices.filter(s =>
-            s.work_item_id === item.id &&
-            getDate(new Date(s.start_time)) === d
-        );
+        const daySlices = getDaySlices(item.id, d); // Use the optimize lookup here too
 
         const uniqueNotes = Array.from(new Set(
             daySlices
@@ -298,10 +319,21 @@ export function MonthView() {
                                                     const seconds = aggregation[item.id]?.[d] || 0;
                                                     itemTotal += seconds;
 
-                                                    const daySlices = seconds > 0 ? slices.filter(s =>
-                                                        s.work_item_id === item.id &&
-                                                        getDate(new Date(s.start_time)) === d
-                                                    ).sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()) : [];
+                                                    // OPTIMIZATION: Conditional rendering
+                                                    if (seconds <= 0) {
+                                                        return (
+                                                            <td
+                                                                key={day.toISOString()}
+                                                                className={cn(
+                                                                    "border-r border-b text-center p-0 h-8",
+                                                                    isWeekend(day) && "bg-muted/40"
+                                                                )}
+                                                            />
+                                                        );
+                                                    }
+
+                                                    // Use fast lookup
+                                                    const daySlices = getDaySlices(item.id, d);
 
                                                     return (
                                                         <Tooltip key={day.toISOString()}>
@@ -313,10 +345,10 @@ export function MonthView() {
                                                                             className={cn(
                                                                                 "border-r border-b text-center p-0 h-8",
                                                                                 isWeekend(day) && "bg-muted/40",
-                                                                                seconds > 0 && "cursor-pointer hover:bg-primary/20 hover:text-primary transition-colors font-medium"
+                                                                                "cursor-pointer hover:bg-primary/20 hover:text-primary transition-colors font-medium"
                                                                             )}
                                                                         >
-                                                                            {seconds > 0 && formatHours(seconds)}
+                                                                            {formatHours(seconds)}
                                                                         </td>
                                                                     </TooltipTrigger>
                                                                 </ContextMenuTrigger>
@@ -448,10 +480,20 @@ export function MonthView() {
                                                                 itemTotal += seconds;
                                                                 connectionTotal += seconds;
 
-                                                                const daySlices = seconds > 0 ? slices.filter(s =>
-                                                                    s.work_item_id === item.id &&
-                                                                    getDate(new Date(s.start_time)) === d
-                                                                ).sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()) : [];
+                                                                // OPTIMIZATION: Conditional rendering
+                                                                if (seconds <= 0) {
+                                                                    return (
+                                                                        <td
+                                                                            key={day.toISOString()}
+                                                                            className={cn(
+                                                                                "border-r border-b text-center p-0 h-8",
+                                                                                isWeekend(day) && "bg-muted/40"
+                                                                            )}
+                                                                        />
+                                                                    );
+                                                                }
+
+                                                                const daySlices = getDaySlices(item.id, d);
 
                                                                 return (
                                                                     <Tooltip key={day.toISOString()}>
@@ -463,10 +505,10 @@ export function MonthView() {
                                                                                         className={cn(
                                                                                             "border-r border-b text-center p-0 h-8",
                                                                                             isWeekend(day) && "bg-muted/40",
-                                                                                            seconds > 0 && "cursor-pointer hover:bg-primary/20 hover:text-primary transition-colors font-medium"
+                                                                                            "cursor-pointer hover:bg-primary/20 hover:text-primary transition-colors font-medium"
                                                                                         )}
                                                                                     >
-                                                                                        {seconds > 0 && formatHours(seconds)}
+                                                                                        {formatHours(seconds)}
                                                                                     </td>
                                                                                 </TooltipTrigger>
                                                                             </ContextMenuTrigger>
@@ -481,19 +523,17 @@ export function MonthView() {
                                                                                 </ContextMenuItem>
                                                                             </ContextMenuContent>
                                                                         </ContextMenu>
-                                                                        {seconds > 0 && (
-                                                                            <TimeSliceTooltipContent
-                                                                                dateLabel={format(day, "EEEE, MMM do")}
-                                                                                jiraKey={item.jira_key}
-                                                                                description={item.description}
-                                                                                items={daySlices.map(s => ({
-                                                                                    id: s.id,
-                                                                                    startTime: s.start_time,
-                                                                                    endTime: s.end_time,
-                                                                                    text: s.notes
-                                                                                }))}
-                                                                            />
-                                                                        )}
+                                                                        <TimeSliceTooltipContent
+                                                                            dateLabel={format(day, "EEEE, MMM do")}
+                                                                            jiraKey={item.jira_key}
+                                                                            description={item.description}
+                                                                            items={daySlices.map(s => ({
+                                                                                id: s.id,
+                                                                                startTime: s.start_time,
+                                                                                endTime: s.end_time,
+                                                                                text: s.notes
+                                                                            }))}
+                                                                        />
                                                                     </Tooltip>
                                                                 );
                                                             })}
