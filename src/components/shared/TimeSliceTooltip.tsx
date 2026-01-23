@@ -18,23 +18,23 @@ export function TimeSliceTooltipContent({ dateLabel, jiraKey, description, items
     if (items.length === 0) return null;
 
     return (
-        <TooltipContent side="top" className="max-w-[400px] p-0 overflow-hidden shadow-xl border-border">
+        <TooltipContent side="top" className="max-w-[400px] p-0 overflow-hidden shadow-md border-border text-xs rounded-md">
             <div className="flex flex-col text-left">
                 {/* Header */}
-                <div className="bg-muted px-4 py-2 border-b border-border">
+                <div className="bg-muted/50 px-3 py-2 border-b border-border font-medium">
                     <div className="flex flex-col">
-                        <span className="font-bold text-xs">{dateLabel}</span>
+                        <span className="font-semibold">{dateLabel}</span>
                         {(jiraKey || description) && (
                             <div className="flex gap-2 items-baseline mt-0.5">
-                                {jiraKey && <span className="text-[10px] font-mono font-bold text-primary">{jiraKey}</span>}
-                                {description && <span className="text-[10px] text-muted-foreground truncate">{description}</span>}
+                                {jiraKey && <span className="font-mono font-bold text-primary whitespace-nowrap shrink-0">{jiraKey}</span>}
+                                {description && <span className="text-muted-foreground truncate">{description}</span>}
                             </div>
                         )}
                     </div>
                 </div>
 
                 {/* Body */}
-                <div className="p-4 bg-popover space-y-1">
+                <div className="p-3 bg-popover space-y-1">
                     {items.map(item => {
                         const start = item.startTime ? new Date(item.startTime) : null;
                         const end = item.endTime ? new Date(item.endTime) : null;
@@ -46,7 +46,7 @@ export function TimeSliceTooltipContent({ dateLabel, jiraKey, description, items
                             : '';
 
                         return (
-                            <div key={item.id} className="text-[10px] leading-tight flex gap-3">
+                            <div key={item.id} className="leading-tight flex gap-3">
                                 {timeStr && (
                                     <span className="font-mono text-muted-foreground shrink-0 tabular-nums opacity-80">
                                         {timeStr}:

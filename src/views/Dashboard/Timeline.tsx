@@ -1,7 +1,8 @@
 import { TimeSlice, JiraConnection, api } from "@/lib/api"
 import { startOfDay, setHours, endOfDay, format, formatISO } from "date-fns"
 import { cn } from "@/lib/utils"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip"
+import { TimeSliceTooltipContent } from "@/components/shared/TimeSliceTooltip"
 import {
     DndContext,
     useDraggable,
@@ -413,19 +414,17 @@ function TimelineSlice({ slice, timelineStart, totalMs, interactive, connections
                     )}
                 </div>
             </TooltipTrigger>
-            <TooltipContent className="text-xs p-3">
-                <div className="space-y-1">
-                    <p className="font-bold flex items-center gap-2">
-                        {slice.jira_key && <span className="text-primary font-mono bg-primary/10 px-1 rounded">{slice.jira_key}</span>}
-                        {slice.work_item_description}
-                    </p>
-                    <p className="text-muted-foreground">
-                        {format(new Date(startRaw), "HH:mm")} - {slice.end_time ? format(new Date(endRaw), "HH:mm") : 'Active Now'}
-                    </p>
-                    {slice.notes && <p className="italic border-t pt-1 mt-1">{slice.notes}</p>}
-                    {hasOverlap && <p className="text-red-500 font-bold border-t pt-1 mt-1">⚠️ Overlapping Time Segment</p>}
-                </div>
-            </TooltipContent>
+            <TimeSliceTooltipContent
+                dateLabel={format(new Date(startRaw), "MMM d, yyyy")}
+                jiraKey={slice.jira_key}
+                description={slice.work_item_description}
+                items={[{
+                    id: slice.id,
+                    startTime: formatISO(new Date(startRaw)),
+                    endTime: slice.end_time ? formatISO(new Date(endRaw)) : null,
+                    text: slice.notes
+                }]}
+            />
         </Tooltip>
     );
 }

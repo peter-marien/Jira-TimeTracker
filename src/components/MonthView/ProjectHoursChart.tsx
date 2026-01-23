@@ -4,6 +4,7 @@ import { useMemo } from "react"
 import { differenceInSeconds } from "date-fns"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from "recharts"
 import { TimeSlice, JiraConnection } from "@/lib/api"
+import { ChartTooltipFrame } from "@/components/shared/ChartTooltipFrame"
 
 interface ProjectHoursChartProps {
     slices: TimeSlice[]
@@ -126,30 +127,34 @@ export function ProjectHoursChart({ slices, connections, manualColor }: ProjectH
             const workItems = dataPoint.workItems as { description: string, hours: number, jiraKey?: string }[]
 
             return (
-                <div className="bg-popover border text-popover-foreground shadow-md rounded-md p-3 text-xs max-w-[400px] z-50">
-                    <div className="flex justify-between items-center mb-1">
-                        <p className="font-bold text-sm">{dataPoint.fullName}</p>
-                        <p className="font-bold text-sm">
-                            {dataPoint.hours}h <span className="text-muted-foreground font-normal text-xs">total</span>
-                        </p>
-                    </div>
+                <ChartTooltipFrame
+                    header={
+                        <div className="flex justify-between items-center gap-4 text-xs">
+                            <div className="flex items-center gap-2">
+                                <div
+                                    className="w-2 h-2 rounded-full shrink-0"
+                                    style={{ backgroundColor: dataPoint.color }}
+                                />
+                                <span className="font-semibold">{dataPoint.fullName}</span>
+                                <span className="text-[10px] text-muted-foreground font-normal">({dataPoint.connection})</span>
+                            </div>
+                            <span className="font-bold whitespace-nowrap">
+                                {dataPoint.hours}h <span className="text-muted-foreground font-normal text-[10px] ml-1">total</span>
+                            </span>
+                        </div>
+                    }
+                >
+                    <div className="space-y-1.5 mt-1">
+                        <div className="mb-2">
+                            <p className="font-semibold text-muted-foreground uppercase text-[10px] tracking-wider">Top Work Items</p>
+                        </div>
 
-                    <div className="flex items-center gap-2 mb-2">
-                        <div
-                            className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: dataPoint.color }}
-                        />
-                        <span className="text-muted-foreground">{dataPoint.connection}</span>
-                    </div>
-
-                    <div className="border-t pt-2 mt-2 space-y-1">
-                        <p className="font-semibold text-muted-foreground mb-1 uppercase text-[10px] tracking-wider">Top Work Items</p>
                         {workItems.map((item, idx) => (
-                            <div key={idx} className="flex justify-between gap-4 py-0.5 items-start">
+                            <div key={idx} className="flex justify-between gap-3 py-0.5 items-start text-[11px]">
                                 <div className="flex-1 min-w-0">
-                                    <div className="flex items-baseline gap-2">
+                                    <div className="flex items-baseline gap-1.5">
                                         {item.jiraKey && (
-                                            <span className="font-mono text-[10px] bg-muted px-1 rounded shrink-0">{item.jiraKey}</span>
+                                            <span className="font-mono text-[10px] font-medium shrink-0" style={{ color: dataPoint.color }}>{item.jiraKey}</span>
                                         )}
                                         <span className="truncate" title={item.description}>{item.description}</span>
                                     </div>
@@ -158,7 +163,7 @@ export function ProjectHoursChart({ slices, connections, manualColor }: ProjectH
                             </div>
                         ))}
                     </div>
-                </div>
+                </ChartTooltipFrame>
             )
         }
         return null

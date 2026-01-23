@@ -8,8 +8,9 @@ import {
     ChartConfig,
     ChartContainer,
     ChartTooltip,
-    ChartTooltipContent,
+    // ChartTooltipContent, // Replaced by our custom frame
 } from "@/components/ui/chart"
+import { ChartTooltipFrame } from "@/components/shared/ChartTooltipFrame"
 
 interface MonthlyHoursChartProps {
     slices: TimeSlice[]
@@ -207,22 +208,30 @@ export function MonthlyHoursChart({ slices, connections, daysInMonth }: MonthlyH
                                     width={40}
                                 />
                                 <ChartTooltip
-                                    content={
-                                        <ChartTooltipContent
-                                            labelFormatter={(value: string | number, payload: Array<{ payload?: { date?: string } }>) => {
-                                                if (payload?.[0]?.payload?.date) {
-                                                    return payload[0].payload.date
-                                                }
-                                                return `Day ${value}`
-                                            }}
-                                            formatter={(value: number) => (
-                                                <div className="flex justify-between gap-4">
-                                                    <span className="text-muted-foreground">{section.label}</span>
-                                                    <span className="font-mono font-medium">{value}h</span>
-                                                </div>
-                                            )}
-                                        />
-                                    }
+                                    content={({ active, payload, label }) => {
+                                        if (active && payload && payload.length) {
+                                            const dataPoint = payload[0].payload
+                                            const labelStr = dataPoint.date || label
+
+                                            return (
+                                                <ChartTooltipFrame
+                                                    header={<span className="font-semibold">{labelStr}</span>}
+                                                >
+                                                    <div className="flex justify-between gap-4 items-center">
+                                                        <div className="flex items-center gap-2">
+                                                            <div
+                                                                className="w-2 h-2 rounded-full"
+                                                                style={{ backgroundColor: section.color }}
+                                                            />
+                                                            <span className="text-muted-foreground">{section.label}</span>
+                                                        </div>
+                                                        <span className="font-mono font-medium">{payload[0].value}h</span>
+                                                    </div>
+                                                </ChartTooltipFrame>
+                                            )
+                                        }
+                                        return null
+                                    }}
                                 />
                                 <Line
                                     type="linear"
