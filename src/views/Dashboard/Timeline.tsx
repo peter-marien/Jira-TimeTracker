@@ -28,6 +28,8 @@ interface TimelineProps {
 interface InteractiveState {
     id: number;
     type: 'drag' | 'resize-start' | 'resize-end';
+    originalStartMs: number;
+    originalEndMs: number;
     startOffsetMs: number;
     endOffsetMs: number;
 }
@@ -106,6 +108,8 @@ export function Timeline({ date, slices, className, onSliceClick, connections, o
         setInteractiveState({
             id: Number(active.id),
             type,
+            originalStartMs: new Date(slice.start_time).getTime(),
+            originalEndMs: new Date(slice.end_time).getTime(),
             startOffsetMs: 0,
             endOffsetMs: 0
         });
@@ -117,17 +121,40 @@ export function Timeline({ date, slices, className, onSliceClick, connections, o
         const rect = timelineRef.current.getBoundingClientRect();
         const deltaMs = (event.delta.x / rect.width) * totalMs;
 
-        let snappedDelta = deltaMs;
-        if (roundingEnabled) {
-            const intervalMs = roundingInterval * 60 * 1000;
-            snappedDelta = Math.round(deltaMs / intervalMs) * intervalMs;
+        if (!roundingEnabled) {
+            setInteractiveState(prev => prev ? {
+                ...prev,
+                startOffsetMs: prev.type === 'resize-end' ? 0 : deltaMs,
+                endOffsetMs: prev.type === 'resize-start' ? 0 : deltaMs
+            } : null);
+            return;
         }
 
-        setInteractiveState(prev => prev ? {
-            ...prev,
-            startOffsetMs: prev.type === 'resize-end' ? 0 : snappedDelta,
-            endOffsetMs: prev.type === 'resize-start' ? 0 : snappedDelta
-        } : null);
+        const intervalMs = roundingInterval * 60 * 1000;
+
+        setInteractiveState(prev => {
+            if (!prev) return null;
+
+            let startOffset = 0;
+            let endOffset = 0;
+
+            if (prev.type === 'resize-start') {
+                const newStart = Math.round((prev.originalStartMs + deltaMs) / intervalMs) * intervalMs;
+                startOffset = newStart - prev.originalStartMs;
+                endOffset = 0;
+            } else if (prev.type === 'resize-end') {
+                const newEnd = Math.round((prev.originalEndMs + deltaMs) / intervalMs) * intervalMs;
+                startOffset = 0;
+                endOffset = newEnd - prev.originalEndMs;
+            } else {
+                // Dragging the whole block
+                const newStart = Math.round((prev.originalStartMs + deltaMs) / intervalMs) * intervalMs;
+                startOffset = newStart - prev.originalStartMs;
+                endOffset = startOffset; // Mantain duration
+            }
+
+            return { ...prev, startOffsetMs: startOffset, endOffsetMs: endOffset };
+        });
     };
 
     const handleDragEnd = async () => {
