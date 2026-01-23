@@ -1,4 +1,5 @@
 import { ipcMain, dialog, BrowserWindow, app, shell } from 'electron'
+import Database from 'better-sqlite3'
 import { formatISO } from 'date-fns'
 import path from 'node:path'
 import fs from 'node:fs'
@@ -1059,10 +1060,10 @@ function parseCSV(content: string): string[][] {
     return rows;
 }
 
-function runMigrations(db: any) {
+function runMigrations(db: Database.Database) {
     console.log('[Migration] Checking for date format standardization...');
     try {
-        const slices = db.prepare('SELECT id, start_time, end_time FROM time_slices').all();
+        const slices = db.prepare('SELECT id, start_time, end_time FROM time_slices').all() as { id: number, start_time: string, end_time: string | null }[];
         const updateStmt = db.prepare('UPDATE time_slices SET start_time = ?, end_time = ? WHERE id = ?');
 
         let updateCount = 0;
