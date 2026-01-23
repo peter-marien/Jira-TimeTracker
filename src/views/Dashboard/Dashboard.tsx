@@ -228,6 +228,7 @@ export function Dashboard() {
                     onSliceClick={handleEdit}
                     connections={jiraConnections}
                     otherColor={otherColor}
+                    onSlicesUpdated={refresh}
                 />
 
                 <div className="space-y-4">

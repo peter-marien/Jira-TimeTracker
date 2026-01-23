@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { formatDuration } from "@/lib/time-utils"
 import {
     Dialog,
     DialogContent,
@@ -131,15 +132,6 @@ export function AwayTimeDialog({
         setJiraResults([]);
         setSelectedJiraIssue(null);
         setJiraError(null);
-    };
-
-    const formatDuration = (seconds: number) => {
-        const hours = Math.floor(seconds / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        if (hours > 0) {
-            return `${hours}h ${minutes}m`;
-        }
-        return `${minutes} minutes`;
     };
 
     return (

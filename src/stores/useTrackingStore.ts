@@ -1,24 +1,7 @@
 import { create } from 'zustand'
 import { WorkItem, api } from '@/lib/api'
 import { formatISO } from 'date-fns'
-
-/**
- * Rounds a date to the nearest interval.
- * If intervalMinutes is 0 or 1, just clears the seconds.
- */
-function roundToNearestInterval(date: Date, intervalMinutes: number): Date {
-    const result = new Date(date);
-    result.setSeconds(0, 0); // Always clear seconds and milliseconds
-
-    if (intervalMinutes <= 1) {
-        return result;
-    }
-
-    const intervalMs = intervalMinutes * 60 * 1000;
-    const timestamp = result.getTime();
-    const roundedMs = Math.round(timestamp / intervalMs) * intervalMs;
-    return new Date(roundedMs);
-}
+import { roundToNearestInterval } from '@/lib/time-utils'
 
 interface TrackingStore {
     activeWorkItem: WorkItem | null;
