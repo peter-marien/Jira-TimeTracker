@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MonthCellDialog } from "@/components/MonthView/MonthCellDialog"
 import { MonthlyHoursChart } from "@/components/MonthView/MonthlyHoursChart"
+import { ProjectHoursChart } from "@/components/MonthView/ProjectHoursChart"
 import { Tooltip, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { TimeSliceTooltipContent } from "@/components/shared/TimeSliceTooltip"
 import {
@@ -35,6 +36,7 @@ export function MonthView() {
     const [slices, setSlices] = useState<TimeSlice[]>([]);
     const [connections, setConnections] = useState<JiraConnection[]>([]);
     const [loading, setLoading] = useState(true);
+    const [manualColor, setManualColor] = useState("#64748b");
 
     // Dialog state
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -70,6 +72,11 @@ export function MonthView() {
 
     useEffect(() => {
         api.getJiraConnections().then(setConnections);
+        api.getSettings().then(settings => {
+            if (settings.other_color) {
+                setManualColor(settings.other_color);
+            }
+        });
     }, []);
 
     // Derive work items from slices
@@ -254,7 +261,8 @@ export function MonthView() {
                     <TabsList className="w-fit mb-2">
                         <TabsTrigger value="all">All</TabsTrigger>
                         <TabsTrigger value="by-connection">By Connection</TabsTrigger>
-                        <TabsTrigger value="chart">Chart</TabsTrigger>
+                        <TabsTrigger value="chart">Daily Chart</TabsTrigger>
+                        <TabsTrigger value="project-hours">Project Hours</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="all" className="flex-1 min-h-0 mt-0">
@@ -547,6 +555,14 @@ export function MonthView() {
                             slices={slices}
                             connections={connections}
                             daysInMonth={daysInMonth}
+                        />
+                    </TabsContent>
+
+                    <TabsContent value="project-hours" className="flex-1 min-h-0 mt-0 overflow-auto">
+                        <ProjectHoursChart
+                            slices={slices}
+                            connections={connections}
+                            manualColor={manualColor}
                         />
                     </TabsContent>
                 </Tabs>
