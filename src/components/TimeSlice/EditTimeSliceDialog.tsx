@@ -137,6 +137,7 @@ export function EditTimeSliceDialog({ slice, open, onOpenChange, onSave }: EditT
                             }}
                             disabled={!slice?.end_time}
                             placeholder="No end time (active)"
+                            defaultMonth={startDateTime}
                         />
                     </div>
                     <div className="grid gap-2">

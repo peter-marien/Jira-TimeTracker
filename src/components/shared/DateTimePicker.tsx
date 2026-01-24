@@ -22,8 +22,9 @@ export function DateTimePicker({
     value,
     onChange,
     disabled,
-    placeholder = "Pick a date and time"
-}: DateTimePickerProps) {
+    placeholder = "Pick a date and time",
+    defaultMonth
+}: DateTimePickerProps & { defaultMonth?: Date }) {
     const [date, setDate] = React.useState<Date | undefined>(value)
     const [timeValue, setTimeValue] = React.useState<string>(
         value ? format(value, "HH:mm:ss") : "00:00:00"
@@ -102,6 +103,7 @@ export function DateTimePicker({
                     selected={date}
                     onSelect={handleDateSelect}
                     initialFocus
+                    defaultMonth={date || defaultMonth}
                 />
                 <div className="p-3 border-t border-border">
                     <div className="flex items-center gap-2">

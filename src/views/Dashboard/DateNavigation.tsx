@@ -42,6 +42,7 @@ export function DateNavigation({ className }: { className?: string }) {
                             selected={selectedDate}
                             onSelect={handleDateSelect}
                             initialFocus
+                            defaultMonth={selectedDate}
                         />
                     </PopoverContent>
                 </Popover>

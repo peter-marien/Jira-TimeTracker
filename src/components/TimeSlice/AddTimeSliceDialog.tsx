@@ -88,6 +88,7 @@ export function AddTimeSliceDialog({ open, onOpenChange, onSave, selectedDate }:
                             value={endDateTime}
                             onChange={setEndDateTime}
                             placeholder="Leave empty for active slice"
+                            defaultMonth={startDateTime}
                         />
                     </div>
                     <div className="grid gap-2">
