@@ -259,6 +259,12 @@ export function Dashboard() {
                             onMerge={() => setMergeOpen(true)}
                             connections={jiraConnections}
                             otherColor={otherColor}
+                            onStop={async (slice) => {
+                                if (!slice.end_time) {
+                                    await useTrackingStore.getState().stopTracking();
+                                    refresh();
+                                }
+                            }}
                         />
                     )}
                 </div>
