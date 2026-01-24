@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useDateStore } from "@/stores/useDateStore"
 import { api, TimeSlice } from "@/lib/api"
 import { startOfYear, endOfYear, formatISO } from "date-fns"
 import { YearlyOverviewChart } from "@/components/Reports/YearlyOverviewChart"
@@ -6,7 +7,9 @@ import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight, FileBarChart } from "lucide-react"
 
 export function ReportsView() {
-    const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+    const currentYear = useDateStore(state => state.reportYear);
+    const setCurrentYear = useDateStore(state => state.setReportYear);
+
     const [slices, setSlices] = useState<TimeSlice[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -34,8 +37,8 @@ export function ReportsView() {
         fetchData();
     }, [currentYear]);
 
-    const nextYear = () => setCurrentYear(prev => prev + 1);
-    const prevYear = () => setCurrentYear(prev => prev - 1);
+    const nextYear = () => setCurrentYear(currentYear + 1);
+    const prevYear = () => setCurrentYear(currentYear - 1);
 
     return (
         <div className="flex flex-col h-full bg-background overflow-hidden p-6 space-y-6">
@@ -50,6 +53,13 @@ export function ReportsView() {
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentYear(new Date().getFullYear())}
+                    >
+                        Today
+                    </Button>
                     <div className="flex items-center gap-2">
                         <Button variant="outline" size="icon" onClick={prevYear}>
                             <ChevronLeft className="h-4 w-4" />

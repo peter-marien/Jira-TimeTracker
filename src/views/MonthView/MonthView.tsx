@@ -32,7 +32,10 @@ import {
 import { ExternalLink, Info } from "lucide-react"
 
 export function MonthView() {
-    const [currentMonth, setCurrentMonth] = useState(new Date());
+    // Persistent state
+    const currentMonth = useDateStore(state => state.viewDate);
+    const setCurrentMonth = useDateStore(state => state.setViewDate);
+
     const [slices, setSlices] = useState<TimeSlice[]>([]);
     const [connections, setConnections] = useState<JiraConnection[]>([]);
     const [loading, setLoading] = useState(true);
@@ -263,7 +266,15 @@ export function MonthView() {
                             </div>
                         </div>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentMonth(new Date())}
+                            className="mr-2"
+                        >
+                            Today
+                        </Button>
                         <div className="flex items-center gap-2">
                             <Button variant="outline" size="icon" onClick={prevMonth}>
                                 <ChevronLeft className="h-4 w-4" />
