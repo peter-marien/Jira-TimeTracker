@@ -151,7 +151,7 @@ export function YearlyOverviewChart({ year, slices }: YearlyOverviewChartProps) 
                                             header={<span className="font-semibold">{label} {year}</span>}
                                         >
                                             <div className="flex flex-col gap-2">
-                                                {payload.map((entry: any) => (
+                                                {payload.map((entry: { name: string; value: number; color: string }) => (
                                                     <div key={entry.name} className="flex justify-between gap-8 items-center">
                                                         <div className="flex items-center gap-2">
                                                             <div
@@ -166,8 +166,8 @@ export function YearlyOverviewChart({ year, slices }: YearlyOverviewChartProps) 
 
                                                 {/* Calculate Overtime (Actual - Expected) */}
                                                 {(() => {
-                                                    const actual = payload.find((p: any) => p.dataKey === "actualHours")?.value || 0;
-                                                    const expected = payload.find((p: any) => p.dataKey === "expectedHours")?.value || 0;
+                                                    const actual = payload.find((p: { dataKey: string; value: number }) => p.dataKey === "actualHours")?.value || 0;
+                                                    const expected = payload.find((p: { dataKey: string; value: number }) => p.dataKey === "expectedHours")?.value || 0;
                                                     const overtime = Math.round((actual - expected) * 10) / 10;
                                                     const isPositive = overtime > 0;
 
@@ -216,6 +216,7 @@ export function YearlyOverviewChart({ year, slices }: YearlyOverviewChartProps) 
                                 position="top"
                                 offset={10}
                                 className="fill-foreground text-[10px] font-bold"
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 formatter={(val: any) => {
                                     const num = Number(val);
                                     return num > 0 ? num : "";
