@@ -4,6 +4,7 @@ import { Dashboard } from "@/views/Dashboard/Dashboard"
 import { WorkItemsView } from "@/views/WorkItems/WorkItemsView"
 import { SettingsView } from "@/views/Settings/SettingsView"
 import { MonthView } from "@/views/MonthView/MonthView"
+import { ReportsView } from "@/views/Reports/ReportsView"
 import { SearchView } from "@/views/Search/SearchView"
 import { AwayDialogPage } from "@/views/Away/AwayDialogPage"
 
@@ -113,6 +114,7 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/work-items" element={<WorkItemsView />} />
             <Route path="/month" element={<MonthView />} />
+            <Route path="/reports" element={<ReportsView />} />
             <Route path="/search" element={<SearchView />} />
             <Route path="/settings" element={<SettingsView />} />
           </Route>
