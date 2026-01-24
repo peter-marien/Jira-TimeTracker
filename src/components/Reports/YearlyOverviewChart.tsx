@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
+import { cn } from "@/lib/utils"
 import { format, differenceInSeconds, startOfMonth, endOfMonth, eachDayOfInterval, isWeekend, getMonth } from "date-fns"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, LabelList, Legend } from "recharts"
 import { TimeSlice } from "@/lib/api"
@@ -75,6 +76,7 @@ export function YearlyOverviewChart({ year, slices }: YearlyOverviewChartProps) 
 
     const totalActual = useMemo(() => chartData.reduce((acc, curr) => acc + curr.actualHours, 0), [chartData]);
     const totalExpected = useMemo(() => chartData.reduce((acc, curr) => acc + curr.expectedHours, 0), [chartData]);
+    const totalOvertime = Math.round((totalActual - totalExpected) * 10) / 10;
     const completionPercentage = totalExpected > 0 ? Math.round((totalActual / totalExpected) * 100) : 0;
 
     const chartConfig: ChartConfig = {
@@ -110,6 +112,12 @@ export function YearlyOverviewChart({ year, slices }: YearlyOverviewChartProps) 
                 <div className="flex flex-col border-l pl-6">
                     <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Completion</span>
                     <span className="text-2xl font-bold">{completionPercentage}%</span>
+                </div>
+                <div className="flex flex-col border-l pl-6">
+                    <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Overtime</span>
+                    <span className={cn("text-2xl font-bold", totalOvertime > 0 ? "text-emerald-500" : "text-red-400")}>
+                        {totalOvertime > 0 ? "+" : ""}{totalOvertime}h
+                    </span>
                 </div>
             </div>
 
@@ -155,6 +163,29 @@ export function YearlyOverviewChart({ year, slices }: YearlyOverviewChartProps) 
                                                         <span className="font-mono font-medium">{entry.value}h</span>
                                                     </div>
                                                 ))}
+
+                                                {/* Calculate Overtime (Actual - Expected) */}
+                                                {(() => {
+                                                    const actual = payload.find((p: any) => p.dataKey === "actualHours")?.value || 0;
+                                                    const expected = payload.find((p: any) => p.dataKey === "expectedHours")?.value || 0;
+                                                    const overtime = Math.round((actual - expected) * 10) / 10;
+                                                    const isPositive = overtime > 0;
+
+                                                    // Only show if there's data
+                                                    if (actual === 0 && expected === 0) return null;
+
+                                                    return (
+                                                        <>
+                                                            <div className="h-px bg-border my-1" />
+                                                            <div className="flex justify-between gap-8 items-center">
+                                                                <span className="text-muted-foreground font-medium">Overtime</span>
+                                                                <span className={`font-mono font-bold ${isPositive ? "text-emerald-500" : "text-red-400"}`}>
+                                                                    {isPositive ? "+" : ""}{overtime}h
+                                                                </span>
+                                                            </div>
+                                                        </>
+                                                    );
+                                                })()}
                                             </div>
                                         </ChartTooltipFrame>
                                     )
