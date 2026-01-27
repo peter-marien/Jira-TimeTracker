@@ -54,6 +54,7 @@ export function SettingsView() {
     const [checkingUpdate, setCheckingUpdate] = React.useState(false);
     const [updateStatus, setUpdateStatus] = React.useState<{ type: 'current' | 'available' | 'error', message: string } | null>(null);
     const [miniPlayerTheme, setMiniPlayerTheme] = React.useState("inverted");
+    const [dailyTargetHours, setDailyTargetHours] = React.useState(8);
 
     React.useEffect(() => {
         api.getDatabasePath().then(setDbPath).catch(() => setDbPath("Error fetching path"));
@@ -81,6 +82,9 @@ export function SettingsView() {
             setUpdateInterval(uInterval);
             // Load other color
             setOtherColor(settings.other_color || "#64748b");
+            // Load daily target hours
+            const target = settings.daily_target_hours ? parseFloat(settings.daily_target_hours) : 8;
+            setDailyTargetHours(target);
         });
     }, []);
 
@@ -279,6 +283,31 @@ export function SettingsView() {
                                 </div>
                                 <p className="text-xs text-muted-foreground">
                                     This color will be used for time slices not linked to any Jira connection.
+                                </p>
+                            </div>
+
+                            <div className="grid gap-2 pt-4 border-t">
+                                <Label htmlFor="daily-target" className="flex items-center gap-2">
+                                    <Clock className="h-4 w-4" /> Daily Target Hours
+                                </Label>
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        id="daily-target"
+                                        type="number"
+                                        step="0.5"
+                                        min="0"
+                                        max="24"
+                                        value={dailyTargetHours}
+                                        onChange={(e) => setDailyTargetHours(parseFloat(e.target.value) || 8)}
+                                        onBlur={async () => {
+                                            await api.saveSetting('daily_target_hours', String(dailyTargetHours));
+                                        }}
+                                        className="w-24"
+                                    />
+                                    <span className="text-sm text-muted-foreground">hours</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    The target hours for a single workday (Monday-Friday).
                                 </p>
                             </div>
                         </CardContent>

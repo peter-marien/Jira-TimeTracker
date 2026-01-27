@@ -63,6 +63,7 @@ export function Dashboard() {
     const [mergeOpen, setMergeOpen] = useState(false);
     const [jiraConnections, setJiraConnections] = useState<JiraConnection[]>([]);
     const [otherColor, setOtherColor] = useState("#64748b");
+    const [dailyTargetHours, setDailyTargetHours] = useState(8);
 
     // Refresh list when tracking starts/stops
     // AND detection of when timing stops to prompt for notes
@@ -82,6 +83,9 @@ export function Dashboard() {
         api.getJiraConnections().then(setJiraConnections);
         api.getSettings().then(settings => {
             setOtherColor(settings.other_color || "#64748b");
+            if (settings.daily_target_hours) {
+                setDailyTargetHours(parseFloat(settings.daily_target_hours));
+            }
         });
     }, [activeTimeSliceId, refresh]);
 
@@ -220,6 +224,7 @@ export function Dashboard() {
                 <QuickStartBar
                     totalMinutes={dashboardData.totalMinutes}
                     connectionData={dashboardData.connectionData}
+                    targetMinutes={dailyTargetHours * 60}
                 />
 
                 <Timeline

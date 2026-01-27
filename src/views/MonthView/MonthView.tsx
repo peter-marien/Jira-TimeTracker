@@ -40,6 +40,7 @@ export function MonthView() {
     const [connections, setConnections] = useState<JiraConnection[]>([]);
     const [loading, setLoading] = useState(true);
     const [manualColor, setManualColor] = useState("#64748b");
+    const [dailyTargetHours, setDailyTargetHours] = useState(8);
 
     // Dialog state
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -78,6 +79,9 @@ export function MonthView() {
         api.getSettings().then(settings => {
             if (settings.other_color) {
                 setManualColor(settings.other_color);
+            }
+            if (settings.daily_target_hours) {
+                setDailyTargetHours(parseFloat(settings.daily_target_hours));
             }
         });
     }, []);
@@ -202,16 +206,58 @@ export function MonthView() {
             }
         }
 
-        const overtime = totalHours - (workingDays * 8);
+        const overtime = totalHours - (workingDays * dailyTargetHours);
+
+        // Calculate overtime to date
+        let overtimeUntilYesterday = 0;
+        let overtimeUntilToday = 0;
+
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        // Metrics are only relevant for the visible month
+        const isCurrentMonth = currentMonth.getMonth() === now.getMonth() && currentMonth.getFullYear() === now.getFullYear();
+
+        if (isCurrentMonth) {
+            const workdaysUntilYesterday = daysInMonth.filter(d =>
+                !isWeekend(d) && d <= yesterday
+            ).length;
+            const workdaysUntilToday = daysInMonth.filter(d =>
+                !isWeekend(d) && d <= today
+            ).length;
+
+            const secondsUntilYesterday = slices.reduce((acc, s) => {
+                const start = new Date(s.start_time);
+                if (start < today) {
+                    const originalEnd = s.end_time ? new Date(s.end_time) : now;
+                    // Clip the end time at the start of today
+                    const end = originalEnd > today ? today : originalEnd;
+
+                    const diff = differenceInSeconds(end, start);
+                    return acc + (diff > 0 ? diff : 0);
+                }
+                return acc;
+            }, 0);
+
+            // "Until today" includes today's time
+            const secondsUntilToday = totalSeconds;
+
+            overtimeUntilYesterday = (secondsUntilYesterday / 3600) - (workdaysUntilYesterday * dailyTargetHours);
+            overtimeUntilToday = (secondsUntilToday / 3600) - (workdaysUntilToday * dailyTargetHours);
+        }
 
         return {
             workingDays,
             totalHours,
             avgHours,
             overtime,
+            overtimeUntilYesterday,
+            overtimeUntilToday,
             workdaysUntilLastLog
         };
-    }, [daysInMonth, slices]);
+    }, [daysInMonth, slices, dailyTargetHours, currentMonth]);
 
     const formatDecimal = (val: number) => {
         return parseFloat(val.toFixed(2)).toString().replace(".", ",");
@@ -258,8 +304,24 @@ export function MonthView() {
                                 <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Average hours/workday</span>
                                 <span className="text-lg font-semibold">{formatDecimal(stats.avgHours)}h</span>
                             </div>
+                            {stats.overtimeUntilYesterday !== 0 && (
+                                <div className="flex flex-col border-l pl-6">
+                                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Overtime until yesterday</span>
+                                    <span className={cn("text-lg font-semibold", stats.overtimeUntilYesterday > 0 ? "text-emerald-500" : "text-muted-foreground")}>
+                                        {stats.overtimeUntilYesterday > 0 ? "+" : ""}{formatDecimal(stats.overtimeUntilYesterday)}h
+                                    </span>
+                                </div>
+                            )}
+                            {stats.overtimeUntilToday !== 0 && (
+                                <div className="flex flex-col border-l pl-6">
+                                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Overtime until today</span>
+                                    <span className={cn("text-lg font-semibold", stats.overtimeUntilToday > 0 ? "text-emerald-500" : "text-muted-foreground")}>
+                                        {stats.overtimeUntilToday > 0 ? "+" : ""}{formatDecimal(stats.overtimeUntilToday)}h
+                                    </span>
+                                </div>
+                            )}
                             <div className="flex flex-col border-l pl-6">
-                                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Overtime</span>
+                                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Overtime Month</span>
                                 <span className={cn("text-lg font-semibold", stats.overtime > 0 ? "text-emerald-500" : "text-muted-foreground")}>
                                     {stats.overtime > 0 ? "+" : ""}{formatDecimal(stats.overtime)}h
                                 </span>

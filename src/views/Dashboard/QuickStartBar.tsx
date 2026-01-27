@@ -13,9 +13,10 @@ import { JiraConnectionChart, ConnectionData } from "@/components/Dashboard/Jira
 interface QuickStartBarProps {
     totalMinutes?: number;
     connectionData?: ConnectionData[];
+    targetMinutes?: number;
 }
 
-export function QuickStartBar({ totalMinutes = 0, connectionData = [] }: QuickStartBarProps) {
+export function QuickStartBar({ totalMinutes = 0, connectionData = [], targetMinutes = 480 }: QuickStartBarProps) {
     const { startTracking, activeTimeSliceId } = useTrackingStore();
     const [importOpen, setImportOpen] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
@@ -51,7 +52,7 @@ export function QuickStartBar({ totalMinutes = 0, connectionData = [] }: QuickSt
             <div className="hidden lg:flex flex-col items-center justify-start min-w-[300px] gap-2">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground/70 w-full text-center">Total hours</h3>
                 <div className="py-1">
-                    <DailyProgressRing totalMinutes={totalMinutes} size={88} />
+                    <DailyProgressRing totalMinutes={totalMinutes} targetMinutes={targetMinutes} size={88} />
                 </div>
             </div>
 
