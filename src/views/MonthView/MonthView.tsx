@@ -251,6 +251,7 @@ export function MonthView() {
         return {
             workingDays,
             totalHours,
+            targetHours: workingDays * dailyTargetHours,
             avgHours,
             overtime,
             overtimeUntilYesterday,
@@ -299,6 +300,14 @@ export function MonthView() {
                             <div className="flex flex-col">
                                 <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Total working days</span>
                                 <span className="text-lg font-semibold">{stats.workingDays}</span>
+                            </div>
+                            <div className="flex flex-col border-l pl-6">
+                                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Target hours</span>
+                                <span className="text-lg font-semibold">{formatDecimal(stats.targetHours)}h</span>
+                            </div>
+                            <div className="flex flex-col border-l pl-6">
+                                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Actual hours</span>
+                                <span className="text-lg font-semibold">{formatDecimal(stats.totalHours)}h</span>
                             </div>
                             <div className="flex flex-col border-l pl-6">
                                 <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Average hours/workday</span>
