@@ -39,6 +39,7 @@ export function WorkItemSearchBar({ onSelect, className, placeholder = "Search w
     const [query, setQuery] = useState("")
     const [localItems, setLocalItems] = useState<WorkItem[]>([])
     const [jiraItems, setJiraItems] = useState<JiraSearchResult[]>([])
+    const [jiraErrors, setJiraErrors] = useState<{ connectionId: number; connectionName: string; error: string }[]>([])
     const [localLoading, setLocalLoading] = useState(false)
     const [jiraLoading, setJiraLoading] = useState(false)
     const [connections, setConnections] = useState<JiraConnection[]>([]);
@@ -75,19 +76,20 @@ export function WorkItemSearchBar({ onSelect, className, placeholder = "Search w
     useEffect(() => {
         if (!query.trim()) {
             setJiraItems([]);
+            setJiraErrors([]);
             return;
         }
 
         const timer = setTimeout(() => {
             setJiraLoading(true);
+            setJiraErrors([]);
             api.searchJiraIssuesAllConnections(query).then(res => {
                 setJiraItems(res.results || []);
-                if (res.errors && res.errors.length > 0) {
-                    console.error("Jira search errors:", res.errors);
-                }
+                setJiraErrors(res.errors || []);
             }).catch(err => {
                 console.error("Jira search failed:", err);
                 setJiraItems([]);
+                setJiraErrors([{ connectionId: 0, connectionName: 'Search', error: err.message || 'Unknown error' }]);
             }).finally(() => setJiraLoading(false));
         }, 500);
         return () => clearTimeout(timer);
@@ -148,6 +150,19 @@ export function WorkItemSearchBar({ onSelect, className, placeholder = "Search w
                 <Command shouldFilter={false} className="h-auto">
                     <CommandInput placeholder="Search work items (key or description)..." value={query} onValueChange={setQuery} />
                     <CommandList onWheel={(e) => e.stopPropagation()}>
+                        {jiraErrors.length > 0 && (
+                            <CommandGroup heading="Connection Errors">
+                                {jiraErrors.map((err) => (
+                                    <div
+                                        key={`err-${err.connectionId}`}
+                                        className="px-2 py-1.5 text-xs bg-destructive/10 text-destructive border-l-2 border-destructive mb-1 mx-1"
+                                    >
+                                        <div className="font-semibold">{err.connectionName}</div>
+                                        <div className="opacity-80">{err.error}</div>
+                                    </div>
+                                ))}
+                            </CommandGroup>
+                        )}
                         <CommandEmpty>
                             {isLoading ? (
                                 <span className="flex items-center gap-2">

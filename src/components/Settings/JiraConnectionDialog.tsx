@@ -174,7 +174,7 @@ export function JiraConnectionDialog({ connection, open, onOpenChange, onSave }:
     }
 
     const handleAuthorize = async () => {
-        if (!clientId || !clientSecret) {
+        if (!clientId || (!clientSecret && !connection?.id)) {
             setTestStatus({ success: false, message: 'Please enter Client ID and Client Secret.' });
             return;
         }
@@ -330,7 +330,7 @@ export function JiraConnectionDialog({ connection, open, onOpenChange, onSave }:
                                                 type={showClientSecret ? "text" : "password"}
                                                 value={clientSecret}
                                                 onChange={e => setClientSecret(e.target.value)}
-                                                placeholder="OAuth 2.0 Client Secret"
+                                                placeholder={connection?.id && authType === 'oauth' ? "•••••••• (Stored in database)" : "OAuth 2.0 Client Secret"}
                                                 className="pr-10"
                                             />
                                             <Button
@@ -357,7 +357,7 @@ export function JiraConnectionDialog({ connection, open, onOpenChange, onSave }:
                                     <Button
                                         type="button"
                                         onClick={handleAuthorize}
-                                        disabled={authorizing || !clientId || !clientSecret}
+                                        disabled={authorizing || !clientId || (!clientSecret && !connection?.id)}
                                         className="w-full"
                                     >
                                         {authorizing ? (

@@ -589,7 +589,26 @@ export function registerIpcHandlers() {
     // OAuth Flow
     ipcMain.handle('oauth:start-flow', async (_, { clientId, clientSecret, connectionId }: { clientId: string; clientSecret: string; connectionId?: number }) => {
         try {
-            const result = await startOAuthFlow(clientId, clientSecret, connectionId || null);
+            let actualClientSecret = clientSecret;
+
+            // If secret is missing but connection exists, try to get it from DB
+            if (!actualClientSecret && connectionId) {
+                const conn = db.prepare(`
+                    SELECT client_secret_encrypted FROM jira_connections 
+                    WHERE id = ? AND auth_type = 'oauth'
+                `).get(connectionId) as { client_secret_encrypted: string } | undefined;
+
+                if (conn?.client_secret_encrypted) {
+                    const { decrypt } = await import('./crypto-service');
+                    actualClientSecret = decrypt(conn.client_secret_encrypted);
+                }
+            }
+
+            if (!actualClientSecret) {
+                throw new Error('Client Secret is required for new connections or if not already stored.');
+            }
+
+            const result = await startOAuthFlow(clientId, actualClientSecret, connectionId || null);
 
             if (result.success && result.accessToken && result.refreshToken && result.cloudId) {
                 // If connectionId exists, save the OAuth tokens
@@ -597,7 +616,7 @@ export function registerIpcHandlers() {
                     saveOAuthTokens(
                         connectionId,
                         clientId,
-                        clientSecret,
+                        actualClientSecret,
                         result.accessToken,
                         result.refreshToken,
                         result.expiresIn || 3600,
@@ -613,7 +632,7 @@ export function registerIpcHandlers() {
                     // Return encrypted tokens for new connections (will be saved with the connection)
                     accessTokenEncrypted: encrypt(result.accessToken),
                     refreshTokenEncrypted: encrypt(result.refreshToken),
-                    clientSecretEncrypted: encrypt(clientSecret),
+                    clientSecretEncrypted: encrypt(actualClientSecret),
                     expiresIn: result.expiresIn
                 };
             }
