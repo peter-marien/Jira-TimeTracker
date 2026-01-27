@@ -2,7 +2,6 @@ import { DateNavigation } from "./DateNavigation"
 import { QuickStartBar } from "./QuickStartBar"
 import { TimeSliceTable } from "./TimeSliceTable"
 import { Timeline } from "./Timeline"
-import { ActiveTrackingBanner } from "./ActiveTrackingBanner"
 import { useDateStore } from "@/stores/useDateStore"
 import { useTrackingStore } from "@/stores/useTrackingStore"
 import { useTimeSlices } from "@/hooks/useTimeSlices"
@@ -201,8 +200,6 @@ export function Dashboard() {
 
     return (
         <div className="flex flex-col h-full bg-background">
-            <ActiveTrackingBanner />
-
             <div className="flex-1 p-6 space-y-6 overflow-y-auto" onWheel={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">

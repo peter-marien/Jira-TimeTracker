@@ -2,6 +2,7 @@ import { Outlet, NavLink } from "react-router-dom"
 import { LayoutDashboard, Briefcase, Settings, CalendarDays, Search, BarChart3 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { TitleBar } from "./TitleBar"
+import { ActiveTrackingBanner } from "@/views/Dashboard/ActiveTrackingBanner"
 
 export function AppLayout() {
     return (
@@ -64,6 +65,7 @@ export function AppLayout() {
 
                 {/* Main Content */}
                 <main className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                    <ActiveTrackingBanner />
                     <Outlet />
                 </main>
             </div>
