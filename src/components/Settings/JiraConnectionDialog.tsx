@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { useState, useEffect } from "react"
 import { api, JiraConnection } from "@/lib/api"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Eye, EyeOff, Loader2, Plug, Palette, KeyRound, ExternalLink, CheckCircle2 } from "lucide-react"
+import { Eye, EyeOff, Loader2, Plug, Palette, KeyRound, ExternalLink, CheckCircle2, X } from "lucide-react"
 import { ColorPicker } from "@/components/shared/ColorPicker"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
@@ -354,18 +354,37 @@ export function JiraConnectionDialog({ connection, open, onOpenChange, onSave }:
                                             {" "}— Set callback URL to: <code className="text-xs bg-muted px-1 py-0.5 rounded">jira-timetracker-app://oauth/callback</code>
                                         </p>
                                     </div>
-                                    <Button
-                                        type="button"
-                                        onClick={handleAuthorize}
-                                        disabled={authorizing || !clientId || (!clientSecret && !connection?.id)}
-                                        className="w-full"
-                                    >
+                                    <div className="flex flex-col gap-2">
                                         {authorizing ? (
-                                            <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Authorizing...</>
+                                            <Button
+                                                type="button"
+                                                variant="destructive"
+                                                onClick={async () => {
+                                                    await api.cancelOAuthFlow();
+                                                    setAuthorizing(false);
+                                                    setTestStatus({ success: false, message: 'Authorization cancelled' });
+                                                }}
+                                                className="w-full"
+                                            >
+                                                <X className="h-4 w-4 mr-2" /> Cancel Authorization
+                                            </Button>
                                         ) : (
-                                            <><ExternalLink className="h-4 w-4 mr-2" /> Authorize with Jira</>
+                                            <Button
+                                                type="button"
+                                                onClick={handleAuthorize}
+                                                disabled={!clientId || (!clientSecret && !connection?.id)}
+                                                className="w-full"
+                                            >
+                                                <ExternalLink className="h-4 w-4 mr-2" /> Authorize with Jira
+                                            </Button>
                                         )}
-                                    </Button>
+                                        {authorizing && (
+                                            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground animate-pulse">
+                                                <Loader2 className="h-3 w-3 animate-spin" />
+                                                Waiting for browser...
+                                            </div>
+                                        )}
+                                    </div>
                                 </>
                             )}
                         </TabsContent>

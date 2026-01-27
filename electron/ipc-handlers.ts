@@ -7,7 +7,7 @@ import { getDatabase } from '../src/database/db'
 import { updateTrayTooltip, updateTrayIcon } from './tray'
 import { getAppConfig, saveAppConfig } from './config-service'
 import { startUpdateInterval } from './auto-updater'
-import { startOAuthFlow, saveOAuthTokens, getValidAccessToken } from './oauth-service'
+import { startOAuthFlow, saveOAuthTokens, getValidAccessToken, cancelPendingOAuth } from './oauth-service'
 import { encrypt } from './crypto-service'
 
 export function registerIpcHandlers() {
@@ -643,6 +643,11 @@ export function registerIpcHandlers() {
             console.error('[IPC] OAuth flow error:', err);
             return { success: false, error: err.message || 'OAuth flow failed' };
         }
+    });
+
+    ipcMain.handle('oauth:cancel-flow', () => {
+        cancelPendingOAuth();
+        return { success: true };
     });
 
     ipcMain.handle('oauth:test-connection', async (_, { connectionId }: { connectionId: number }) => {

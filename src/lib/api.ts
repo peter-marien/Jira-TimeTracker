@@ -95,6 +95,7 @@ export const api = {
     // OAuth
     startOAuthFlow: (clientId: string, clientSecret: string, connectionId?: number) =>
         ipc.invoke('oauth:start-flow', { clientId, clientSecret, connectionId }) as Promise<OAuthFlowResult>,
+    cancelOAuthFlow: () => ipc.invoke('oauth:cancel-flow'),
     testOAuthConnection: (connectionId: number) =>
         ipc.invoke('oauth:test-connection', { connectionId }) as Promise<{ success: boolean; displayName?: string; error?: string }>,
 
