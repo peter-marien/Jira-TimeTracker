@@ -96,7 +96,8 @@ export function MonthView() {
                     id: slice.work_item_id,
                     description: slice.work_item_description || "Unknown Work Item",
                     jira_key: slice.jira_key,
-                    connection_name: slice.connection_name
+                    connection_name: slice.connection_name,
+                    jira_connection_id: slice.jira_connection_id
                 } as WorkItem);
             }
         });
@@ -696,6 +697,7 @@ export function MonthView() {
                     dateLabel={selectedDateLabel}
                     hours={selectedHours}
                     notes={selectedNotes}
+                    connections={connections}
                 />
             </div>
         </TooltipProvider>

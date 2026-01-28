@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Copy, Check, Clock, FileText } from "lucide-react"
 import { useState } from "react"
-import { WorkItem } from "@/lib/api"
+import { WorkItem, JiraConnection, api } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
 interface MonthCellDialogProps {
@@ -21,6 +21,7 @@ interface MonthCellDialogProps {
     dateLabel: string;
     hours: string;
     notes: string;
+    connections: JiraConnection[];
 }
 
 export function MonthCellDialog({
@@ -29,7 +30,8 @@ export function MonthCellDialog({
     workItem,
     dateLabel,
     hours,
-    notes
+    notes,
+    connections
 }: MonthCellDialogProps) {
     const [copied, setCopied] = useState(false);
 
@@ -41,6 +43,15 @@ export function MonthCellDialog({
         await navigator.clipboard.writeText(textToCopy);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
+
+        if (workItem.jira_key && workItem.jira_connection_id) {
+            const connection = connections.find(c => c.id === workItem.jira_connection_id);
+            if (connection) {
+                const baseUrl = connection.base_url.replace(/\/$/, "");
+                const url = `${baseUrl}/browse/${workItem.jira_key}`;
+                await api.openExternal(url);
+            }
+        }
     };
 
     if (!workItem) return null;
@@ -106,7 +117,7 @@ export function MonthCellDialog({
                         ) : (
                             <>
                                 <Copy className="w-4 h-4" />
-                                Copy Notes
+                                Copy Notes & open in Jira
                             </>
                         )}
                     </Button>
