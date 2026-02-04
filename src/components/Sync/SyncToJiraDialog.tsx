@@ -308,8 +308,6 @@ export function SyncToJiraDialog({ date, slices, open, onOpenChange, onSuccess }
                                         </div>
                                     );
 
-                                    if (!s.notes) return <div key={s.id}>{RowContent}</div>;
-
                                     return (
                                         <Tooltip key={s.id}>
                                             <TooltipTrigger asChild>
