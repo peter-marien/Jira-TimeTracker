@@ -299,14 +299,12 @@ export function SyncToJiraDialog({ date, slices, open, onOpenChange, onSuccess }
                             <div className="p-1">
                                 {syncable.map(s => {
                                     const RowContent = (
-                                        <div className={cn("flex justify-between items-center p-2 text-sm border-b last:border-0 hover:bg-slate-50 dark:hover:bg-slate-900 group cursor-default transition-colors", s.notes && "cursor-help hover:bg-muted/50")}>
-                                            <div className="flex items-center gap-3 min-w-0 flex-1">
-                                                <span className="font-mono font-medium text-emerald-600 dark:text-emerald-500 w-[80px] shrink-0">{s.jira_key}</span>
-                                                <span className={cn("text-muted-foreground truncate group-hover:text-foreground transition-colors", s.notes && "decoration-dotted underline underline-offset-4")}>
-                                                    {s.work_item_description}
-                                                </span>
+                                        <div className={cn("grid grid-cols-[80px_1fr_auto] gap-3 items-center p-2 text-sm border-b last:border-0 hover:bg-slate-50 dark:hover:bg-slate-900 group cursor-default transition-colors", s.notes && "cursor-help hover:bg-muted/50")}>
+                                            <span className="font-mono font-medium text-emerald-600 dark:text-emerald-500 truncate">{s.jira_key}</span>
+                                            <div className={cn("text-muted-foreground truncate min-w-0 group-hover:text-foreground transition-colors", s.notes && "decoration-dotted underline underline-offset-4")}>
+                                                {s.work_item_description}
                                             </div>
-                                            <span className="font-mono text-xs text-muted-foreground shrink-0 ml-4">{formatDuration(s)}</span>
+                                            <span className="font-mono text-xs text-muted-foreground whitespace-nowrap text-right">{formatDuration(s)}</span>
                                         </div>
                                     );
 
