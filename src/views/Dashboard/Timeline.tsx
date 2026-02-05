@@ -1,5 +1,5 @@
 import { TimeSlice, JiraConnection, api } from "@/lib/api"
-import { startOfDay, setHours, endOfDay, format, formatISO } from "date-fns"
+import { startOfDay, setHours, endOfHour, startOfHour, endOfDay, format, formatISO } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip"
 import { TimeSliceTooltipContent } from "@/components/shared/TimeSliceTooltip"
@@ -61,7 +61,10 @@ export function Timeline({ date, slices, className, onSliceClick, connections, o
     );
 
     // 1. Calculate Bounds
-    const { timelineStart, totalMs } = useMemo(() => {
+    const { timelineStart, totalMs, hoursCount } = useMemo(() => {
+        let tStart: number;
+        let tEnd: number;
+
         if (slices.length > 0) {
             const sliceTimes = slices.map(s => ({
                 start: new Date(s.start_time).getTime(),
@@ -71,6 +74,7 @@ export function Timeline({ date, slices, className, onSliceClick, connections, o
             const firstStart = Math.min(...sliceTimes.map(s => s.start));
             const lastEnd = Math.max(...sliceTimes.map(s => s.end));
 
+            // Aim for 0.5h padding, but we'll snap to hours anyway
             let targetStart = firstStart - (0.5 * 60 * 60 * 1000);
             let targetEnd = lastEnd + (0.5 * 60 * 60 * 1000);
 
@@ -83,19 +87,24 @@ export function Timeline({ date, slices, className, onSliceClick, connections, o
                 targetEnd += extra / 2;
             }
 
-            const tStart = Math.max(dayStart.getTime(), targetStart);
-            const tEnd = Math.min(dayEnd.getTime(), targetEnd);
-            return { timelineStart: tStart, timelineEnd: tEnd, totalMs: tEnd - tStart };
+            // Snap to hour boundaries
+            tStart = startOfHour(Math.max(dayStart.getTime(), targetStart)).getTime();
+            tEnd = endOfHour(Math.min(dayEnd.getTime(), targetEnd)).getTime();
+
+            // Ensure tEnd is at the START of the next hour for clean division if needed
+            // Actually endOfHour is 23:59:59.999. Let's use startOfHour + 1h instead
+            tEnd = startOfHour(tEnd).getTime() + (60 * 60 * 1000);
+        } else {
+            tStart = setHours(dayStart, 7).getTime();
+            tEnd = setHours(dayStart, 19).getTime();
         }
-        return {
-            timelineStart: setHours(dayStart, 7).getTime(),
-            timelineEnd: setHours(dayStart, 19).getTime(),
-            totalMs: 12 * 60 * 60 * 1000
-        };
+
+        const spanMs = tEnd - tStart;
+        const hCount = Math.round(spanMs / (60 * 60 * 1000));
+
+        return { timelineStart: tStart, totalMs: spanMs, hoursCount: hCount };
     }, [slices, dayStart, dayEnd]);
 
-    const startHour = new Date(timelineStart).getHours();
-    const hoursCount = Math.ceil(totalMs / (60 * 60 * 1000));
 
     const handleDragStart = (event: DragStartEvent) => {
         const { active } = event;
@@ -277,14 +286,24 @@ export function Timeline({ date, slices, className, onSliceClick, connections, o
                 onDragEnd={handleDragEnd}
             >
                 {/* Hour markers */}
-                <div className="absolute inset-0 flex pointer-events-none">
-                    {Array.from({ length: hoursCount }).map((_, i) => (
-                        <div key={i} className="flex-1 border-r border-border/10 last:border-0 relative">
-                            <span className="absolute bottom-1 left-1 text-[9px] text-muted-foreground/40 font-mono">
-                                {(startHour + i).toString().padStart(2, '0')}:00
-                            </span>
-                        </div>
-                    ))}
+                <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                    {Array.from({ length: hoursCount + 1 }).map((_, i) => {
+                        const hourTime = timelineStart + i * 60 * 60 * 1000;
+                        const leftPercent = ((hourTime - timelineStart) / totalMs) * 100;
+                        if (leftPercent < -0.1 || leftPercent > 100.1) return null;
+
+                        return (
+                            <div
+                                key={i}
+                                className="absolute inset-y-0 border-l border-border/10"
+                                style={{ left: `${leftPercent}%` }}
+                            >
+                                <span className="absolute bottom-1 left-0 -translate-x-1/2 text-[9px] text-muted-foreground/40 font-mono whitespace-nowrap px-1">
+                                    {format(new Date(hourTime), "HH:mm")}
+                                </span>
+                            </div>
+                        );
+                    })}
                 </div>
 
                 {/* Slices */}
