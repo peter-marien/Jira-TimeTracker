@@ -34,7 +34,7 @@ export function createAwayWindow(data: AwayData) {
         height: 730, // Adjusted for content without scrollbar
         resizable: false,
         frame: false,
-        // alwaysOnTop: true, // Optional: User might find this annoying if debugging, but requested "standalone" usually implies interrupting.
+        alwaysOnTop: true, // Optional: User might find this annoying if debugging, but requested "standalone" usually implies interrupting.
         autoHideMenuBar: true,
         center: true,
         webPreferences: {
