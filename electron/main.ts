@@ -16,11 +16,10 @@ process.env.APP_ROOT = path.join(__dirname, '..')
 // Dynamic App ID
 const pkgPath = path.join(process.env.APP_ROOT, 'package.json');
 const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
-const appId = pkg.build?.appId || 'com.jira-timetracker.app';
 
 app.name = pkg.productName || 'Jira Time Tracker';
 if (process.platform === 'win32') {
-  app.setAppUserModelId(appId)
+  app.setAppUserModelId(app.name)
 }
 
 // Custom URL scheme for OAuth
