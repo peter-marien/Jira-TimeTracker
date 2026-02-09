@@ -13,13 +13,14 @@ import { handleOAuthCallback } from './oauth-service'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 process.env.APP_ROOT = path.join(__dirname, '..')
 
-// Dynamic App ID
-const pkgPath = path.join(process.env.APP_ROOT, 'package.json');
-const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+// Load package.json early to set app identity
+const pkg = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'package.json'), 'utf-8'));
 
+// Set app identity as early as possible
 app.name = pkg.productName || 'Jira Time Tracker';
 if (process.platform === 'win32') {
-  app.setAppUserModelId(app.name)
+  // Use appId for grouping if possible, but productName for pretty title
+  app.setAppUserModelId(pkg.build?.appId || 'com.pmarien.jira-timetracker');
 }
 
 // Custom URL scheme for OAuth

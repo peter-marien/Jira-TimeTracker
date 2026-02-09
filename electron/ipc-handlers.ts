@@ -1034,6 +1034,23 @@ export function registerIpcHandlers() {
     ipcMain.handle('shell:open-external', async (_, url: string) => {
         return shell.openExternal(url);
     });
+
+    ipcMain.handle('app:show-logs', async () => {
+        // electron-log default path on Windows is %AppData%\<app-name>\logs\main.log
+        const logPath = path.join(app.getPath('userData'), 'logs', 'main.log');
+        if (fs.existsSync(logPath)) {
+            shell.showItemInFolder(logPath);
+            return { success: true };
+        } else {
+            // Fallback to logs folder if file doesn't exist yet
+            const logsFolder = path.join(app.getPath('userData'), 'logs');
+            if (fs.existsSync(logsFolder)) {
+                shell.openPath(logsFolder);
+                return { success: true };
+            }
+        }
+        return { success: false, error: 'Log file not found' };
+    });
 }
 
 function parseCSV(content: string): string[][] {

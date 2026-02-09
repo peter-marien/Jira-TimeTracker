@@ -3,6 +3,10 @@
   "private": true,
   "version": "0.12.3",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/peter-marien/Jira-TimeTracker.git"
+  },
   "scripts": {
     "dev": "vite",
     "prebuild": "taskkill /f /im electron.exe 2>nul || exit 0",
@@ -85,23 +89,55 @@
   "build": {
     "appId": "com.pmarien.jira-timetracker",
     "productName": "Jira Time Tracker",
+    "asar": true,
     "directories": {
-      "output": "release"
+      "output": "release/${version}"
     },
     "files": [
       "dist",
       "dist-electron",
       "public"
     ],
+    "protocols": {
+      "name": "Jira Time Tracker OAuth",
+      "schemes": [
+        "jira-timetracker-app"
+      ]
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "peter-marien",
+      "repo": "Jira-TimeTracker"
+    },
     "win": {
       "icon": "build/icon.ico",
       "target": [
-        "nsis"
-      ]
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}-Windows-${version}-Setup.${ext}"
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "artifactName": "${productName}-Mac-${version}-Installer.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "artifactName": "${productName}-Linux-${version}.${ext}"
     }
   }
 }

@@ -9,12 +9,20 @@ autoUpdater.logger = log;
 export function initializeAutoUpdater(window: BrowserWindow) {
     autoUpdater.checkForUpdatesAndNotify();
 
-    autoUpdater.on('update-available', () => {
-        log.info('Update available.');
+    autoUpdater.on('checking-for-update', () => {
+        log.info('Checking for update...');
+    });
+
+    autoUpdater.on('update-available', (info) => {
+        log.info('Update available:', info.version);
+    });
+
+    autoUpdater.on('update-not-available', (info) => {
+        log.info('Update not available. Current version:', app.getVersion(), 'Latest version:', info.version);
     });
 
     autoUpdater.on('update-downloaded', (info) => {
-        log.info('Update downloaded.');
+        log.info('Update downloaded:', info.version);
         // Notify renderer that update is ready
         window.webContents.send('update:downloaded', {
             version: info.version,

@@ -180,6 +180,7 @@ export const api = {
 
     // Utils
     openExternal: (url: string) => ipc.invoke('shell:open-external', url),
+    showLogs: () => ipc.invoke('app:show-logs') as Promise<{ success: boolean; error?: string }>,
 
     // General passthrough for custom handlers
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

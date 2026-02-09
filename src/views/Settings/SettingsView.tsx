@@ -654,6 +654,29 @@ export function SettingsView() {
                                     Open DevTools
                                 </Button>
                             </div>
+
+                            <div className="flex items-center justify-between border rounded-lg p-4">
+                                <div className="space-y-0.5">
+                                    <Label className="text-base">Application Logs</Label>
+                                    <p className="text-sm text-muted-foreground">
+                                        Open the folder containing application log files.
+                                    </p>
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    onClick={async () => {
+                                        const result = await api.showLogs();
+                                        if (!result.success) {
+                                            setMessage({
+                                                title: "Logs Not Found",
+                                                description: result.error || "Could not find the log file location."
+                                            });
+                                        }
+                                    }}
+                                >
+                                    Show Logs
+                                </Button>
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
