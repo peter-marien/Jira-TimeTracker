@@ -10,10 +10,11 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { api } from "@/lib/api"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { DateTimePicker } from "@/components/shared/DateTimePicker"
 import { WorkItemSearchBar } from "@/components/shared/WorkItemSearchBar"
-import { formatISO } from "date-fns"
+import { formatISO, differenceInSeconds } from "date-fns"
+import { Clock } from "lucide-react"
 
 interface AddTimeSliceDialogProps {
     open: boolean;
@@ -27,6 +28,7 @@ export function AddTimeSliceDialog({ open, onOpenChange, onSave, selectedDate }:
     const [startDateTime, setStartDateTime] = useState<Date | undefined>(undefined)
     const [endDateTime, setEndDateTime] = useState<Date | undefined>(undefined)
     const [notes, setNotes] = useState("")
+    const [error, setError] = useState<string | null>(null)
 
     // Initialize with selected date at current time when dialog opens
     useEffect(() => {
@@ -39,11 +41,31 @@ export function AddTimeSliceDialog({ open, onOpenChange, onSave, selectedDate }:
             setEndDateTime(undefined)
             setWorkItemId(null)
             setNotes("")
+            setError(null)
         }
     }, [open, selectedDate])
 
+    const durationString = useMemo(() => {
+        if (!startDateTime || !endDateTime) return null;
+        if (endDateTime <= startDateTime) return "Invalid duration";
+
+        const seconds = differenceInSeconds(endDateTime, startDateTime);
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+
+        if (h > 0) return `${h}h ${m}m`;
+        return `${m}m` + (s > 0 ? ` ${s}s` : "");
+    }, [startDateTime, endDateTime]);
+
     const handleSave = async () => {
         if (!workItemId || !startDateTime) return
+        setError(null);
+
+        if (endDateTime && endDateTime <= startDateTime) {
+            setError("End time must be after start time");
+            return;
+        }
 
         await api.saveTimeSlice({
             work_item_id: workItemId,
@@ -56,22 +78,35 @@ export function AddTimeSliceDialog({ open, onOpenChange, onSave, selectedDate }:
         onOpenChange(false)
     }
 
-    const canSave = workItemId !== null && startDateTime !== undefined
+    const canSubmit = workItemId !== null && startDateTime !== undefined
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                    <DialogTitle>Add Time Slice</DialogTitle>
-                    <DialogDescription>
-                        Manually add a time entry for {selectedDate.toLocaleDateString()}.
-                    </DialogDescription>
+                    <div className="flex justify-between items-center pr-8">
+                        <div>
+                            <DialogTitle>Add Time Slice</DialogTitle>
+                            <DialogDescription>
+                                Manually add a time entry for {selectedDate.toLocaleDateString()}.
+                            </DialogDescription>
+                        </div>
+                        {durationString && (
+                            <div className="flex items-center gap-1.5 text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full text-sm font-mono border">
+                                <Clock className="h-3.5 w-3.5" />
+                                <span>{durationString}</span>
+                            </div>
+                        )}
+                    </div>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
                         <Label htmlFor="workitem">Work Item</Label>
                         <WorkItemSearchBar
-                            onSelect={(item) => setWorkItemId(item.id)}
+                            onSelect={(item) => {
+                                setWorkItemId(item.id);
+                                setError(null);
+                            }}
                             placeholder="Search for work item..."
                         />
                     </div>
@@ -79,14 +114,20 @@ export function AddTimeSliceDialog({ open, onOpenChange, onSave, selectedDate }:
                         <Label htmlFor="start">Start Date & Time</Label>
                         <DateTimePicker
                             value={startDateTime}
-                            onChange={setStartDateTime}
+                            onChange={(date) => {
+                                setStartDateTime(date);
+                                setError(null);
+                            }}
                         />
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="end">End Date & Time (Optional)</Label>
                         <DateTimePicker
                             value={endDateTime}
-                            onChange={setEndDateTime}
+                            onChange={(date) => {
+                                setEndDateTime(date);
+                                setError(null);
+                            }}
                             placeholder="Leave empty for active slice"
                             defaultMonth={startDateTime}
                         />
@@ -101,12 +142,17 @@ export function AddTimeSliceDialog({ open, onOpenChange, onSave, selectedDate }:
                             rows={3}
                         />
                     </div>
+                    {error && (
+                        <div className="text-red-500 text-sm font-medium">
+                            {error}
+                        </div>
+                    )}
                 </div>
                 <DialogFooter>
                     <Button
                         type="button"
                         onClick={handleSave}
-                        disabled={!canSave}
+                        disabled={!canSubmit}
                     >
                         Add Time Slice
                     </Button>
