@@ -26,6 +26,7 @@ export function ImportFromJiraDialog({ open, onOpenChange, onImport }: ImportFro
     const [error, setError] = useState<string | null>(null);
     const [selectedIssue, setSelectedIssue] = useState<{ key: string; summary: string; connectionId: number; connectionName: string } | null>(null);
     const [importing, setImporting] = useState(false);
+    const [importedKeys, setImportedKeys] = useState<Set<string>>(new Set());
 
     // Debounced search as you type
     useEffect(() => {
@@ -53,6 +54,16 @@ export function ImportFromJiraDialog({ open, onOpenChange, onImport }: ImportFro
 
         return () => clearTimeout(timeoutId);
     }, [query, selectedIssue]);
+
+    // Load imported keys
+    useEffect(() => {
+        if (open) {
+            api.getWorkItems({ showCompleted: true }).then(items => {
+                const keys = new Set(items.filter(i => i.jira_key).map(i => i.jira_key!));
+                setImportedKeys(keys);
+            });
+        }
+    }, [open]);
 
     // Reset state when dialog closes
     useEffect(() => {
@@ -149,6 +160,11 @@ export function ImportFromJiraDialog({ open, onOpenChange, onImport }: ImportFro
                                             <span className="font-mono text-[10px] font-semibold bg-secondary px-1.5 py-0.5 rounded shrink-0">
                                                 {issue.key}
                                             </span>
+                                            {importedKeys.has(issue.key) && (
+                                                <span className="text-[10px] text-primary font-bold mt-1">
+                                                    Imported
+                                                </span>
+                                            )}
                                         </div>
                                         <div className="flex flex-col flex-1 min-w-0">
                                             <span className="text-sm line-clamp-1">{issue.summary}</span>
@@ -177,6 +193,11 @@ export function ImportFromJiraDialog({ open, onOpenChange, onImport }: ImportFro
                                 <p className="text-sm text-muted-foreground line-clamp-2">
                                     {selectedIssue.summary}
                                 </p>
+                                {importedKeys.has(selectedIssue.key) && (
+                                    <p className="text-xs text-primary font-semibold mt-2">
+                                        This item is already imported.
+                                    </p>
+                                )}
                             </div>
                             <Button
                                 variant="ghost"
@@ -194,7 +215,7 @@ export function ImportFromJiraDialog({ open, onOpenChange, onImport }: ImportFro
                     <Button variant="outline" onClick={() => onOpenChange(false)}>
                         Cancel
                     </Button>
-                    <Button onClick={handleImport} disabled={!selectedIssue || importing}>
+                    <Button onClick={handleImport} disabled={!selectedIssue || importing || importedKeys.has(selectedIssue.key)}>
                         {importing ? (
                             <>
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

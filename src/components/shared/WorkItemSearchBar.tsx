@@ -65,7 +65,7 @@ export function WorkItemSearchBar({ onSelect, className, placeholder = "Search w
     useEffect(() => {
         const timer = setTimeout(() => {
             setLocalLoading(true);
-            api.getWorkItems({ query }).then(res => {
+            api.getWorkItems({ query, showCompleted: true }).then(res => {
                 setLocalItems(res || []);
             }).finally(() => setLocalLoading(false));
         }, 300);
@@ -189,7 +189,14 @@ export function WorkItemSearchBar({ onSelect, className, placeholder = "Search w
                                                 onSelect={() => handleSelectLocal(item)}
                                                 className="flex flex-col items-start gap-1 py-3"
                                             >
-                                                <span className="font-bold truncate w-full">{item.description}</span>
+                                                <div className="flex items-center justify-between w-full min-w-0">
+                                                    <span className="font-bold truncate">{item.description}</span>
+                                                    {item.is_completed === 1 && (
+                                                        <span className="text-[10px] bg-secondary text-muted-foreground px-1.5 py-0.5 rounded font-medium ml-2 shrink-0">
+                                                            Completed
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 {item.jira_key && (
                                                     <span
                                                         className="text-xs font-mono"
