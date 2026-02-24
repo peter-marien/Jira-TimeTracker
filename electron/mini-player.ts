@@ -9,6 +9,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 let miniPlayerWindow: BrowserWindow | null = null;
 let mainWindow: BrowserWindow | null = null;
+let currentTrackingData: TrackingData | null = null;
 
 export interface TrackingData {
     isTracking: boolean;
@@ -206,6 +207,8 @@ function createMiniPlayerWindow(): BrowserWindow {
 }
 
 export function showMiniPlayer(data: TrackingData) {
+    currentTrackingData = data;
+
     // Only allow showing if main window is minimized
     // This enforces the rule: "When app is not minimized, mini-player should not be visible"
     if (mainWindow && !mainWindow.isMinimized()) {
@@ -223,15 +226,15 @@ export function showMiniPlayer(data: TrackingData) {
         }
     }
 
-    miniPlayerWindow.webContents.once('did-finish-load', () => {
-        miniPlayerWindow?.webContents.send('mini-player:state', data);
-        miniPlayerWindow?.show();
-    });
-
     // If already loaded, just update and show
     if (!miniPlayerWindow.webContents.isLoading()) {
-        miniPlayerWindow.webContents.send('mini-player:state', data);
+        miniPlayerWindow.webContents.send('mini-player:state', currentTrackingData);
         miniPlayerWindow.show();
+    } else {
+        miniPlayerWindow.webContents.once('did-finish-load', () => {
+            miniPlayerWindow?.webContents.send('mini-player:state', currentTrackingData);
+            miniPlayerWindow?.show();
+        });
     }
 }
 
@@ -242,6 +245,7 @@ export function hideMiniPlayer() {
 }
 
 export function updateMiniPlayerState(data: TrackingData) {
+    currentTrackingData = data;
     if (miniPlayerWindow && !miniPlayerWindow.isDestroyed()) {
         miniPlayerWindow.webContents.send('mini-player:state', data);
     }
