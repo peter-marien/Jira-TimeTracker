@@ -43,10 +43,14 @@ export function WorkItemSearchBar({ onSelect, className, placeholder = "Search w
     const [localLoading, setLocalLoading] = useState(false)
     const [jiraLoading, setJiraLoading] = useState(false)
     const [connections, setConnections] = useState<JiraConnection[]>([]);
+    const [hideCompletedItems, setHideCompletedItems] = useState(true);
     const initialFocusDone = useRef(false)
 
     useEffect(() => {
         api.getJiraConnections().then(setConnections);
+        api.getSettings().then(settings => {
+            setHideCompletedItems(settings.hide_completed_items !== 'false');
+        });
     }, []);
 
     // Auto-open the popover when autoFocus is true
@@ -65,12 +69,12 @@ export function WorkItemSearchBar({ onSelect, className, placeholder = "Search w
     useEffect(() => {
         const timer = setTimeout(() => {
             setLocalLoading(true);
-            api.getWorkItems({ query, showCompleted: true }).then(res => {
+            api.getWorkItems({ query, showCompleted: !hideCompletedItems }).then(res => {
                 setLocalItems(res || []);
             }).finally(() => setLocalLoading(false));
         }, 300);
         return () => clearTimeout(timer);
-    }, [query]);
+    }, [query, hideCompletedItems]);
 
     // Jira search (all connections)
     useEffect(() => {
@@ -98,11 +102,32 @@ export function WorkItemSearchBar({ onSelect, className, placeholder = "Search w
     // Get set of imported Jira keys for deduplication
     const importedKeys = new Set(localItems.filter(i => i.jira_key).map(i => i.jira_key));
 
+    // Also get set of completed imported Jira keys, to hide them if setting is enabled
+    const [completedImportedKeys, setCompletedImportedKeys] = useState<Set<string>>(new Set());
+
+    // We need to query ALL local items to know which ones are completed, 
+    // because localItems only contains non-completed ones if hideCompletedItems is true.
+    useEffect(() => {
+        if (!query.trim() || !hideCompletedItems) {
+            setCompletedImportedKeys(new Set());
+            return;
+        }
+
+        // Fetch completed items specifically to know which Jira keys to hide
+        api.getWorkItems({ query, showCompleted: true }).then(items => {
+            const completedKeys = new Set(
+                items.filter(i => i.is_completed === 1 && i.jira_key).map(i => i.jira_key as string)
+            );
+            setCompletedImportedKeys(completedKeys);
+        });
+    }, [query, hideCompletedItems]);
+
     // Combine and sort results: local items first, then Jira items (excluding duplicates)
+    // If hideCompletedItems is true, also exclude Jira items that match locally completed items
     const combinedItems: SearchItem[] = [
         ...localItems.map(item => ({ type: 'local' as const, item })),
         ...jiraItems
-            .filter(j => !importedKeys.has(j.key))
+            .filter(j => !importedKeys.has(j.key) && (!hideCompletedItems || !completedImportedKeys.has(j.key)))
             .map(item => ({ type: 'jira' as const, item }))
     ];
 

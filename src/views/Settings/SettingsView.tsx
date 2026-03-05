@@ -55,6 +55,7 @@ export function SettingsView() {
     const [updateStatus, setUpdateStatus] = React.useState<{ type: 'current' | 'available' | 'error', message: string } | null>(null);
     const [miniPlayerTheme, setMiniPlayerTheme] = React.useState("inverted");
     const [dailyTargetHours, setDailyTargetHours] = React.useState(8);
+    const [hideCompletedItems, setHideCompletedItems] = React.useState(true);
 
     React.useEffect(() => {
         api.getDatabasePath().then(setDbPath).catch(() => setDbPath("Error fetching path"));
@@ -85,6 +86,8 @@ export function SettingsView() {
             // Load daily target hours
             const target = settings.daily_target_hours ? parseFloat(settings.daily_target_hours) : 8;
             setDailyTargetHours(target);
+            // Load search settings
+            setHideCompletedItems(settings.hide_completed_items !== 'false');
         });
     }, []);
 
@@ -500,6 +503,34 @@ export function SettingsView() {
                                         Check Now
                                     </Button>
                                 </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="mt-6">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <FilePlus2 className="h-5 w-5" />
+                                Search
+                            </CardTitle>
+                            <CardDescription>Configure how search behaves across the app.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <Label htmlFor="hide-completed">Hide Completed Items</Label>
+                                    <p className="text-xs text-muted-foreground">
+                                        Exclude completed local items from search results by default.
+                                    </p>
+                                </div>
+                                <Switch
+                                    id="hide-completed"
+                                    checked={hideCompletedItems}
+                                    onCheckedChange={async (checked) => {
+                                        setHideCompletedItems(checked);
+                                        await api.saveSetting('hide_completed_items', String(checked));
+                                    }}
+                                />
                             </div>
                         </CardContent>
                     </Card>
