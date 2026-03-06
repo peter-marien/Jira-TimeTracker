@@ -12,6 +12,12 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           className
         )}
         ref={ref}
+        onKeyDown={(e) => {
+          if (e.key === 'Home' || e.key === 'End') {
+            e.stopPropagation();
+          }
+          props.onKeyDown?.(e);
+        }}
         {...props}
       />
     )

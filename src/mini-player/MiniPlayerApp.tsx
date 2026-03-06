@@ -439,6 +439,11 @@ export function MiniPlayerApp() {
                             placeholder="Search to start tracking..."
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Home' || e.key === 'End') {
+                                    e.stopPropagation();
+                                }
+                            }}
                         />
                         {loading && <Loader2 className="loading-icon animate-spin" size={14} />}
                     </div>
