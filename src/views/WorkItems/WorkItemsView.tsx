@@ -225,7 +225,7 @@ export function WorkItemsView() {
     };
 
     return (
-        <div className="flex flex-col h-full bg-background p-6 space-y-6">
+        <div className="flex flex-col flex-1 min-h-0 bg-background p-6 space-y-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold tracking-tight">Work Items</h1>
                 <div className="flex gap-2">

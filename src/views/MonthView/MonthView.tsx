@@ -293,7 +293,7 @@ export function MonthView() {
 
     return (
         <TooltipProvider>
-            <div className="flex flex-col h-full bg-background overflow-hidden p-6 space-y-4">
+            <div className="flex flex-col flex-1 min-h-0 bg-background overflow-hidden p-6 space-y-4">
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">Month View</h1>

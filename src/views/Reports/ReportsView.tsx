@@ -41,7 +41,7 @@ export function ReportsView() {
     const prevYear = () => setCurrentYear(currentYear - 1);
 
     return (
-        <div className="flex flex-col h-full bg-background overflow-hidden p-6 space-y-6">
+        <div className="flex flex-col flex-1 min-h-0 bg-background overflow-hidden p-6 space-y-6">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary/10 rounded-md">

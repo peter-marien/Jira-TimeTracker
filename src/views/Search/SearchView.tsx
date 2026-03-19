@@ -168,7 +168,7 @@ export function SearchView() {
     };
 
     return (
-        <div className="flex flex-col h-full bg-background overflow-hidden" onWheel={(e) => e.stopPropagation()}>
+        <div className="flex flex-col flex-1 min-h-0 bg-background overflow-hidden" onWheel={(e) => e.stopPropagation()}>
             <div className="flex-1 p-6 space-y-6 overflow-y-auto min-h-0 h-full">
                 <div className="flex items-center justify-between">
                     <h1 className="text-2xl font-bold tracking-tight">Search Time Slices</h1>

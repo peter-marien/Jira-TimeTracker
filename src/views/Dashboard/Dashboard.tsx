@@ -199,7 +199,7 @@ export function Dashboard() {
     }, [slices, selectedIds]);
 
     return (
-        <div className="flex flex-col h-full bg-background">
+        <div className="flex flex-col flex-1 min-h-0 bg-background">
             <div className="flex-1 p-6 space-y-6 overflow-y-auto" onWheel={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
