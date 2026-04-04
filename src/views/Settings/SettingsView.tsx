@@ -20,11 +20,13 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import React from "react"
+import { useSearchParams } from "react-router-dom"
 import { api } from "@/lib/api"
 import { MessageDialog } from "@/components/shared/MessageDialog"
 import { ColorPicker } from "@/components/shared/ColorPicker"
 
 type Theme = 'light' | 'dark' | 'system';
+type SettingsTab = 'general' | 'connections' | 'database' | 'developer';
 
 function applyTheme(theme: Theme) {
     const root = document.documentElement;
@@ -37,6 +39,7 @@ function applyTheme(theme: Theme) {
 }
 
 export function SettingsView() {
+    const [searchParams, setSearchParams] = useSearchParams();
     const [dbPath, setDbPath] = React.useState("Loading...");
     const [theme, setTheme] = React.useState<Theme>('dark');
     const [clearSlices, setClearSlices] = React.useState(false);
@@ -56,6 +59,10 @@ export function SettingsView() {
     const [miniPlayerTheme, setMiniPlayerTheme] = React.useState("inverted");
     const [dailyTargetHours, setDailyTargetHours] = React.useState(8);
     const [hideCompletedItems, setHideCompletedItems] = React.useState(true);
+    const requestedTab = searchParams.get('tab');
+    const activeTab: SettingsTab = requestedTab === 'connections' || requestedTab === 'database' || requestedTab === 'developer'
+        ? requestedTab
+        : 'general';
 
     React.useEffect(() => {
         api.getDatabasePath().then(setDbPath).catch(() => setDbPath("Error fetching path"));
@@ -200,7 +207,20 @@ export function SettingsView() {
         <div className="flex flex-col flex-1 min-h-0 bg-background p-6 space-y-6 overflow-y-auto" onWheel={(e) => e.stopPropagation()}>
             <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
 
-            <Tabs defaultValue="general" className="w-full">
+            <Tabs
+                value={activeTab}
+                onValueChange={(value) => {
+                    const nextTab = value as SettingsTab;
+                    const nextParams = new URLSearchParams(searchParams);
+                    if (nextTab === 'general') {
+                        nextParams.delete('tab');
+                    } else {
+                        nextParams.set('tab', nextTab);
+                    }
+                    setSearchParams(nextParams, { replace: true });
+                }}
+                className="w-full"
+            >
                 <TabsList className="grid w-full grid-cols-4 lg:w-[500px]">
                     <TabsTrigger value="general">General</TabsTrigger>
                     <TabsTrigger value="connections">Connections</TabsTrigger>
