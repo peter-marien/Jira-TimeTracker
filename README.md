@@ -59,7 +59,8 @@ npm run build
 The project includes an agentic workflow for safe and automated releases.
 
 **Prerequisites:**
-- Ensure you have a `.env` file with a valid GitHub token in the root: `GH_TOKEN=[YOUR_GITHUB_TOKEN]`.
+- For local releases, ensure you have a `.env` file with a valid GitHub token in the root: `GH_TOKEN=[YOUR_GITHUB_TOKEN]`.
+- For GitHub Actions releases, no extra secret is needed beyond the built-in GITHUB_TOKEN.
 - Be on the `master` branch with a clean working tree.
 
 **Execution:**
@@ -90,3 +91,4 @@ You can change this location in **Settings -> Database**.
 ## 📄 License
 
 This project is personal software. All rights reserved.
+

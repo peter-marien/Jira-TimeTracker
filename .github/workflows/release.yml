@@ -1,0 +1,75 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      new-version:
+        description: "Version bump target (patch, minor, major, or explicit x.y.z)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate branch
+        shell: pwsh
+        run: |
+          $branch = git rev-parse --abbrev-ref HEAD
+          if ($branch -ne "master") {
+              Write-Error "Release must be performed on the 'master' branch. Current branch: $branch"
+              exit 1
+          }
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for uncommitted changes
+        shell: pwsh
+        run: |
+          $status = git status --porcelain
+          if ($status) {
+              Write-Error "Working tree is not clean. Please commit or stash changes before releasing."
+              exit 1
+          }
+
+      - name: Run lint and fix automatically
+        run: npm run lint -- --fix
+
+      - name: Verify no linting issues remain
+        run: npm run lint
+
+      - name: Configure Git author
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version and create commit/tag
+        shell: pwsh
+        run: npm version "${{ github.event.inputs['new-version'] }}" -m "Bump version to %s"
+
+      - name: Push version commit and tag
+        shell: pwsh
+        run: git push origin master --tags
+
+      - name: Trigger release build and upload
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run release
+
