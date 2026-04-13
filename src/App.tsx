@@ -1,4 +1,4 @@
-import { HashRouter as Router, Routes, Route } from "react-router-dom"
+import { HashRouter as Router, Routes, Route, useNavigate } from "react-router-dom"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { Dashboard } from "@/views/Dashboard/Dashboard"
 import { WorkItemsView } from "@/views/WorkItems/WorkItemsView"
@@ -37,12 +37,26 @@ function applyTheme(theme: 'light' | 'dark' | 'system') {
 }
 
 function App() {
+  return (
+    <TooltipProvider delayDuration={300}>
+      <Router>
+        <AppShell />
+      </Router>
+
+      <Toaster position="top-center" />
+    </TooltipProvider>
+  )
+}
+
+function AppShell() {
   useTrayEvents();
+  const navigate = useNavigate();
   const checkActiveTracking = useTrackingStore(state => state.checkActiveTracking);
   const handleAwayTime = useTrackingStore(state => state.handleAwayTime);
 
   // Update state
   const [updateInfo, setUpdateInfo] = useState<{ version: string; releaseNotes?: string } | null>(null);
+  const [showConnectionsPrompt, setShowConnectionsPrompt] = useState(false);
 
   useEffect(() => {
     checkActiveTracking();
@@ -50,6 +64,11 @@ function App() {
     api.getSettings().then(settings => {
       const savedTheme = (settings.theme as 'light' | 'dark' | 'system') || 'dark';
       applyTheme(savedTheme);
+    });
+    api.getJiraConnections().then(connections => {
+      setShowConnectionsPrompt(connections.length === 0);
+    }).catch(error => {
+      console.error("[App] Failed to load Jira connections", error);
     });
   }, [checkActiveTracking]);
 
@@ -105,21 +124,41 @@ function App() {
     };
   }, [stopTracking, checkActiveTracking]);
 
+  const handleOpenConnectionsSettings = () => {
+    setShowConnectionsPrompt(false);
+    navigate("/settings?tab=connections");
+  };
+
   return (
-    <TooltipProvider delayDuration={300}>
-      <Router>
-        <Routes>
-          <Route path="/away" element={<AwayDialogPage />} />
-          <Route element={<AppLayout />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/work-items" element={<WorkItemsView />} />
-            <Route path="/month" element={<MonthView />} />
-            <Route path="/reports" element={<ReportsView />} />
-            <Route path="/search" element={<SearchView />} />
-            <Route path="/settings" element={<SettingsView />} />
-          </Route>
-        </Routes>
-      </Router>
+    <>
+      <Routes>
+        <Route path="/away" element={<AwayDialogPage />} />
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/work-items" element={<WorkItemsView />} />
+          <Route path="/month" element={<MonthView />} />
+          <Route path="/reports" element={<ReportsView />} />
+          <Route path="/search" element={<SearchView />} />
+          <Route path="/settings" element={<SettingsView />} />
+        </Route>
+      </Routes>
+
+      <AlertDialog open={showConnectionsPrompt} onOpenChange={setShowConnectionsPrompt}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Add Your First Jira Connection</AlertDialogTitle>
+            <AlertDialogDescription>
+              No Jira connections are configured yet. Open Settings &gt; Connections to add one and start linking work to Jira.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Later</AlertDialogCancel>
+            <AlertDialogAction onClick={handleOpenConnectionsSettings}>
+              Go to Connections
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!updateInfo} onOpenChange={(open) => !open && setUpdateInfo(null)}>
         <AlertDialogContent>
@@ -138,9 +177,7 @@ function App() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <Toaster position="top-center" />
-    </TooltipProvider>
+    </>
   )
 }
 
