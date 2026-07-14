@@ -1,5 +1,5 @@
 import { Outlet, NavLink } from "react-router-dom"
-import { LayoutDashboard, Briefcase, Settings, CalendarDays, Search, BarChart3 } from "lucide-react"
+import { LayoutDashboard, Briefcase, Settings, CalendarDays, Search, BarChart3, Tags } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { TitleBar } from "./TitleBar"
 import { ActiveTrackingBanner } from "@/views/Dashboard/ActiveTrackingBanner"
@@ -26,6 +26,13 @@ export function AppLayout() {
                             title="Work Items"
                         >
                             <Briefcase className="h-6 w-6" />
+                        </NavLink>
+                        <NavLink
+                            to="/tags"
+                            className={({ isActive }) => cn("p-3 rounded-md transition-colors hover:bg-accent", isActive && "bg-accent/80 text-accent-foreground")}
+                            title="Tags"
+                        >
+                            <Tags className="h-6 w-6" />
                         </NavLink>
                         <NavLink
                             to="/month"

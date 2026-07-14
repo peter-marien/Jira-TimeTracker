@@ -28,6 +28,13 @@ test("returns an empty string when no worklog comment is provided", () => {
     assert.equal(getJiraWorklogComment("   "), "");
 });
 
+test("appends each tag marker to the complete end of a slice comment", () => {
+    assert.equal(
+        getJiraWorklogComment("Pairing on validation", [{ name: "pairing" }, { name: "backend" }]),
+        "Pairing on validation #[[pairing]] #[[backend]]"
+    );
+});
+
 test("creates one sync entry per slice when combining is disabled", () => {
     const entries = createSyncToJiraEntries([
         createSlice({ id: 1 }),
@@ -61,6 +68,15 @@ test("joins combined notes in chronological order and ignores blanks", () => {
     ], { combineSameTicket: true });
 
     assert.equal(entries[0].comment, "First note\n\nSecond note");
+});
+
+test("keeps tag markers with their slice when Jira worklogs are combined", () => {
+    const entries = createSyncToJiraEntries([
+        createSlice({ id: 1, notes: "First", tags: [{ id: 1, name: "alpha", description: "" }] }),
+        createSlice({ id: 2, start_time: "2026-01-01T10:00:00.000Z", end_time: "2026-01-01T10:30:00.000Z", notes: "Second", tags: [{ id: 2, name: "beta", description: "" }] })
+    ], { combineSameTicket: true });
+
+    assert.equal(entries[0].comment, "First #[[alpha]]\n\nSecond #[[beta]]");
 });
 
 test("keeps the same Jira key on different Jira connections separate", () => {

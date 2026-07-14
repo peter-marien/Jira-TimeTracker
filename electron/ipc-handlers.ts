@@ -11,6 +11,7 @@ import { startUpdateInterval } from './auto-updater'
 import { startOAuthFlow, saveOAuthTokens, getValidAccessToken, cancelPendingOAuth } from './oauth-service'
 import { encrypt } from './crypto-service'
 import { cleanupApplicationLogs, getLogFilePath, getLogsDirectory, normalizeLogRetentionDays } from './logger'
+import { normalizeTagName, parseTagMarkers, validateTagName } from '../src/lib/tags'
 
 export function registerIpcHandlers() {
     const db = getDatabase()
@@ -190,7 +191,7 @@ export function registerIpcHandlers() {
             WHERE ts.start_time >= @startStr AND ts.start_time <= @endStr
             ORDER BY ts.start_time
         `);
-        return stmt.all({ startStr, endStr });
+        return hydrateTimeSliceTags(db, stmt.all({ startStr, endStr }));
     });
 
     ipcMain.handle('db:get-time-slice', (_, id: number) => {
@@ -201,7 +202,8 @@ export function registerIpcHandlers() {
             LEFT JOIN jira_connections jc ON wi.jira_connection_id = jc.id
             WHERE ts.id = ?
         `);
-        return stmt.get(id);
+        const slice = stmt.get(id);
+        return slice ? hydrateTimeSliceTags(db, [slice])[0] : undefined;
     });
 
     ipcMain.handle('db:save-time-slice', (_, slice) => {
@@ -241,9 +243,12 @@ export function registerIpcHandlers() {
             const notesChanged = slice.notes !== undefined && existing.notes !== slice.notes;
             const startChanged = slice.start_time !== undefined && existing.start_time !== merged.start_time;
             const endChanged = slice.end_time !== undefined && existing.end_time !== merged.end_time;
+            const existingTagIds = getTimeSliceTagIds(db, slice.id);
+            const nextTagIds = slice.tag_ids !== undefined ? normalizeTagIds(slice.tag_ids) : existingTagIds;
+            const tagsChanged = !numberArraysEqual(existingTagIds, nextTagIds);
 
-            if ((notesChanged || startChanged || endChanged) && existing.synced_to_jira === 1) {
-                console.log(`[IPC:save-time-slice] Drift detected (Notes: ${notesChanged}, Start: ${startChanged}, End: ${endChanged}) for synced slice ${slice.id}. Marking as out-of-sync.`);
+            if ((notesChanged || startChanged || endChanged || tagsChanged) && existing.synced_to_jira === 1) {
+                console.log(`[IPC:save-time-slice] Drift detected (Notes: ${notesChanged}, Start: ${startChanged}, End: ${endChanged}, Tags: ${tagsChanged}) for synced slice ${slice.id}. Marking as out-of-sync.`);
                 synced_to_jira = 0;
             }
 
@@ -264,7 +269,14 @@ export function registerIpcHandlers() {
                 synced_end_time: merged.synced_end_time || null,
                 synced_notes: merged.synced_notes || null
             };
-            return stmt.run(params)
+            const save = db.transaction(() => {
+                stmt.run(params);
+                if (slice.tag_ids !== undefined) {
+                    replaceTimeSliceTags(db, slice.id, nextTagIds);
+                }
+            });
+            save();
+            return hydrateTimeSliceTags(db, [db.prepare('SELECT * FROM time_slices WHERE id = ?').get(slice.id)!])[0];
         } else {
             // SAFEGUARD: If starting a NEW active time slice (no end_time), close any other active slices
             if (!slice.end_time) {
@@ -299,13 +311,20 @@ export function registerIpcHandlers() {
                 synced_end_time: normalizeTimeSliceBoundary(slice.synced_end_time),
                 synced_notes: slice.synced_notes || null
             };
-            const info = stmt.run(params)
-            return { id: info.lastInsertRowid, ...slice, ...params }
+            const save = db.transaction(() => {
+                const info = stmt.run(params);
+                const id = Number(info.lastInsertRowid);
+                replaceTimeSliceTags(db, id, normalizeTagIds(slice.tag_ids));
+                return id;
+            });
+            const id = save();
+            return hydrateTimeSliceTags(db, [{ id, ...slice, ...params }])[0]
         }
     })
 
     ipcMain.handle('db:get-active-time-slice', () => {
-        return db.prepare('SELECT * FROM time_slices WHERE end_time IS NULL LIMIT 1').get()
+        const slice = db.prepare('SELECT * FROM time_slices WHERE end_time IS NULL LIMIT 1').get()
+        return slice ? hydrateTimeSliceTags(db, [slice])[0] : undefined;
     })
 
     ipcMain.handle('db:delete-time-slice', (_, id) => {
@@ -321,7 +340,7 @@ export function registerIpcHandlers() {
             WHERE ts.work_item_id = ?
             ORDER BY ts.start_time ASC
         `);
-        return stmt.all(workItemId);
+        return hydrateTimeSliceTags(db, stmt.all(workItemId));
     });
 
     ipcMain.handle('db:search-time-slices', (_, { query = '', limit = 50, offset = 0 } = {}) => {
@@ -333,10 +352,15 @@ export function registerIpcHandlers() {
             WHERE ts.notes LIKE @query
                OR wi.description LIKE @query
                OR wi.jira_key LIKE @query
+               OR EXISTS (
+                   SELECT 1 FROM time_slice_tags tst
+                   JOIN tags t ON t.id = tst.tag_id
+                   WHERE tst.time_slice_id = ts.id AND t.name LIKE @query
+               )
             ORDER BY ts.start_time DESC
             LIMIT @limit OFFSET @offset
         `;
-        return db.prepare(sql).all({ query: `%${query}%`, limit, offset });
+        return hydrateTimeSliceTags(db, db.prepare(sql).all({ query: `%${query}%`, limit, offset }));
     });
 
     ipcMain.handle('db:search-time-slices-count', (_, { query = '' } = {}) => {
@@ -347,6 +371,11 @@ export function registerIpcHandlers() {
             WHERE ts.notes LIKE @query
                OR wi.description LIKE @query
                OR wi.jira_key LIKE @query
+               OR EXISTS (
+                   SELECT 1 FROM time_slice_tags tst
+                   JOIN tags t ON t.id = tst.tag_id
+                   WHERE tst.time_slice_id = ts.id AND t.name LIKE @query
+               )
         `;
         const result = db.prepare(sql).get({ query: `%${query}%` }) as { count: number };
         return result.count;
@@ -388,6 +417,7 @@ export function registerIpcHandlers() {
             synced_start_time: null,
             synced_end_time: null
         };
+        const mergedTagIds = Array.from(new Set(ids.flatMap(id => getTimeSliceTagIds(db, id))));
 
         const runMerge = db.transaction(() => {
             // Delete all original slices
@@ -398,7 +428,9 @@ export function registerIpcHandlers() {
                 INSERT INTO time_slices (work_item_id, start_time, end_time, notes, synced_to_jira, jira_worklog_id, synced_start_time, synced_end_time)
                 VALUES (@work_item_id, @start_time, @end_time, @notes, @synced_to_jira, @jira_worklog_id, @synced_start_time, @synced_end_time)
             `);
-            return insertStmt.run(mergedData);
+            const result = insertStmt.run(mergedData);
+            replaceTimeSliceTags(db, Number(result.lastInsertRowid), mergedTagIds);
+            return result;
         });
 
         const result = runMerge();
@@ -437,6 +469,51 @@ export function registerIpcHandlers() {
         });
 
         return { success: true };
+    });
+
+    // Tags
+    ipcMain.handle('db:get-tags', () => {
+        return db.prepare('SELECT * FROM tags ORDER BY name COLLATE NOCASE').all();
+    });
+
+    ipcMain.handle('db:save-tag', (_, tag: { id?: number; name?: string; description?: string }) => {
+        const name = normalizeTagName(tag.name ?? '');
+        const validationError = validateTagName(name);
+        if (validationError) throw new Error(validationError);
+        const description = tag.description?.trim() ?? '';
+
+        try {
+            if (tag.id) {
+                const existing = db.prepare('SELECT name FROM tags WHERE id = ?').get(tag.id) as { name: string } | undefined;
+                if (!existing) throw new Error('Tag not found.');
+                const update = db.transaction(() => {
+                    if (existing.name !== name) {
+                        markTagSlicesOutOfSync(db, tag.id!);
+                    }
+                    db.prepare(`
+                        UPDATE tags SET name = ?, description = ?, updated_at = unixepoch() WHERE id = ?
+                    `).run(name, description, tag.id);
+                    return db.prepare('SELECT * FROM tags WHERE id = ?').get(tag.id);
+                });
+                return update();
+            }
+
+            const result = db.prepare('INSERT INTO tags (name, description) VALUES (?, ?)').run(name, description);
+            return db.prepare('SELECT * FROM tags WHERE id = ?').get(result.lastInsertRowid);
+        } catch (error) {
+            if (error instanceof Error && error.message.includes('UNIQUE constraint failed')) {
+                throw new Error('A tag with this name already exists.');
+            }
+            throw error;
+        }
+    });
+
+    ipcMain.handle('db:delete-tag', (_, id: number) => {
+        const remove = db.transaction(() => {
+            markTagSlicesOutOfSync(db, id);
+            return db.prepare('DELETE FROM tags WHERE id = ?').run(id);
+        });
+        return remove();
     });
 
     // Helper type for connection with OAuth fields
@@ -709,10 +786,12 @@ export function registerIpcHandlers() {
                             const endedAt = new Date(worklogStartTime + (worklog.timeSpentSeconds * 1000));
                             const normalizedStart = normalizeTimeSliceBoundary(formatISO(startedAt))!;
                             const normalizedEnd = normalizeTimeSliceBoundary(formatISO(endedAt))!;
-                            const normalizedNotes = jiraCommentToPlainText(worklog.comment);
+                            const parsedComment = parseTagMarkers(jiraCommentToPlainText(worklog.comment));
+                            const normalizedNotes = parsedComment.notes;
                             const issueSummary = issue.fields?.summary || issue.key;
 
                             const importWorklog = db.transaction(() => {
+                                const importedTags = ensureTagsByNames(db, parsedComment.tagNames);
                                 let workItem = findWorkItemStmt.get(conn.id, issue.key) as { id: number } | undefined;
 
                                 if (!workItem) {
@@ -735,7 +814,7 @@ export function registerIpcHandlers() {
                                 } | undefined;
 
                                 if (!existingSlice) {
-                                    insertSliceStmt.run(
+                                    const insertResult = insertSliceStmt.run(
                                         workItem.id,
                                         normalizedStart,
                                         normalizedEnd,
@@ -745,8 +824,11 @@ export function registerIpcHandlers() {
                                         normalizedEnd,
                                         normalizedNotes
                                     );
+                                    replaceTimeSliceTags(db, Number(insertResult.lastInsertRowid), importedTags.ids);
                                     return 'created';
                                 }
+
+                                const existingTagIds = getTimeSliceTagIds(db, existingSlice.id);
 
                                 const unchanged =
                                     existingSlice.work_item_id === workItem.id &&
@@ -755,7 +837,8 @@ export function registerIpcHandlers() {
                                     (existingSlice.notes || '') === normalizedNotes &&
                                     (existingSlice.synced_start_time || null) === normalizedStart &&
                                     (existingSlice.synced_end_time || null) === normalizedEnd &&
-                                    (existingSlice.synced_notes || '') === normalizedNotes;
+                                    (existingSlice.synced_notes || '') === normalizedNotes &&
+                                    numberArraysEqual(existingTagIds, importedTags.ids);
 
                                 if (unchanged) {
                                     return 'skipped';
@@ -772,6 +855,7 @@ export function registerIpcHandlers() {
                                     normalizedNotes,
                                     existingSlice.id
                                 );
+                                replaceTimeSliceTags(db, existingSlice.id, importedTags.ids);
                                 return 'updated';
                             });
 
@@ -1138,6 +1222,7 @@ export function registerIpcHandlers() {
         let importedSlices = 0;
         let createdWorkItems = 0;
         let reusedWorkItems = 0;
+        let createdTags = 0;
         let skippedLines = 0;
 
         const defaultConn = db.prepare('SELECT id FROM jira_connections WHERE is_default = 1 LIMIT 1').get() as { id: number } | undefined;
@@ -1195,19 +1280,23 @@ export function registerIpcHandlers() {
                 VALUES (@work_item_id, @start_time, @end_time, @notes)
             `);
 
-            const normalizedNotes = (notes || '')
+            const rawNotes = (notes || '')
                 .replace(/\r\n/g, '\n')
                 .replace(/\r/g, '\n')
                 .replace(/\\n/g, '\n')
                 .replace(/\\r/g, '\n')
                 .trim();
+            const parsedNotes = parseTagMarkers(rawNotes);
+            const importedTags = ensureTagsByNames(db, parsedNotes.tagNames);
+            createdTags += importedTags.createdCount;
 
-            sliceStmt.run({
+            const sliceResult = sliceStmt.run({
                 work_item_id: workItem.id,
                 start_time: startTime,
                 end_time: endTime,
-                notes: normalizedNotes
+                notes: parsedNotes.notes
             });
+            replaceTimeSliceTags(db, Number(sliceResult.lastInsertRowid), importedTags.ids);
             importedSlices++;
         }
 
@@ -1215,6 +1304,7 @@ export function registerIpcHandlers() {
             importedSlices,
             createdWorkItems,
             reusedWorkItems,
+            createdTags,
             skippedLines
         };
     });
@@ -1378,6 +1468,104 @@ function jiraCommentToPlainText(comment: unknown): string {
         .join('')
         .replace(/\n{3,}/g, '\n\n')
         .trim();
+}
+
+type TimeSliceRecord = Record<string, unknown> & { id: number };
+
+function hydrateTimeSliceTags(db: Database.Database, rows: unknown[]): TimeSliceRecord[] {
+    const slices = rows as TimeSliceRecord[];
+    if (slices.length === 0) return slices;
+
+    const ids = slices.map(slice => slice.id);
+    const tagRows = db.prepare(`
+        SELECT tst.time_slice_id, t.*
+        FROM time_slice_tags tst
+        JOIN tags t ON t.id = tst.tag_id
+        WHERE tst.time_slice_id IN (${ids.map(() => '?').join(',')})
+        ORDER BY t.name COLLATE NOCASE
+    `).all(...ids) as Array<{
+        time_slice_id: number;
+        id: number;
+        name: string;
+        description: string;
+        created_at: number;
+        updated_at: number;
+    }>;
+
+    const tagsBySlice = new Map<number, Array<Omit<(typeof tagRows)[number], 'time_slice_id'>>>();
+    for (const { time_slice_id, ...tag } of tagRows) {
+        const tags = tagsBySlice.get(time_slice_id) ?? [];
+        tags.push(tag);
+        tagsBySlice.set(time_slice_id, tags);
+    }
+
+    return slices.map(slice => {
+        const tags = tagsBySlice.get(slice.id) ?? [];
+        return { ...slice, tags, tag_ids: tags.map(tag => tag.id) };
+    });
+}
+
+function normalizeTagIds(tagIds: unknown): number[] {
+    if (!Array.isArray(tagIds)) return [];
+    return Array.from(new Set(
+        tagIds
+            .map(Number)
+            .filter(id => Number.isInteger(id) && id > 0)
+    )).sort((a, b) => a - b);
+}
+
+function getTimeSliceTagIds(db: Database.Database, timeSliceId: number): number[] {
+    return (db.prepare(`
+        SELECT tag_id FROM time_slice_tags WHERE time_slice_id = ? ORDER BY tag_id
+    `).all(timeSliceId) as Array<{ tag_id: number }>).map(row => row.tag_id);
+}
+
+function replaceTimeSliceTags(db: Database.Database, timeSliceId: number, tagIds: number[]) {
+    db.prepare('DELETE FROM time_slice_tags WHERE time_slice_id = ?').run(timeSliceId);
+    if (tagIds.length === 0) return;
+
+    const insert = db.prepare(`
+        INSERT OR IGNORE INTO time_slice_tags (time_slice_id, tag_id)
+        SELECT ?, id FROM tags WHERE id = ?
+    `);
+    for (const tagId of tagIds) {
+        insert.run(timeSliceId, tagId);
+    }
+}
+
+function ensureTagsByNames(db: Database.Database, names: string[]): { ids: number[]; createdCount: number } {
+    const ids: number[] = [];
+    let createdCount = 0;
+    const find = db.prepare('SELECT id FROM tags WHERE name = ? COLLATE NOCASE');
+    const insert = db.prepare('INSERT INTO tags (name, description) VALUES (?, ?)');
+
+    for (const rawName of names) {
+        const name = normalizeTagName(rawName);
+        if (validateTagName(name)) continue;
+
+        let tag = find.get(name) as { id: number } | undefined;
+        if (!tag) {
+            const result = insert.run(name, '');
+            tag = { id: Number(result.lastInsertRowid) };
+            createdCount++;
+        }
+        ids.push(tag.id);
+    }
+
+    return { ids: normalizeTagIds(ids), createdCount };
+}
+
+function markTagSlicesOutOfSync(db: Database.Database, tagId: number) {
+    db.prepare(`
+        UPDATE time_slices
+        SET synced_to_jira = 0, updated_at = unixepoch()
+        WHERE id IN (SELECT time_slice_id FROM time_slice_tags WHERE tag_id = ?)
+    `).run(tagId);
+}
+
+function numberArraysEqual(left: number[], right: number[]): boolean {
+    if (left.length !== right.length) return false;
+    return left.every((value, index) => value === right[index]);
 }
 
 function runMigrations(db: Database.Database) {

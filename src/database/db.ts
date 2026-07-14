@@ -89,6 +89,22 @@ function initSchema(database: Database.Database) {
       value TEXT NOT NULL,
       updated_at INTEGER DEFAULT (unixepoch())
     );
+
+    CREATE TABLE IF NOT EXISTS tags (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+      description TEXT NOT NULL DEFAULT '',
+      created_at INTEGER DEFAULT (unixepoch()),
+      updated_at INTEGER DEFAULT (unixepoch())
+    );
+
+    CREATE TABLE IF NOT EXISTS time_slice_tags (
+      time_slice_id INTEGER NOT NULL,
+      tag_id INTEGER NOT NULL,
+      PRIMARY KEY (time_slice_id, tag_id),
+      FOREIGN KEY (time_slice_id) REFERENCES time_slices(id) ON DELETE CASCADE,
+      FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+    );
   `;
 
   database.exec(schema);

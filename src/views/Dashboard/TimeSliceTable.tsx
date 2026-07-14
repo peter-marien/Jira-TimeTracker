@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { AlertCircle, CheckCircle2, Copy, Pencil, Play, Trash2, ArrowRightLeft, MoreHorizontal, Split, Merge, FileEdit, ExternalLink, X } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Badge } from "@/components/ui/badge"
 
 interface TimeSliceTableProps {
     slices: TimeSlice[];
@@ -241,6 +242,15 @@ export function TimeSliceTable({
                                             <p>Missing notes</p>
                                         </TooltipContent>
                                     </Tooltip>
+                                )}
+                                {slice.tags && slice.tags.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 pt-0.5">
+                                        {slice.tags.map(tag => (
+                                            <Badge key={tag.id} variant="secondary" className="px-1.5 py-0 text-[10px] font-medium">
+                                                {tag.name}
+                                            </Badge>
+                                        ))}
+                                    </div>
                                 )}
                             </div>
 
