@@ -65,7 +65,8 @@ export function CopyTimeSliceDialog({ open, onOpenChange, slice, onSave }: CopyT
                     work_item_id: slice.work_item_id,
                     start_time: formatISO(newStart),
                     end_time: newEnd ? formatISO(newEnd) : null,
-                    notes: includeNotes ? slice.notes : null
+                    notes: includeNotes ? slice.notes : null,
+                    tag_ids: slice.tag_ids
                 })
             }
             onSave()

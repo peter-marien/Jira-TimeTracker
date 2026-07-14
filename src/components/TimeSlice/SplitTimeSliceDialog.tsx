@@ -157,7 +157,7 @@ export function SplitTimeSliceDialog({ slice, open, onOpenChange, onSave }: Spli
 
         // 1. Calculate all intervals (gaps + segments)
         const sorted = [...segments].sort((a, b) => a.startTime.localeCompare(b.startTime));
-        const finalSlices: { start: string, end: string | null, itemId: number, notes?: string }[] = [];
+        const finalSlices: { start: string, end: string | null, itemId: number, notes?: string, tagIds?: number[] }[] = [];
 
         let currentPos = originalStart;
 
@@ -170,7 +170,8 @@ export function SplitTimeSliceDialog({ slice, open, onOpenChange, onSave }: Spli
                     start: currentPos,
                     end: segStartISO,
                     itemId: originalWorkItemId,
-                    notes: slice.notes || undefined
+                    notes: slice.notes || undefined,
+                    tagIds: slice.tag_ids
                 });
             }
 
@@ -181,6 +182,7 @@ export function SplitTimeSliceDialog({ slice, open, onOpenChange, onSave }: Spli
                     start: segStartISO,
                     end: segEndISO,
                     itemId: seg.workItem!.id,
+                    tagIds: slice.tag_ids,
                 });
                 currentPos = segEndISO;
             } else {
@@ -189,6 +191,7 @@ export function SplitTimeSliceDialog({ slice, open, onOpenChange, onSave }: Spli
                     start: segStartISO,
                     end: null, // Active
                     itemId: seg.workItem!.id,
+                    tagIds: slice.tag_ids,
                 });
                 currentPos = "FUTURE";
             }
@@ -200,7 +203,8 @@ export function SplitTimeSliceDialog({ slice, open, onOpenChange, onSave }: Spli
                 start: currentPos,
                 end: originalEnd,
                 itemId: originalWorkItemId,
-                notes: slice.notes || undefined
+                notes: slice.notes || undefined,
+                tagIds: slice.tag_ids
             });
         }
 
@@ -213,7 +217,8 @@ export function SplitTimeSliceDialog({ slice, open, onOpenChange, onSave }: Spli
                 work_item_id: f.itemId,
                 start_time: f.start,
                 end_time: f.end || undefined,
-                notes: f.notes
+                notes: f.notes,
+                tag_ids: f.tagIds
             });
         }
 

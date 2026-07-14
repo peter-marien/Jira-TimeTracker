@@ -7,6 +7,7 @@ import { MonthView } from "@/views/MonthView/MonthView"
 import { ReportsView } from "@/views/Reports/ReportsView"
 import { SearchView } from "@/views/Search/SearchView"
 import { AwayDialogPage } from "@/views/Away/AwayDialogPage"
+import { TagsView } from "@/views/Tags/TagsView"
 
 import { useTrayEvents } from "@/hooks/useTrayEvents"
 
@@ -136,6 +137,7 @@ function AppShell() {
         <Route element={<AppLayout />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/work-items" element={<WorkItemsView />} />
+          <Route path="/tags" element={<TagsView />} />
           <Route path="/month" element={<MonthView />} />
           <Route path="/reports" element={<ReportsView />} />
           <Route path="/search" element={<SearchView />} />

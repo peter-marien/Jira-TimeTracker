@@ -15,6 +15,7 @@ import { DateTimePicker } from "@/components/shared/DateTimePicker"
 import { WorkItemSearchBar } from "@/components/shared/WorkItemSearchBar"
 import { formatISO, differenceInSeconds } from "date-fns"
 import { Clock } from "lucide-react"
+import { TagSelector } from "@/components/shared/TagSelector"
 
 interface AddTimeSliceDialogProps {
     open: boolean;
@@ -28,6 +29,7 @@ export function AddTimeSliceDialog({ open, onOpenChange, onSave, selectedDate }:
     const [startDateTime, setStartDateTime] = useState<Date | undefined>(undefined)
     const [endDateTime, setEndDateTime] = useState<Date | undefined>(undefined)
     const [notes, setNotes] = useState("")
+    const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
     const [error, setError] = useState<string | null>(null)
 
     // Initialize with selected date at current time when dialog opens
@@ -41,6 +43,7 @@ export function AddTimeSliceDialog({ open, onOpenChange, onSave, selectedDate }:
             setEndDateTime(undefined)
             setWorkItemId(null)
             setNotes("")
+            setSelectedTagIds([])
             setError(null)
         }
     }, [open, selectedDate])
@@ -72,6 +75,7 @@ export function AddTimeSliceDialog({ open, onOpenChange, onSave, selectedDate }:
             start_time: formatISO(startDateTime),
             end_time: endDateTime ? formatISO(endDateTime) : null,
             notes: notes || null,
+            tag_ids: selectedTagIds,
         })
 
         onSave()
@@ -141,6 +145,10 @@ export function AddTimeSliceDialog({ open, onOpenChange, onSave, selectedDate }:
                             placeholder="What were you working on?"
                             rows={3}
                         />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label>Tags</Label>
+                        <TagSelector selectedTagIds={selectedTagIds} onChange={setSelectedTagIds} />
                     </div>
                     {error && (
                         <div className="text-red-500 text-sm font-medium">

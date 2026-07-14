@@ -34,6 +34,16 @@ export interface TimeSlice {
     connection_name?: string;
     jira_connection_id?: number | null;
     jira_connection_is_enabled?: number | null;
+    tags?: Tag[];
+    tag_ids?: number[];
+}
+
+export interface Tag {
+    id: number;
+    name: string;
+    description: string;
+    created_at?: number;
+    updated_at?: number;
 }
 
 export interface JiraConnection {
@@ -149,6 +159,11 @@ export const api = {
     getSettings: () => ipc.invoke('db:get-settings'),
     saveSetting: (key: string, value: string) => ipc.invoke('db:save-setting', { key, value }),
 
+    // Tags
+    getTags: () => ipc.invoke('db:get-tags') as Promise<Tag[]>,
+    saveTag: (tag: Partial<Tag>) => ipc.invoke('db:save-tag', tag) as Promise<Tag>,
+    deleteTag: (id: number) => ipc.invoke('db:delete-tag', id),
+
     // Jira
     searchJiraIssues: (query: string) => ipc.invoke('jira:search-issues', query),
     searchJiraIssuesAllConnections: (query: string) => ipc.invoke('jira:search-issues-all-connections', query) as Promise<{
@@ -174,7 +189,7 @@ export const api = {
 
     // CSV Import
     selectCsvFile: () => ipc.invoke('database:select-csv') as Promise<string | null>,
-    importCsv: (csvContent: string) => ipc.invoke('database:import-csv', csvContent) as Promise<{ importedSlices: number, createdWorkItems: number, reusedWorkItems: number, skippedLines: number }>,
+    importCsv: (csvContent: string) => ipc.invoke('database:import-csv', csvContent) as Promise<{ importedSlices: number, createdWorkItems: number, reusedWorkItems: number, createdTags: number, skippedLines: number }>,
     readFile: (filePath: string) => ipc.invoke('fs:read-file', filePath) as Promise<string>,
 
     // Window Controls

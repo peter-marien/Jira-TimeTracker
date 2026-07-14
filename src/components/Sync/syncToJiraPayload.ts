@@ -1,5 +1,6 @@
 import type { TimeSlice } from "@/lib/api";
 import { differenceInSeconds } from "date-fns";
+import { appendTagMarkers } from "@/lib/tags";
 
 export interface SyncToJiraEntry {
     id: string;
@@ -24,12 +25,11 @@ interface CreateSyncToJiraEntriesOptions {
     combineSameTicket: boolean;
 }
 
-export function getJiraWorklogComment(notes?: string | null): string {
-    if (!notes || notes.trim().length === 0) {
-        return "";
-    }
-
-    return notes;
+export function getJiraWorklogComment(
+    notes?: string | null,
+    tags: Array<{ name: string }> = []
+): string {
+    return appendTagMarkers(notes, tags.map(tag => tag.name));
 }
 
 export function createSyncToJiraEntries(
@@ -139,7 +139,7 @@ function createSingleSliceEntry(slice: TimeSlice): SyncToJiraEntry {
         jiraWorklogId: slice.jira_worklog_id,
         started: slice.start_time,
         timeSpentSeconds: getSliceDurationSeconds(slice),
-        comment: getJiraWorklogComment(slice.notes),
+        comment: getJiraWorklogComment(slice.notes, slice.tags),
         description: slice.work_item_description || slice.jira_key!,
         slices: [slice]
     };
@@ -147,8 +147,8 @@ function createSingleSliceEntry(slice: TimeSlice): SyncToJiraEntry {
 
 function getCombinedJiraWorklogComment(slices: TimeSlice[]): string {
     return slices
-        .map(slice => slice.notes?.trim() ?? "")
-        .filter(note => note.length > 0)
+        .map(slice => getJiraWorklogComment(slice.notes, slice.tags))
+        .filter(comment => comment.length > 0)
         .join("\n\n");
 }
 

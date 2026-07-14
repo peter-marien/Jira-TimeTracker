@@ -15,6 +15,7 @@ import { DateTimePicker } from "@/components/shared/DateTimePicker"
 import { useTrackingStore } from "@/stores/useTrackingStore"
 import { formatISO, differenceInSeconds } from "date-fns"
 import { Clock } from "lucide-react"
+import { TagSelector } from "@/components/shared/TagSelector"
 
 interface EditTimeSliceDialogProps {
     slice: TimeSlice | null;
@@ -27,6 +28,7 @@ export function EditTimeSliceDialog({ slice, open, onOpenChange, onSave }: EditT
     const [startDateTime, setStartDateTime] = useState<Date | undefined>(undefined)
     const [endDateTime, setEndDateTime] = useState<Date | undefined>(undefined)
     const [notes, setNotes] = useState("");
+    const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -34,6 +36,7 @@ export function EditTimeSliceDialog({ slice, open, onOpenChange, onSave }: EditT
             setStartDateTime(new Date(slice.start_time))
             setEndDateTime(slice.end_time ? new Date(slice.end_time) : undefined)
             setNotes(slice.notes || "");
+            setSelectedTagIds(slice.tag_ids || slice.tags?.map(tag => tag.id) || []);
             setError(null);
         }
     }, [slice, open]);
@@ -66,6 +69,7 @@ export function EditTimeSliceDialog({ slice, open, onOpenChange, onSave }: EditT
             start_time: formatISO(startDateTime),
             end_time: endDateTime ? formatISO(endDateTime) : null,
             notes: notes,
+            tag_ids: selectedTagIds,
             // Preserve sync-related fields
             synced_to_jira: slice.synced_to_jira,
             jira_worklog_id: slice.jira_worklog_id,
@@ -149,6 +153,10 @@ export function EditTimeSliceDialog({ slice, open, onOpenChange, onSave }: EditT
                             placeholder="What were you doing?"
                             rows={3}
                         />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label>Tags</Label>
+                        <TagSelector selectedTagIds={selectedTagIds} onChange={setSelectedTagIds} />
                     </div>
                     {error && (
                         <div className="text-red-500 text-sm font-medium">
