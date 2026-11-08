@@ -11,6 +11,7 @@ import { initializeMiniPlayer } from './mini-player'
 import { handleOAuthCallback } from './oauth-service'
 import { configureLogging } from './logger'
 import { initializeTrackingState } from './tracking-state'
+import { installWindowRecovery, revealWindow } from './window-lifecycle'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 process.env.APP_ROOT = path.join(__dirname, '..')
@@ -64,25 +65,20 @@ if (!gotTheLock) {
     }
 
     // Focus the main window
-    const windows = BrowserWindow.getAllWindows()
-    if (windows.length > 0) {
-      const mainWindow = windows.find(w => !w.webContents.getURL().includes('mini-player')) || windows[0]
-      if (mainWindow.isMinimized()) mainWindow.restore()
-      mainWindow.focus()
-    }
+    if (win && !win.isDestroyed()) revealWindow(win)
   })
 }
 
 //
-// â”œâ”€â”¬â”€â”¬ dist
-// â”‚ â”‚ â””â”€â”€ index.html
-// â”‚ â”‚
-// â”‚ â”œâ”€â”¬ dist-electron
-// â”‚ â”‚ â”œâ”€â”€ main.js
-// â”‚ â”‚ â””â”€â”€ preload.mjs
-// â”‚
+// ├─┬─┬ dist
+// │ │ └── index.html
+// │ │
+// │ ├─┬ dist-electron
+// │ │ ├── main.js
+// │ │ └── preload.mjs
+// │
 
-// ðŸš§ Use ['ENV_NAME'] avoid vite:define plugin - Vite@2.x
+// 🚧 Use ['ENV_NAME'] avoid vite:define plugin - Vite@2.x
 export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
 export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
 export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
@@ -100,6 +96,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.mjs'),
     },
   })
+  installWindowRecovery(win, 'main')
 
   // Test active push message to Renderer-process.
   win.webContents.on('did-finish-load', () => {

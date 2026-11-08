@@ -1,6 +1,7 @@
 import { BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { installWindowRecovery } from './window-lifecycle';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const APP_ROOT = path.join(__dirname, '..');
@@ -42,6 +43,7 @@ export function createAwayWindow(data: AwayData) {
         },
         show: false
     });
+    installWindowRecovery(awayWindow, 'away');
 
     awayWindow.once('ready-to-show', () => {
         awayWindow?.show();

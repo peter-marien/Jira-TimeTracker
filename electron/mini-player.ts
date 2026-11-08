@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { VITE_DEV_SERVER_URL, RENDERER_DIST } from './main';
 import { getAppConfig, saveAppConfig } from './config-service';
 import { getTrackingSnapshot } from './tracking-state';
+import { installWindowRecovery, revealWindow } from './window-lifecycle';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -144,6 +145,7 @@ function createMiniPlayerWindow(): BrowserWindow {
             contextIsolation: true,
         },
     });
+    installWindowRecovery(win, 'mini-player');
 
     // Save bounds on resize/move (debounced)
     let saveTimeout: NodeJS.Timeout;
@@ -215,8 +217,6 @@ export function hideMiniPlayer() {
 export function expandToMainWindow() {
     hideMiniPlayer();
     if (mainWindow) {
-        mainWindow.restore();
-        mainWindow.show();
-        mainWindow.focus();
+        revealWindow(mainWindow);
     }
 }

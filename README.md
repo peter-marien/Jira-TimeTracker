@@ -54,6 +54,20 @@ npm run dev
 npm run build
 ```
 
+### Tests
+
+Run `npm test` with Node.js 24 LTS or newer. The regression suite uses isolated,
+in-memory databases and simulated Electron events; it does not open the installed
+application or access your saved time entries.
+
+After building with `npx vite build`, run `npm run test:electron` to check the built
+preload in a hidden Electron window with a temporary, isolated application profile.
+
+For hibernation changes, also verify a packaged build on Windows: stop tracking,
+minimize, hibernate, and resume. Both windows should remain idle. Repeat while
+tracking and after disconnecting a monitor; the active entry should remain the
+same and reopening the app should show its window on an available screen.
+
 ### Deploy new version to GitHub
 
 The project includes an agentic workflow for safe and automated releases.

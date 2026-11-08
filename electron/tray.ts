@@ -2,6 +2,7 @@ import { app, Tray, Menu, nativeImage, BrowserWindow } from 'electron';
 import path from 'node:path';
 import { startPulsing, stopPulsing } from './tray-animator';
 import { stopActiveTracking } from './tracking-state';
+import { revealWindow } from './window-lifecycle';
 
 let tray: Tray | null = null;
 let mainWindow: BrowserWindow | null = null;
@@ -51,8 +52,7 @@ function updateTrayMenu(isTracking: boolean, currentWorkItem?: string) {
             label: isTracking ? 'Stop Tracking' : 'Start Tracking...',
             click: () => {
                 if (!mainWindow) return;
-                mainWindow.show();
-                mainWindow.focus();
+                revealWindow(mainWindow);
                 if (isTracking) {
                     try {
                         stopActiveTracking();
@@ -71,11 +71,10 @@ function updateTrayMenu(isTracking: boolean, currentWorkItem?: string) {
 
 function toggleWindow() {
     if (!mainWindow) return;
-    if (mainWindow.isVisible()) {
+    if (mainWindow.isVisible() && !mainWindow.isMinimized()) {
         mainWindow.minimize();
     } else {
-        mainWindow.show();
-        mainWindow.focus();
+        revealWindow(mainWindow);
     }
 }
 
