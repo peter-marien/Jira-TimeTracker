@@ -48,6 +48,21 @@ app.whenReady().then(() => {
 
     const artifacts = process.env.JIRA_TEST_ARTIFACTS;
     if (artifacts) fs.mkdirSync(artifacts, { recursive: true });
+    const dateButton = `Array.from(document.querySelectorAll('button')).find(b => /\\b\\d{4}\\b/.test(b.textContent))`;
+    const originalDate = await evaluate(window, `${dateButton}.textContent`);
+    await evaluate(window, `${dateButton}.click()`);
+    await waitFor(() => evaluate(window, `!!document.querySelector('[data-slot="calendar"]')`));
+    const caption = () => evaluate(window, `document.querySelector('.rdp-month_caption').textContent`);
+    const originalMonth = await caption();
+    await evaluate(window, `document.querySelector('.rdp-button_next').click()`);
+    await waitFor(async () => await caption() !== originalMonth);
+    await evaluate(window, `document.querySelector('.rdp-button_previous').click()`);
+    await waitFor(async () => await caption() === originalMonth);
+    if (artifacts) fs.writeFileSync(path.join(artifacts, 'calendar.png'), (await window.webContents.capturePage()).toPNG());
+    await evaluate(window, `Array.from(document.querySelectorAll('button[data-day]')).find(b => ['10', '15'].includes(b.textContent) && b.dataset.selectedSingle !== 'true' && !b.disabled).click()`);
+    await waitFor(async () => await evaluate(window, `${dateButton}.textContent`) !== originalDate);
+    await evaluate(window, `document.querySelector('[data-slot="calendar"]')?.closest('[role="dialog"]')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
+    await delay(200);
     for (const [name, route] of [['dashboard', '/'], ['month', '/month'], ['settings', '/settings']]) {
         await evaluate(window, `window.location.hash = ${JSON.stringify(route)}`);
         await delay(500);

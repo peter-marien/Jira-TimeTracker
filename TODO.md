@@ -57,8 +57,8 @@ database fixtures and isolated profiles; never open the user's live database.**
   blur normalization, invalid input, clear/Active, disabled state, prop updates.
 - [x] Upgrade React/React DOM and corresponding types together.
 - [x] Resolve React 19 API/type incompatibilities without unrelated refactoring.
-- [ ] Upgrade Radix, Lucide, charts, router, state, date, and remaining packages.
-- [ ] Migrate to DayPicker v10; verify custom components and date-range behavior.
+- [x] Upgrade Radix, Lucide, charts, router, state, date, and remaining packages.
+- [x] Migrate to DayPicker v10; verify custom components and date-range behavior.
 - [ ] Upgrade Tailwind/PostCSS and introduce dedicated PostCSS integration.
 - [ ] Remove redundant autoprefixer; explicitly preserve theme and animations.
 - [ ] Review changed utilities, CSS-variable syntax, borders/rings/shadows/radii.
