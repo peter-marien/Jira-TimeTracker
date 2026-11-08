@@ -37,11 +37,11 @@ database fixtures and isolated profiles; never open the user's live database.**
 - [x] Upgrade ESLint/parser/plugins together and migrate to flat configuration.
 - [x] Preserve lint scope, generated-output ignores, existing rules, zero warnings.
 - [x] Run lint, tests, and type checks after this group; resolve migration failures.
-- [ ] Upgrade Vite/React plugin/Electron plugins together.
-- [ ] Migrate applicable build configuration to Rolldown options.
-- [ ] Verify main/mini-player HTML builds and native dependency externalization.
-- [ ] Verify main/preload output formats and production `.mjs` preload paths.
-- [ ] Check development startup and renderer integration.
+- [x] Upgrade Vite/React plugin/Electron plugins together.
+- [x] Migrate applicable build configuration to Rolldown options.
+- [x] Verify main/mini-player HTML builds and native dependency externalization.
+- [x] Verify main/preload output formats and production `.mjs` preload paths.
+- [x] Check development startup and renderer integration.
 - [x] Review Electron breaking changes and OS requirements; report material changes
   and request feedback if existing platform configuration would need to change.
 - [x] Upgrade Electron, builder, SQLite/types, updater, and logging coherently.
