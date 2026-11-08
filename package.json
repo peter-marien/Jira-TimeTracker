@@ -19,7 +19,8 @@
     "preview": "vite preview",
     "test:sqlite": "node tests/native-sqlite.mjs",
     "test:app": "node tests/run-app-smoke.mjs",
-    "test:input": "node tests/run-time-picker.mjs"
+    "test:input": "node tests/run-time-picker.mjs",
+    "test:packaged": "node tests/run-packaged-smoke.mjs"
   },
   "dependencies": {
     "@daypicker/react": "^10.0.2",

@@ -85,15 +85,22 @@ app.whenReady().then(async () => {
     await blur();
     assert.equal(await value(), '');
     await render({ value: '12:34:56', allowEmpty: true });
-    await evaluate(`document.querySelector('button').click()`);
+    await evaluate(`document.querySelector('#root button').click()`);
     await delay();
     assert.equal(await value(), '');
     assert.equal((await values()).at(-1), '');
 
     await render({ value: '12:34:56', disabled: true, allowEmpty: true });
     assert.equal(await evaluate(`document.querySelector('input').disabled`), true);
-    assert.equal(await evaluate(`document.querySelector('button')`), null);
+    assert.equal(await evaluate(`document.querySelector('#root button')`), null);
+    for (const day of ['10', '15']) {
+        await evaluate(`Array.from(document.querySelectorAll('#calendar-root button[data-day]')).find(b => b.textContent === '${day}').click()`);
+        await delay();
+    }
+    assert.deepEqual(await evaluate('window.calendarSelection'), { from: 10, to: 15 });
+    assert.ok(await evaluate(`document.querySelector('#calendar-root .rdp-weekday').textContent.startsWith('Mo')`));
     console.log('PASS: time input typing, caret edits, normalization, validation, clear, props, and disabled state.');
+    console.log('PASS: calendar range selection and Monday week start.');
     app.exit(0);
 }).catch(error => {
     console.error(error);

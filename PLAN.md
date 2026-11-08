@@ -1,6 +1,6 @@
 # Dependency and Node.js upgrade plan
 
-Status: **Approved on 2026-11-08 — implementation in progress.**
+Status: **Implemented on Windows x64; physical OS/integration checks remain manual.**
 
 Investigated on 2026-11-08 from commit `3b93217`.
 Branch: `codex/plan-dependency-node-upgrade`.
@@ -16,10 +16,9 @@ macOS DMG and Linux AppImage configuration. Linux/macOS runtime compatibility
 remains unverified; adding platform support, CI runners, or distribution guarantees
 is outside this upgrade.
 
-This planning stage changes only `PLAN.md` and `TODO.md`. Dependency manifests,
-the lockfile, configuration, workflows, and application code must wait for an
-explicit review and approval of both documents. Approval of the plan does not
-authorize publishing a release or sending work to external services.
+The planning stage changed only `PLAN.md` and `TODO.md`. The user approved
+implementation on 2026-11-08 and requested tests before every commit and protection
+of the current database. Release publishing remains outside the authorized work.
 
 ## Investigation and baseline
 
@@ -100,7 +99,7 @@ The checked versions of `@dnd-kit/core` (6.3.1), modifiers (9.0.0), utilities
 `tailwindcss-animate` (1.0.7) are already current. Keep them unless compatibility
 testing demonstrates a need to change them.
 
-## Compatibility decisions proposed for approval
+## Compatibility decisions
 
 1. **TypeScript exception:** use 6.0.3 initially. The latest ESLint parser declares
    TypeScript `>=4.8.4 <6.1.0`, which excludes 7.0.2. Do not bypass peer validation
@@ -231,6 +230,65 @@ dependency upgrade. Do not read, migrate, or write the user's live database.
   this retains positions and integrates with the existing Input through a ref.
   Tests cover selected replacement/deletion, formatted insertion, prop changes,
   partial/invalid values, clearing/Active, and disabled input without any database.
+
+## Validation results — 2026-11-08
+
+All commands below used isolated Node 26.13.0/npm 11.20.0 on Windows x64.
+The machine-wide default Node version was not changed.
+
+| Check | Result |
+| --- | --- |
+| `npm ci` | Clean install succeeds without forced peer resolution |
+| `npm ls --all` | Valid dependency tree, no reported problems |
+| Manifest/lockfile comparison | Direct dependencies, dev dependencies, and engines match |
+| `npm run lint` | Passes with zero warnings |
+| `npx tsc --noEmit` | Passes with TypeScript 6.0.3 |
+| `npm test` | All 49 regressions pass; run before every implementation commit |
+| `npm run test:sqlite` | Real native SQLite passes row/schema preservation, integrity, foreign-key, WAL, and rollback checks |
+| Historical fixture upgrade | SQLite package 12.5.0 on Node 24 creates a synthetic database; 13.0.3 on Node 26 preserves identical rows/schema, including an active entry |
+| `npx vite build` | Main/mini-player renderers, Electron main, and `.mjs` preload build successfully |
+| Development server probe | Both HTML entries and React transforms pass; automatic Electron startup disabled |
+| `npm run test:electron` | Real context bridge/listener cleanup and Electron native SQLite fixture pass |
+| `npm run test:input` | Native keyboard, selected replacement/deletion, formatted insertion, partial/invalid input, clear/Active, props, disabled input, calendar range, and Monday week-start checks pass |
+| `npm run test:app` | Real built IPC/database tracking start/stop and simulated resume pass; mini-player updates to idle; away dialog and calendar navigation render using a disposable profile |
+| Visual checks | Inspected dashboard, month view, reports/charts, settings, mini-player, and away dialog in light/dark themes, plus calendar |
+| Image/icon libraries | SVG-to-PNG-to-ICO generation passes in memory |
+| Windows packaging | Unpublished, unsigned NSIS installer produced in `out/upgrade-package` |
+| Packaged checks | Packaged executable loads its own SQLite binary and preserves a disposable fixture; packaged main/preload/renderer bundle boots under an isolated profile |
+
+No live database was opened or copied. The production database schema/migration
+source (`src/database/db.ts`) is unchanged from the starting commit. Every test
+that creates data uses a generated temporary directory; full app tests verify
+that the database path belongs to that directory before exercising IPC writes.
+OAuth protocol registration is stubbed and external renderer HTTP is blocked.
+No installer was run, release published, application version bumped, or Git push
+performed. The existing prebuild/prerelease process-killing hooks were not invoked.
+
+All direct dependencies are at their checked stable targets except the approved
+TypeScript 6.0.3 compatibility ceiling. The final audit reports **14 moderate
+development-tool dependency entries**, down from 40 total entries including high
+and critical findings. `npm audit --omit=dev` reports **zero** findings. The
+remaining entries trace to minimatch's glob amplification advisory
+[GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249) through
+current lint/build tools. npm's suggested fixes include downgrading those tools;
+no forced downgrade or incompatible transitive major override was applied.
+
+Build output retains non-failing warnings about large renderer chunks, an existing
+mixed static/dynamic crypto import, and missing package author/description fields.
+The test installer is unsigned because no signing certificate was configured.
+
+### Manual checks still required
+
+- Physical Windows hibernate/resume and monitor-disconnection scenarios.
+- Installed-app tray interaction, OS notifications, and browser OAuth callback
+  registration using a disposable profile/test account.
+- Installer UI and signed distribution/update delivery. The installer was built
+  and its packaged code checked, but it was not installed or published.
+
+These are not claimed as passing. Existing regression tests cover simulated power,
+window recovery, tray updates, updater retries, and mocked Jira payloads. Live
+Jira writes were not performed. macOS/Linux configuration remains present with
+runtime compatibility explicitly unverified, as agreed.
 
 ## Primary sources
 

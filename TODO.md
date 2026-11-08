@@ -31,7 +31,7 @@ database fixtures and isolated profiles; never open the user's live database.**
 
 ## 2. Tooling and desktop runtime — PLAN phase 2
 
-- [x] Upgrade TypeScript to approved compatible version (proposed 6.0.3).
+- [x] Upgrade TypeScript to the approved compatible version, 6.0.3.
 - [x] Verify test helper's compiler API and Node TypeScript/module-hook behavior.
 - [x] Migrate deprecated TypeScript configuration while preserving `@/` aliases.
 - [x] Upgrade ESLint/parser/plugins together and migrate to flat configuration.
@@ -46,8 +46,11 @@ database fixtures and isolated profiles; never open the user's live database.**
   and request feedback if existing platform configuration would need to change.
 - [x] Upgrade Electron, builder, SQLite/types, updater, and logging coherently.
 - [x] Add/run isolated actual `better-sqlite3` checks for host Node and Electron.
-- [x] Ensure native rebuild steps work on Windows x64.
-- [ ] Verify IPC, power events, window recovery, tray, OAuth, notifications, updater.
+- [x] Verify supplied Node-API binaries work on Windows x64 without a C++ rebuild.
+- [x] Verify real IPC/tracking and simulated resume; existing mocked power/window
+  recovery/tray/updater regressions pass.
+- [ ] Manually verify installed tray interaction, OAuth callback registration,
+  and OS notifications using a disposable profile/test account.
 
 ## 3. Renderer and styles — PLAN phase 3
 
@@ -62,32 +65,36 @@ database fixtures and isolated profiles; never open the user's live database.**
 - [x] Upgrade Tailwind/PostCSS and introduce dedicated PostCSS integration.
 - [x] Remove redundant autoprefixer; explicitly preserve theme and animations.
 - [x] Review changed utilities, CSS-variable syntax, borders/rings/shadows/radii.
-- [ ] Compare light/dark main window, mini-player, away dialog, calendar, charts.
-- [ ] Validate lint, tests, types, and builds after each coherent upgrade group.
+- [x] Compare light/dark main window, mini-player, away dialog, calendar, charts.
+- [x] Validate lint, tests, types, and builds after each coherent upgrade group.
 
 ## 4. Windows validation — PLAN phase 4
 
-- [ ] Retain Windows-only CI/release setup and existing platform-specific code.
-- [ ] Keep manual release publishing separate from validation.
-- [ ] Verify clean install, lint, regression tests, types, builds, native SQLite,
+- [x] Retain Windows-only CI/release setup and existing platform-specific code.
+- [x] Keep manual release publishing separate from validation.
+- [x] Verify clean install, lint, regression tests, types, builds, native SQLite,
   and Electron smoke test on Windows.
-- [ ] Build Windows NSIS with publishing disabled.
-- [ ] Preserve macOS DMG/Linux AppImage configuration; document runtime support
+- [x] Build Windows NSIS with publishing disabled.
+- [x] Preserve macOS DMG/Linux AppImage configuration; document runtime support
   as unverified and platform validation as outside this task's scope.
-- [ ] Check Windows packaged startup/native SQLite using disposable
+- [x] Check Windows packaged startup/native SQLite using disposable
   profiles/databases; retain actual results or explicit pending status.
-- [ ] Avoid publishing commands and prebuild hooks that kill existing Electron apps.
+- [x] Avoid publishing commands and prebuild hooks that kill existing Electron apps.
 
 ## 5. Acceptance and handoff — PLAN phase 5
 
-- [ ] Check start/stop/resume, mini-player, away handling, tray/window recovery.
+- [x] Check built start/stop/simulated resume, mini-player synchronization, away
+  dialog rendering, and existing tray/window recovery regression tests.
 - [ ] Check Windows hibernate/resume and monitor-removal scenarios.
-- [ ] Verify existing database readability using a disposable fixture/copy.
-- [ ] Verify Jira payloads with mocks and updater error/retry paths.
-- [ ] Re-run npm audit; compare findings and document residual issues/exceptions.
-- [ ] Confirm manifests/lockfile are synchronized and installs remain reproducible.
-- [ ] Update README with final runtime/setup/native rebuild/validation instructions.
-- [ ] Record final versions, commands, Windows results, and manual-check status.
-- [ ] Review final diff for unrelated changes and unintended generated artifacts.
-- [ ] Present results and any pending Windows/manual work; retain the explicit
+- [x] Verify database readability using a synthetic fixture created with the old
+  SQLite package/Node 24 and reopened by the new package/Node 26; schema/rows match.
+- [x] Verify Jira payloads with mocks and updater error/retry paths.
+- [x] Re-run npm audit; compare findings and document residual issues/exceptions.
+- [x] Confirm manifests/lockfile are synchronized and installs remain reproducible.
+- [x] Update README with final runtime/setup/native binary/validation instructions.
+- [x] Record final versions, commands, Windows results, and manual-check status.
+- [x] Review final diff for unrelated changes and unintended generated artifacts.
+- [x] Present results and any pending Windows/manual work; retain the explicit
   unverified macOS/Linux status without claiming cross-platform validation.
+- [ ] Manually check installer UI and signed distribution/update delivery; the
+  unsigned installer was built and its packaged code tested, not installed.
