@@ -109,8 +109,8 @@ testing demonstrates a need to change them.
    preserving both Vite and Node-test aliases. Revisit TypeScript 7 when the
    parser and test compiler API support it.
 2. **Input mask replacement:** the installed `react-input-mask` 2.0.4 calls
-   `ReactDOM.findDOMNode`, removed in React 19. Replace it with `react-imask`
-   7.6.1 and remove `@types/react-input-mask`. Preserve `HH:mm:ss`, partial input,
+   `ReactDOM.findDOMNode`, removed in React 19. Replace it with `@react-input/mask`
+   2.0.4 and remove `@types/react-input-mask`. Preserve `HH:mm:ss`, partial input,
    caret/edit behavior, validation on blur, disabled state, and empty/Active
    values. Add focused interaction coverage for this behavior change.
 3. **Tailwind migration:** use the dedicated PostCSS plugin, remove redundant
@@ -225,6 +225,12 @@ dependency upgrade. Do not read, migrate, or write the user's live database.
   `gypfile: false`; explicitly skip that package's scripts through `allowScripts`.
 - Electron 45 raises the macOS minimum to 13; packaging declarations remain
   unchanged and macOS/Linux runtime validation remains out of scope.
+- The initially proposed react-imask shifted seconds when replacing selected
+  minutes. The real Chromium interaction test reproduced the issue, including
+  with overwrite mode. Use @react-input/mask 2.0.4 with `separate: true` instead;
+  this retains positions and integrates with the existing Input through a ref.
+  Tests cover selected replacement/deletion, formatted insertion, prop changes,
+  partial/invalid values, clearing/Active, and disabled input without any database.
 
 ## Primary sources
 
@@ -236,8 +242,8 @@ dependency upgrade. Do not read, migrate, or write the user's live database.
 - [Vite migration guide](https://vite.dev/guide/migration): Vite 8/Rolldown changes.
 - [React 19 upgrade guide](https://react.dev/blog/2024/04/25/react-19-upgrade-guide):
   removed APIs and type migration.
-- [IMask React documentation](https://github.com/uNmAnNeR/imaskjs/tree/master/packages/react-imask):
-  proposed replacement's input integration.
+- [React Input mask documentation](https://github.com/GoncharukOrg/react-input/tree/main/packages/mask):
+  replacement input integration and fixed-position editing.
 - [Tailwind upgrade guide](https://tailwindcss.com/docs/upgrade-guide): PostCSS,
   theme loading, utilities, and preflight changes.
 - [ESLint 10 migration](https://eslint.org/docs/latest/use/migrate-to-10.0.0):

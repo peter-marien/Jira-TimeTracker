@@ -1,5 +1,5 @@
 import * as React from "react"
-import InputMask from "react-input-mask"
+import { useMask } from "@react-input/mask"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { X } from "lucide-react"
@@ -15,6 +15,13 @@ interface TimePickerProps {
 export function TimePicker({ value, onChange, className, disabled, allowEmpty = false }: TimePickerProps) {
     const [localValue, setLocalValue] = React.useState(value || "")
     const [error, setError] = React.useState(false)
+    const [focused, setFocused] = React.useState(false)
+    const inputRef = useMask({
+        mask: '__:__:__',
+        replacement: { _: /\d/ },
+        showMask: focused || Boolean(localValue),
+        separate: true,
+    })
 
     // Update local value when prop changes
     React.useEffect(() => {
@@ -60,8 +67,8 @@ export function TimePicker({ value, onChange, className, disabled, allowEmpty = 
         return `${h}:${m}:${s}`
     }
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newValue = e.target.value
+    const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const newValue = event.target.value
         setLocalValue(newValue)
 
         // Only clear error if the new value *looks* like it could be valid/completable
@@ -81,6 +88,7 @@ export function TimePicker({ value, onChange, className, disabled, allowEmpty = 
     }
 
     const handleBlur = () => {
+        setFocused(false)
         if (allowEmpty && (localValue === "" || localValue === "__:__:__")) {
             setLocalValue("")
             setError(false)
@@ -107,27 +115,21 @@ export function TimePicker({ value, onChange, className, disabled, allowEmpty = 
     return (
         <div className="flex flex-col gap-1 w-full relative group/timepicker">
             <div className="relative">
-                <InputMask
-                    mask="99:99:99"
+                <Input
+                    ref={inputRef}
                     value={localValue}
                     onChange={handleChange}
+                    onFocus={() => setFocused(true)}
                     onBlur={handleBlur}
                     disabled={disabled}
-                    maskChar="_"
-                >
-                    {(inputProps: React.InputHTMLAttributes<HTMLInputElement>) => (
-                        <Input
-                            {...inputProps}
-                            type="text"
-                            className={cn(
-                                "font-mono text-center transition-colors pr-8", // added padding for button
-                                error && "border-destructive focus-visible:ring-destructive",
-                                className
-                            )}
-                            placeholder={allowEmpty ? "Active" : "HH:MM:SS"}
-                        />
+                    type="text"
+                    className={cn(
+                        "font-mono text-center transition-colors pr-8",
+                        error && "border-destructive focus-visible:ring-destructive",
+                        className
                     )}
-                </InputMask>
+                    placeholder={allowEmpty ? "Active" : "HH:MM:SS"}
+                />
                 {allowEmpty && localValue && !disabled && (
                     <button
                         type="button"

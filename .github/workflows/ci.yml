@@ -48,3 +48,6 @@ jobs:
 
       - name: Check application with an isolated database
         run: npm run test:app
+
+      - name: Check time input interactions
+        run: npm run test:input

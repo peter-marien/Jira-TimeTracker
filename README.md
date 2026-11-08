@@ -74,6 +74,8 @@ These checks never open your saved application database or change its schema.
 Run `npm run test:app` after building to exercise application startup and renderer
 routes with a temporary profile and database. This test blocks external HTTP
 requests and skips OAuth protocol registration, leaving your installed app alone.
+Run `npm run test:input` for time-input keyboard, selection, deletion, insertion,
+validation, and prop-update checks in an isolated Chromium window.
 
 CI and release validation target Windows x64. Existing macOS DMG and Linux
 AppImage settings are retained; runtime compatibility on those platforms is unverified.

@@ -51,12 +51,12 @@ database fixtures and isolated profiles; never open the user's live database.**
 
 ## 3. Renderer and styles — PLAN phase 3
 
-- [ ] Replace react-input-mask with approved React-compatible alternative.
-- [ ] Remove old input-mask type package; add new dependency with built-in types.
-- [ ] Add focused time-input interaction checks: partial/full input, caret edits,
+- [x] Replace react-input-mask with approved React-compatible alternative.
+- [x] Remove old input-mask type package; add new dependency with built-in types.
+- [x] Add focused time-input interaction checks: partial/full input, caret edits,
   blur normalization, invalid input, clear/Active, disabled state, prop updates.
-- [ ] Upgrade React/React DOM and corresponding types together.
-- [ ] Resolve React 19 API/type incompatibilities without unrelated refactoring.
+- [x] Upgrade React/React DOM and corresponding types together.
+- [x] Resolve React 19 API/type incompatibilities without unrelated refactoring.
 - [ ] Upgrade Radix, Lucide, charts, router, state, date, and remaining packages.
 - [ ] Migrate to DayPicker v10; verify custom components and date-range behavior.
 - [ ] Upgrade Tailwind/PostCSS and introduce dedicated PostCSS integration.
