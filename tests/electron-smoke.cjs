@@ -5,6 +5,9 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 app.setPath('userData', process.argv[2]);
 app.disableHardwareAcceleration();
 app.whenReady().then(async () => {
+    const { verifyDatabaseCompatibility } = await import('./database-fixture.mjs');
+    verifyDatabaseCompatibility(path.join(process.argv[2], 'fixture.db'));
+    console.log('PASS: Electron native SQLite preserves the disposable database fixture.');
     const window = new BrowserWindow({
         show: false,
         webPreferences: { preload: path.resolve('dist-electron/preload.mjs'), contextIsolation: true }

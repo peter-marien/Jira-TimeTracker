@@ -22,12 +22,12 @@ database fixtures and isolated profiles; never open the user's live database.**
 
 ## 1. Runtime and reproducibility — PLAN phase 1
 
-- [ ] Recheck proposed versions and peer constraints; record significant changes.
-- [ ] Use Node 26.13.0/npm 11.20.0 without changing the global runtime default.
-- [ ] Update `.nvmrc`, Node engines, and README consistently.
-- [ ] Preserve both workflows' use of `.nvmrc`.
-- [ ] Regenerate package-lock.json alongside approved dependency changes.
-- [ ] Verify `npm ci` without forced or legacy peer resolution.
+- [x] Recheck proposed versions and peer constraints; record significant changes.
+- [x] Use Node 26.13.0/npm 11.20.0 without changing the global runtime default.
+- [x] Update `.nvmrc`, Node engines, and README consistently.
+- [x] Preserve both workflows' use of `.nvmrc`.
+- [x] Regenerate package-lock.json alongside approved dependency changes.
+- [x] Verify `npm ci` without forced or legacy peer resolution.
 
 ## 2. Tooling and desktop runtime — PLAN phase 2
 
@@ -42,11 +42,11 @@ database fixtures and isolated profiles; never open the user's live database.**
 - [ ] Verify main/mini-player HTML builds and native dependency externalization.
 - [ ] Verify main/preload output formats and production `.mjs` preload paths.
 - [ ] Check development startup and renderer integration.
-- [ ] Review Electron breaking changes and OS requirements; report material changes
+- [x] Review Electron breaking changes and OS requirements; report material changes
   and request feedback if existing platform configuration would need to change.
-- [ ] Upgrade Electron, builder, SQLite/types, updater, and logging coherently.
-- [ ] Add/run isolated actual `better-sqlite3` checks for host Node and Electron.
-- [ ] Ensure native rebuild steps work on Windows x64.
+- [x] Upgrade Electron, builder, SQLite/types, updater, and logging coherently.
+- [x] Add/run isolated actual `better-sqlite3` checks for host Node and Electron.
+- [x] Ensure native rebuild steps work on Windows x64.
 - [ ] Verify IPC, power events, window recovery, tray, OAuth, notifications, updater.
 
 ## 3. Renderer and styles — PLAN phase 3

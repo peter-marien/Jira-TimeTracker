@@ -213,6 +213,19 @@ Use temporary application profiles and disposable database fixtures for native,
 schema, and packaged checks. Do not alter the database schema as part of this
 dependency upgrade. Do not read, migrate, or write the user's live database.
 
+## Implementation findings
+
+- Node 26 and the desktop dependency upgrades form one runtime stage because
+  better-sqlite3 12.5.0 does not declare support for Node 26.
+- better-sqlite3 13.0.3 ships Node-API prebuilds. The Windows x64 binary passes
+  fixture checks under both host Node and Electron without rebuilding. Disable
+  electron-builder's unnecessary npm rebuild, which otherwise attempts a local
+  C++ compilation; reconsider this setting if adding other native dependencies.
+  npm 11.20.0 also inferred a SQLite rebuild during `npm ci` despite the package's
+  `gypfile: false`; explicitly skip that package's scripts through `allowScripts`.
+- Electron 45 raises the macOS minimum to 13; packaging declarations remain
+  unchanged and macOS/Linux runtime validation remains out of scope.
+
 ## Primary sources
 
 - [Node.js release index](https://nodejs.org/dist/index.json): stable release,

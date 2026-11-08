@@ -27,7 +27,7 @@ A powerful, high-performance desktop application for tracking time and syncing w
 
 ### Prerequisites
 
-- Node.js (Latest LTS recommended)
+- Node.js 26.13.0 LTS with npm 11.20.0 (see `.nvmrc`)
 - npm or pnpm
 
 ### Installation
@@ -56,12 +56,28 @@ npm run build
 
 ### Tests
 
-Run `npm test` with Node.js 24 LTS or newer. The regression suite uses isolated,
+Run `npm test` with Node.js 26.13.0 LTS. The regression suite uses isolated,
 in-memory databases and simulated Electron events; it does not open the installed
 application or access your saved time entries.
 
 After building with `npx vite build`, run `npm run test:electron` to check the built
 preload in a hidden Electron window with a temporary, isolated application profile.
+
+Run `npm run test:sqlite` after `npm ci` to check the actual native SQLite binding
+with a disposable database. SQLite 13 supplies Node-API binaries shared by Node
+and Electron, so packaging disables the unnecessary native rebuild. If adding
+other native dependencies, reassess that setting before packaging them.
+The `allowScripts` entry also prevents npm from inferring an unnecessary
+`node-gyp rebuild` for SQLite during a clean install with npm 11.20.0.
+The Electron smoke test also verifies native SQLite data preservation and rollback.
+These checks never open your saved application database or change its schema.
+Run `npm run test:app` after building to exercise application startup and renderer
+routes with a temporary profile and database. This test blocks external HTTP
+requests and skips OAuth protocol registration, leaving your installed app alone.
+
+CI and release validation target Windows x64. Existing macOS DMG and Linux
+AppImage settings are retained; runtime compatibility on those platforms is unverified.
+Electron 45 requires macOS 13 or newer if you build the macOS target.
 
 For hibernation changes, also verify a packaged build on Windows: stop tracking,
 minimize, hibernate, and resume. Both windows should remain idle. Repeat while

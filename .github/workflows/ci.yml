@@ -34,6 +34,9 @@ jobs:
       - name: Run regression tests
         run: npm test
 
+      - name: Check native SQLite with Node.js
+        run: npm run test:sqlite
+
       - name: Check TypeScript
         run: npx tsc --noEmit
 
@@ -42,3 +45,6 @@ jobs:
 
       - name: Run Electron regression check
         run: npm run test:electron
+
+      - name: Check application with an isolated database
+        run: npm run test:app
