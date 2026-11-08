@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { Minus, Square, X, Copy, PictureInPicture2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useTrackingStore } from '@/stores/useTrackingStore'
 import logoLight from '/logo.svg?url'
 import logoDark from '/logo-dark.svg?url'
 
@@ -10,9 +9,6 @@ export function TitleBar() {
     const [isMaximized, setIsMaximized] = useState(false)
     const [isDark, setIsDark] = useState(false)
     const [version, setVersion] = useState<string | null>(null)
-    const { activeWorkItem, elapsedSeconds, activeTimeSliceId, startTime } = useTrackingStore()
-
-    const isTracking = !!activeTimeSliceId
 
     useEffect(() => {
         const fetchVersion = async () => {
@@ -47,43 +43,6 @@ export function TitleBar() {
         return () => observer.disconnect()
     }, [])
 
-    // Listen for mini player state request (when main window is minimized)
-    useEffect(() => {
-        const handleStateRequest = () => {
-            api.showMiniPlayer({
-                isTracking: isTracking && !!activeWorkItem,
-                elapsedSeconds: isTracking ? elapsedSeconds : 0,
-                jiraKey: activeWorkItem?.jira_key,
-                description: activeWorkItem?.description || '',
-                startTime: startTime || undefined
-            })
-        }
-
-        const unsubscribe_handleStateRequest = window.ipcRenderer.on('mini-player:request-state', handleStateRequest)
-        return () => {
-            unsubscribe_handleStateRequest()
-        }
-    }, [isTracking, activeWorkItem, elapsedSeconds, startTime])
-
-    // Update mini player state when tracking start/stop/switch
-    useEffect(() => {
-        if (isTracking && activeWorkItem) {
-            api.updateMiniPlayerState({
-                isTracking: true,
-                elapsedSeconds: 0, // Not used by mini-player for display anymore
-                jiraKey: activeWorkItem.jira_key,
-                description: activeWorkItem.description,
-                startTime: startTime || undefined
-            })
-        } else {
-            api.updateMiniPlayerState({
-                isTracking: false,
-                elapsedSeconds: 0,
-                description: ''
-            })
-        }
-    }, [isTracking, activeWorkItem, startTime])
-
     const handleMaximizeToggle = async () => {
         if (isMaximized) {
             await api.unmaximizeWindow()
@@ -94,14 +53,7 @@ export function TitleBar() {
     }
 
     const handleMinimizeToWidget = () => {
-        api.showMiniPlayer({
-            isTracking: isTracking && !!activeWorkItem,
-            elapsedSeconds: isTracking ? elapsedSeconds : 0,
-            jiraKey: activeWorkItem?.jira_key,
-            description: activeWorkItem?.description || '',
-            startTime: startTime || undefined
-        })
-        api.minimizeWindow()
+        api.minimizeToMiniPlayer()
     }
 
     const logoSrc = isDark ? logoDark : logoLight

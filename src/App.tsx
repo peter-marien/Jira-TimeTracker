@@ -9,7 +9,7 @@ import { SearchView } from "@/views/Search/SearchView"
 import { AwayDialogPage } from "@/views/Away/AwayDialogPage"
 import { TagsView } from "@/views/Tags/TagsView"
 
-import { useTrayEvents } from "@/hooks/useTrayEvents"
+import { subscribeTrackingState } from "@/lib/tracking-state"
 
 import { useTrackingStore } from "@/stores/useTrackingStore"
 import { useEffect, useState } from "react"
@@ -50,9 +50,8 @@ function App() {
 }
 
 function AppShell() {
-  useTrayEvents();
   const navigate = useNavigate();
-  const checkActiveTracking = useTrackingStore(state => state.checkActiveTracking);
+  const applyTrackingSnapshot = useTrackingStore(state => state.applyTrackingSnapshot);
   const handleAwayTime = useTrackingStore(state => state.handleAwayTime);
 
   // Update state
@@ -60,7 +59,6 @@ function AppShell() {
   const [showConnectionsPrompt, setShowConnectionsPrompt] = useState(false);
 
   useEffect(() => {
-    checkActiveTracking();
     // Load and apply theme on startup
     api.getSettings().then(settings => {
       const savedTheme = (settings.theme as 'light' | 'dark' | 'system') || 'dark';
@@ -71,7 +69,7 @@ function AppShell() {
     }).catch(error => {
       console.error("[App] Failed to load Jira connections", error);
     });
-  }, [checkActiveTracking]);
+  }, []);
 
   // Listen for update events
   useEffect(() => {
@@ -80,11 +78,7 @@ function AppShell() {
       setUpdateInfo(data);
     };
 
-    const unsubscribe_handleUpdateDownloaded = window.ipcRenderer.on('update:downloaded', handleUpdateDownloaded);
-
-    return () => {
-      unsubscribe_handleUpdateDownloaded();
-    };
+    return window.ipcRenderer.on('update:downloaded', handleUpdateDownloaded);
   }, []);
 
   // Listen for away actions from the standalone window
@@ -94,36 +88,14 @@ function AppShell() {
       handleAwayTime(data.action, data.awayStartTime, data.targetWorkItem);
     };
 
-    const unsubscribe_handleAwayActionForwarded = window.ipcRenderer.on('away:action-forwarded', handleAwayActionForwarded);
-
-    return () => {
-      unsubscribe_handleAwayActionForwarded();
-    };
+    return window.ipcRenderer.on('away:action-forwarded', handleAwayActionForwarded);
   }, [handleAwayTime]);
 
-  // Listen for stop tracking command from mini player
-  const stopTracking = useTrackingStore(state => state.stopTracking);
-  useEffect(() => {
-    const handleMiniPlayerStop = () => {
-      console.log('[App] Stop tracking from mini player');
-      stopTracking();
-    };
-
-    const handleMiniPlayerStart = () => {
-      console.log('[App] Tracking started from mini player - refreshing state');
-      checkActiveTracking();
-    };
-
-    const unsubscribe_handleMiniPlayerStop = window.ipcRenderer.on('mini-player:stop-tracking', handleMiniPlayerStop);
-    const unsubscribe_handleMiniPlayerStart = window.ipcRenderer.on('mini-player:tracking-started', handleMiniPlayerStart);
-    const unsubscribe_checkActiveTracking = window.ipcRenderer.on('tracking:refresh', checkActiveTracking);
-
-    return () => {
-      unsubscribe_handleMiniPlayerStop();
-      unsubscribe_handleMiniPlayerStart();
-      unsubscribe_checkActiveTracking();
-    };
-  }, [stopTracking, checkActiveTracking]);
+  useEffect(() => subscribeTrackingState(
+    window.ipcRenderer,
+    applyTrackingSnapshot,
+    error => console.error('[App] Failed to synchronize tracking', error)
+  ), [applyTrackingSnapshot]);
 
   const handleOpenConnectionsSettings = () => {
     setShowConnectionsPrompt(false);

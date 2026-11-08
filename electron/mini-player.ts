@@ -4,28 +4,20 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { VITE_DEV_SERVER_URL, RENDERER_DIST } from './main';
 import { getAppConfig, saveAppConfig } from './config-service';
+import { getTrackingSnapshot } from './tracking-state';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 let miniPlayerWindow: BrowserWindow | null = null;
 let mainWindow: BrowserWindow | null = null;
-let currentTrackingData: TrackingData | null = null;
-
-export interface TrackingData {
-    isTracking: boolean;
-    elapsedSeconds: number;
-    jiraKey?: string | null;
-    description: string;
-    startTime?: string;
-}
+let miniPlayerRequested = false;
 
 export function initializeMiniPlayer(main: BrowserWindow) {
     mainWindow = main;
 
     // Listen for main window minimize
     mainWindow.on('minimize', () => {
-        // Request tracking state from renderer to decide if we should show mini player
-        mainWindow?.webContents.send('mini-player:request-state');
+        showMiniPlayer();
     });
 
     // Listen for main window restore
@@ -38,26 +30,11 @@ export function initializeMiniPlayer(main: BrowserWindow) {
     });
 
     // Register IPC handlers
-    ipcMain.on('mini-player:show', (_, data: TrackingData) => {
-        showMiniPlayer(data);
+    ipcMain.on('mini-player:show', () => {
+        showMiniPlayer();
     });
 
     ipcMain.on('mini-player:hide', () => {
-        hideMiniPlayer();
-    });
-
-    ipcMain.on('mini-player:update-state', (_, data: TrackingData) => {
-        updateMiniPlayerState(data);
-    });
-
-    ipcMain.on('mini-player:stop-tracking', () => {
-        // Forward stop command to main window
-        mainWindow?.webContents.send('mini-player:stop-tracking');
-        if (mainWindow) {
-            if (mainWindow.isMinimized()) mainWindow.restore();
-            mainWindow.show();
-            mainWindow.focus();
-        }
         hideMiniPlayer();
     });
 
@@ -96,18 +73,9 @@ export function initializeMiniPlayer(main: BrowserWindow) {
         }
     });
 
-    // When tracking starts from mini-player, notify main window to sync state
-    ipcMain.on('mini-player:tracking-started', (_, data) => {
-        mainWindow?.webContents.send('mini-player:tracking-started', data);
-    });
-
-    ipcMain.on('mini-player:stopped-for-switch', () => {
-        mainWindow?.webContents.send('tracking:refresh');
-    });
-
     ipcMain.on('window:minimize-to-mini-player', () => {
         mainWindow?.minimize();
-        // The minimize event will trigger request-state
+        // The minimize event shows the widget using persisted state.
     });
 }
 
@@ -191,6 +159,11 @@ function createMiniPlayerWindow(): BrowserWindow {
 
     win.on('resize', saveState);
     win.on('move', saveState);
+    // One load listener per window, including after renderer recovery.
+    win.webContents.on('did-finish-load', () => {
+        win.webContents.send('tracking:state', getTrackingSnapshot());
+        if (miniPlayerRequested && mainWindow?.isMinimized()) win.show();
+    });
 
     // Load mini player page
     if (VITE_DEV_SERVER_URL) {
@@ -206,14 +179,13 @@ function createMiniPlayerWindow(): BrowserWindow {
     return win;
 }
 
-export function showMiniPlayer(data: TrackingData) {
-    currentTrackingData = data;
-
+export function showMiniPlayer() {
     // Only allow showing if main window is minimized
     // This enforces the rule: "When app is not minimized, mini-player should not be visible"
     if (mainWindow && !mainWindow.isMinimized()) {
         return;
     }
+    miniPlayerRequested = true;
 
     if (!miniPlayerWindow) {
         miniPlayerWindow = createMiniPlayerWindow();
@@ -228,26 +200,15 @@ export function showMiniPlayer(data: TrackingData) {
 
     // If already loaded, just update and show
     if (!miniPlayerWindow.webContents.isLoading()) {
-        miniPlayerWindow.webContents.send('mini-player:state', currentTrackingData);
+        miniPlayerWindow.webContents.send('tracking:state', getTrackingSnapshot());
         miniPlayerWindow.show();
-    } else {
-        miniPlayerWindow.webContents.once('did-finish-load', () => {
-            miniPlayerWindow?.webContents.send('mini-player:state', currentTrackingData);
-            miniPlayerWindow?.show();
-        });
     }
 }
 
 export function hideMiniPlayer() {
+    miniPlayerRequested = false;
     if (miniPlayerWindow) {
         miniPlayerWindow.hide();
-    }
-}
-
-export function updateMiniPlayerState(data: TrackingData) {
-    currentTrackingData = data;
-    if (miniPlayerWindow && !miniPlayerWindow.isDestroyed()) {
-        miniPlayerWindow.webContents.send('mini-player:state', data);
     }
 }
 

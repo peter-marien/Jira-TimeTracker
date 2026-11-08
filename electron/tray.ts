@@ -1,6 +1,7 @@
 import { app, Tray, Menu, nativeImage, BrowserWindow } from 'electron';
 import path from 'node:path';
 import { startPulsing, stopPulsing } from './tray-animator';
+import { stopActiveTracking } from './tracking-state';
 
 let tray: Tray | null = null;
 let mainWindow: BrowserWindow | null = null;
@@ -52,10 +53,12 @@ function updateTrayMenu(isTracking: boolean, currentWorkItem?: string) {
                 if (!mainWindow) return;
                 mainWindow.show();
                 mainWindow.focus();
-                // We could send an IPC to the renderer to stop or prompt for start
                 if (isTracking) {
-                    mainWindow.webContents.send('tray:stop-tracking');
-                    mainWindow.show(); // Added as per instruction
+                    try {
+                        stopActiveTracking();
+                    } catch (error) {
+                        console.error('[Tray] Failed to stop tracking', error);
+                    }
                 }
             }
         },

@@ -95,7 +95,7 @@ function handleAwayStart(reason: string) {
 }
 
 async function handleAwayEnd(reason: string) {
-    if (!awayStartTime || !isTrackingActive) {
+    if (!awayStartTime || !isTrackingActive || !checkTrackingActive()) {
         awayStartTime = null;
         wasIdle = false;
         return;

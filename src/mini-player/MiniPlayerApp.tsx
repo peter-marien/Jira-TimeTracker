@@ -2,14 +2,8 @@ import { useEffect, useState, useRef } from 'react';
 import { StopCircle, Maximize2, Search, Loader2, Play } from 'lucide-react';
 import { DurationDisplay } from '@/components/shared/DurationDisplay';
 import { formatISO } from 'date-fns';
-
-interface TrackingData {
-    isTracking: boolean;
-    elapsedSeconds: number;
-    jiraKey?: string | null;
-    description: string;
-    startTime?: string;
-}
+import { subscribeTrackingState, toTrackingData } from '@/lib/tracking-state';
+import type { TrackingData } from '@/lib/tracking-state';
 
 interface WorkItem {
     id: number;
@@ -49,6 +43,8 @@ function roundToNearestInterval(date: Date, intervalMinutes: number): Date {
 
 export function MiniPlayerApp() {
     const [trackingData, setTrackingData] = useState<TrackingData | null>(null);
+    const [stopError, setStopError] = useState<string | null>(null);
+    const [stopping, setStopping] = useState(false);
     const [query, setQuery] = useState("");
     const [localItems, setLocalItems] = useState<WorkItem[]>([]);
     const [jiraItems, setJiraItems] = useState<JiraSearchResult[]>([]);
@@ -96,69 +92,21 @@ export function MiniPlayerApp() {
         loadSettings();
 
         // Listen for setting updates
-        // Listen for setting updates
         const handleSettingUpdate = (_: unknown, { key }: { key: string }) => {
             if (key === 'theme' || key === 'mini_player_theme') {
                 loadSettings(); // Re-fetch all to be safe and simple
             }
         };
-        const unsubscribe_handleSettingUpdate = window.ipcRenderer.on('setting:updated', handleSettingUpdate);
+        const unsubscribeSettings = window.ipcRenderer.on('setting:updated', handleSettingUpdate);
 
-        const loadInitial = async () => {
-            const activeSlice = await window.ipcRenderer.invoke('db:get-active-time-slice');
-            if (activeSlice) {
-                const workItem = await window.ipcRenderer.invoke('db:get-work-item', activeSlice.work_item_id);
-                if (workItem) {
-                    const now = Date.now();
-                    const start = new Date(activeSlice.start_time).getTime();
-                    const elapsed = Math.max(0, Math.floor((now - start) / 1000));
-
-                    setTrackingData({
-                        isTracking: true,
-                        elapsedSeconds: elapsed,
-                        jiraKey: workItem.jira_key,
-                        description: workItem.description,
-                        startTime: activeSlice.start_time
-                    });
-                }
-            }
-        };
-        loadInitial();
-
-        // Listen for tracking started event from main window (sync)
-        const handleTrackingStarted = (_: unknown, data: { jiraKey: string | null; description: string; startTime?: string }) => {
-            const startStr = data.startTime || formatISO(new Date());
-            const elapsed = Math.floor((Date.now() - new Date(startStr).getTime()) / 1000);
-
-            setTrackingData({
-                isTracking: true,
-                elapsedSeconds: Math.max(0, elapsed),
-                jiraKey: data.jiraKey,
-                description: data.description,
-                startTime: startStr
-            });
-        };
-
-        const handleState = (_event: unknown, data: TrackingData) => {
-            if (data.isTracking && data.startTime) {
-                const elapsed = Math.floor((Date.now() - new Date(data.startTime).getTime()) / 1000);
-                setTrackingData({
-                    ...data,
-                    elapsedSeconds: Math.max(0, elapsed)
-                });
-            } else {
-                setTrackingData(data);
-            }
-        };
-
-        const unsubscribe_handleState = window.ipcRenderer.on('mini-player:state', handleState);
-        const unsubscribe_handleTrackingStarted = window.ipcRenderer.on('mini-player:tracking-started', handleTrackingStarted);
+        const unsubscribe = subscribeTrackingState(window.ipcRenderer, snapshot => {
+            setTrackingData(toTrackingData(snapshot));
+        }, error => console.error('[MiniPlayer] Failed to synchronize tracking', error));
         window.ipcRenderer.invoke('db:get-all-connections').then(setConnections);
 
         return () => {
-            unsubscribe_handleState();
-            unsubscribe_handleTrackingStarted();
-            unsubscribe_handleSettingUpdate();
+            unsubscribe();
+            unsubscribeSettings();
         };
     }, []);
 
@@ -247,9 +195,6 @@ export function MiniPlayerApp() {
                     end_time: endTime
                 });
                 console.log(`[MiniPlayer] Stopped active slice ${activeSlice.id}`);
-
-                // Notify main window that tracking was stopped (so it can refresh its state)
-                window.ipcRenderer.send('mini-player:stopped-for-switch');
             } else if (roundingEnabled) {
                 // No active slice, but still apply rounding to start time
                 const now = new Date();
@@ -270,23 +215,6 @@ export function MiniPlayerApp() {
         setQuery("");
         setShowResults(false);
         window.ipcRenderer.send('mini-player:set-search-active', false);
-
-        // Update local state to show tracking view immediately
-        const elapsed = Math.floor((Date.now() - new Date(startTime).getTime()) / 1000);
-        setTrackingData({
-            isTracking: true,
-            elapsedSeconds: Math.max(0, elapsed),
-            jiraKey: workItem.jira_key,
-            description: workItem.description,
-            startTime: startTime
-        });
-
-        // Notify main window to refresh its tracking state
-        window.ipcRenderer.send('mini-player:tracking-started', {
-            workItemId: workItem.id,
-            description: workItem.description,
-            jiraKey: workItem.jira_key
-        });
     };
 
     const handleSelectJira = async (jiraItem: JiraSearchResult) => {
@@ -302,9 +230,19 @@ export function MiniPlayerApp() {
         }
     };
 
-    const handleStop = (e: React.MouseEvent) => {
+    const handleStop = async (e: React.MouseEvent) => {
         e.stopPropagation();
-        window.ipcRenderer.send('mini-player:stop-tracking');
+        setStopping(true);
+        setStopError(null);
+        try {
+            await window.ipcRenderer.invoke('tracking:stop');
+            window.ipcRenderer.send('mini-player:expand');
+        } catch (error) {
+            console.error('[MiniPlayer] Failed to stop tracking', error);
+            setStopError('Could not stop tracking. Try again.');
+        } finally {
+            setStopping(false);
+        }
     };
 
     const handleExpand = (e: React.MouseEvent) => {
@@ -343,7 +281,7 @@ export function MiniPlayerApp() {
                             <span className="jira-key">{trackingData.jiraKey}</span>
                         )}
                         <span className="description" title={trackingData.description}>
-                            {trackingData.description}
+                            {stopError || trackingData.description}
                         </span>
                     </div>
 
@@ -352,7 +290,7 @@ export function MiniPlayerApp() {
                         <button className="mini-btn expand-btn" onClick={handleExpand} title="Expand">
                             <Maximize2 size={14} />
                         </button>
-                        <button className="mini-btn stop-btn" onClick={handleStop} title="Stop">
+                        <button className="mini-btn stop-btn" onClick={handleStop} title={stopError || "Stop"} disabled={stopping}>
                             <StopCircle size={16} />
                         </button>
                     </div>

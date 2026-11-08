@@ -10,6 +10,7 @@ import { initializeAwayDetector } from './away-detector'
 import { initializeMiniPlayer } from './mini-player'
 import { handleOAuthCallback } from './oauth-service'
 import { configureLogging } from './logger'
+import { initializeTrackingState } from './tracking-state'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 process.env.APP_ROOT = path.join(__dirname, '..')
@@ -73,15 +74,15 @@ if (!gotTheLock) {
 }
 
 //
-// ├─┬─┬ dist
-// │ │ └── index.html
-// │ │
-// │ ├─┬ dist-electron
-// │ │ ├── main.js
-// │ │ └── preload.mjs
-// │
+// â”œâ”€â”¬â”€â”¬ dist
+// â”‚ â”‚ â””â”€â”€ index.html
+// â”‚ â”‚
+// â”‚ â”œâ”€â”¬ dist-electron
+// â”‚ â”‚ â”œâ”€â”€ main.js
+// â”‚ â”‚ â””â”€â”€ preload.mjs
+// â”‚
 
-// 🚧 Use ['ENV_NAME'] avoid vite:define plugin - Vite@2.x
+// ðŸš§ Use ['ENV_NAME'] avoid vite:define plugin - Vite@2.x
 export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
 export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
 export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
@@ -143,6 +144,7 @@ app.whenReady().then(() => {
   initializeDatabase()
   registerIpcHandlers()
   createWindow()
+  initializeTrackingState()
 
   // Handle protocol URL if app was started with one (Windows/Linux)
   const url = process.argv.find(arg => arg.startsWith(`${PROTOCOL}://`))

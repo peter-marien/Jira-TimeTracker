@@ -12,6 +12,7 @@ import { startOAuthFlow, saveOAuthTokens, getValidAccessToken, cancelPendingOAut
 import { encrypt } from './crypto-service'
 import { cleanupApplicationLogs, getLogFilePath, getLogsDirectory, normalizeLogRetentionDays } from './logger'
 import { normalizeTagName, parseTagMarkers, validateTagName } from '../src/lib/tags'
+import { handleTrackingMutation } from './tracking-state'
 
 export function registerIpcHandlers() {
     const db = getDatabase()
@@ -117,7 +118,7 @@ export function registerIpcHandlers() {
         return db.prepare(sql).get(id);
     })
 
-    ipcMain.handle('db:save-work-item', (_, item) => {
+    handleTrackingMutation('db:save-work-item', (_, item) => {
         try {
             if (item.id) {
                 const stmt = db.prepare(`
@@ -206,7 +207,7 @@ export function registerIpcHandlers() {
         return slice ? hydrateTimeSliceTags(db, [slice])[0] : undefined;
     });
 
-    ipcMain.handle('db:save-time-slice', (_, slice) => {
+    handleTrackingMutation('db:save-time-slice', (_, slice) => {
         if (slice.id) {
             // Fetch existing record to preserve fields not provided in the update
             const existing = db.prepare('SELECT * FROM time_slices WHERE id = ?').get(slice.id) as {
@@ -288,11 +289,6 @@ export function registerIpcHandlers() {
                     for (const active of activeSlices) {
                         closeStmt.run(now, active.id);
                     }
-
-                    // Broadcast refresh to all windows
-                    BrowserWindow.getAllWindows().forEach(win => {
-                        win.webContents.send('tracking:refresh');
-                    });
                 }
             }
 
@@ -327,7 +323,7 @@ export function registerIpcHandlers() {
         return slice ? hydrateTimeSliceTags(db, [slice])[0] : undefined;
     })
 
-    ipcMain.handle('db:delete-time-slice', (_, id) => {
+    handleTrackingMutation('db:delete-time-slice', (_, id) => {
         return db.prepare('DELETE FROM time_slices WHERE id = ?').run(id)
     })
 
@@ -381,7 +377,7 @@ export function registerIpcHandlers() {
         return result.count;
     });
 
-    ipcMain.handle('db:clear-data', (_, { clearTimeSlices, clearWorkItems }: { clearTimeSlices: boolean, clearWorkItems: boolean }) => {
+    handleTrackingMutation('db:clear-data', (_, { clearTimeSlices, clearWorkItems }: { clearTimeSlices: boolean, clearWorkItems: boolean }) => {
         if (clearWorkItems) {
             return db.prepare('DELETE FROM work_items').run();
         } else if (clearTimeSlices) {
@@ -389,7 +385,7 @@ export function registerIpcHandlers() {
         }
     });
 
-    ipcMain.handle('db:merge-time-slices', (_, { ids }: { ids: number[] }) => {
+    handleTrackingMutation('db:merge-time-slices', (_, { ids }: { ids: number[] }) => {
         const slices = db.prepare(`
             SELECT * FROM time_slices 
             WHERE id IN (${ids.map(() => '?').join(',')})
@@ -434,12 +430,6 @@ export function registerIpcHandlers() {
         });
 
         const result = runMerge();
-
-        // Broadcast refresh to all windows so they update active tracking state
-        BrowserWindow.getAllWindows().forEach(win => {
-            win.webContents.send('tracking:refresh');
-        });
-
         return result;
     });
 
@@ -1212,7 +1202,7 @@ export function registerIpcHandlers() {
         return result.filePaths[0];
     });
 
-    ipcMain.handle('database:import-csv', async (_, csvContent: string) => {
+    handleTrackingMutation('database:import-csv', async (_, csvContent: string) => {
         const rows = parseCSV(csvContent);
         if (rows.length < 2) {
             throw new Error('CSV file must have a header row and at least one data row');

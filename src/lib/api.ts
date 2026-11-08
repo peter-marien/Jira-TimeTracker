@@ -150,6 +150,8 @@ export const api = {
     saveTimeSlice: (slice: Partial<TimeSlice>) => ipc.invoke('db:save-time-slice', slice) as Promise<TimeSlice>,
     deleteTimeSlice: (id: number) => ipc.invoke('db:delete-time-slice', id),
     getActiveTimeSlice: () => ipc.invoke('db:get-active-time-slice') as Promise<TimeSlice | undefined>,
+    getTrackingSnapshot: () => ipc.invoke('tracking:get-state') as Promise<import('./tracking-state').TrackingSnapshot>,
+    stopTracking: () => ipc.invoke('tracking:stop') as Promise<string | null>,
     searchTimeSlices: (params: { query?: string, limit?: number, offset?: number } = {}) =>
         ipc.invoke('db:search-time-slices', params) as Promise<TimeSlice[]>,
     searchTimeSlicesCount: (params: { query?: string } = {}) =>
@@ -201,11 +203,8 @@ export const api = {
     openDevTools: () => ipc.send('window:open-dev-tools'),
 
     // Mini Player
-    showMiniPlayer: (data: { isTracking: boolean; elapsedSeconds: number; jiraKey?: string | null; description: string; startTime?: string }) =>
-        ipc.send('mini-player:show', data),
+    showMiniPlayer: () => ipc.send('mini-player:show'),
     hideMiniPlayer: () => ipc.send('mini-player:hide'),
-    updateMiniPlayerState: (data: { isTracking: boolean; elapsedSeconds: number; jiraKey?: string | null; description: string; startTime?: string }) =>
-        ipc.send('mini-player:update-state', data),
     minimizeToMiniPlayer: () => ipc.send('window:minimize-to-mini-player'),
 
     // App Info

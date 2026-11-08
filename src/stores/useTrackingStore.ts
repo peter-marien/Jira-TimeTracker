@@ -2,8 +2,11 @@ import { create } from 'zustand'
 import { WorkItem, api } from '@/lib/api'
 import { formatISO } from 'date-fns'
 import { roundToNearestInterval } from '@/lib/time-utils'
+import type { TrackingSnapshot } from '@/lib/tracking-state'
 
 interface TrackingStore {
+    revision: number;
+    applyTrackingSnapshot: (snapshot: TrackingSnapshot) => void;
     activeWorkItem: WorkItem | null;
     activeTimeSliceId: number | null;
     startTime: string | null; // ISO string
@@ -24,25 +27,8 @@ interface TrackingStore {
     checkActiveTracking: () => Promise<void>;
 }
 
-function notifyMiniPlayerIdle() {
-    api.updateMiniPlayerState({
-        isTracking: false,
-        elapsedSeconds: 0,
-        description: ''
-    });
-}
-
-function notifyMiniPlayerActive(workItem: WorkItem, startTime: string) {
-    api.updateMiniPlayerState({
-        isTracking: true,
-        elapsedSeconds: 0,
-        jiraKey: workItem.jira_key,
-        description: workItem.description,
-        startTime
-    });
-}
-
 export const useTrackingStore = create<TrackingStore>((set, get) => ({
+    revision: -1,
     activeWorkItem: null,
     activeTimeSliceId: null,
     startTime: null,
@@ -86,78 +72,19 @@ export const useTrackingStore = create<TrackingStore>((set, get) => ({
         }
 
         // 3. Create new time slice in DB
-        const slice = await api.saveTimeSlice({
+        await api.saveTimeSlice({
             work_item_id: workItem.id,
             start_time: startTimeToUse,
             end_time: null // Open-ended
         });
 
-        // 4. Fetch initial total seconds from DB (historical)
-        const workItems = await api.getWorkItems({ query: workItem.jira_key || workItem.description });
-        const freshWorkItem = workItems.find(wi => wi.id === workItem.id);
-        const historicalSeconds = freshWorkItem?.total_seconds || 0;
-
-        set({
-            activeWorkItem: workItem,
-            activeTimeSliceId: slice.id,
-            startTime: startTimeToUse,
-            elapsedSeconds: 0,
-            totalTimeSpent: historicalSeconds,
-            historicalBase: historicalSeconds
-        });
-
-        // Notify main process for tray update
-        api.setTrayIcon('active', workItem.description);
-        api.setTrayTooltip(`Tracking: ${workItem.description}`);
-        notifyMiniPlayerActive(workItem, startTimeToUse);
+        await get().checkActiveTracking();
     },
 
     stopTracking: async () => {
-        const { activeTimeSliceId, activeWorkItem, startTime } = get();
-        if (!activeTimeSliceId || !startTime) {
-            notifyMiniPlayerIdle();
-            return null;
-        }
-
-        const now = new Date();
-        let finalEndTime = formatISO(now);
-
-        // Apply time rounding to the END time only (start time remains as-is)
-        try {
-            const settings = await api.getSettings();
-            if (settings.rounding_enabled === 'true') {
-                const intervalMinutes = parseInt(settings.rounding_interval || '15', 10);
-                const roundedEnd = roundToNearestInterval(now, intervalMinutes);
-                finalEndTime = formatISO(roundedEnd);
-                console.log(`[TimeRounding] End rounded to ${finalEndTime} (Interval: ${intervalMinutes}m)`);
-            }
-        } catch (err) {
-            console.error('[TimeRounding] Failed to apply rounding:', err);
-        }
-
-        await api.saveTimeSlice({
-            id: activeTimeSliceId,
-            work_item_id: activeWorkItem!.id,
-            start_time: startTime, // Keep the original start time
-            end_time: finalEndTime
-        });
-
-        // Reset tray
-        api.setTrayIcon('idle');
-        api.setTrayTooltip('Jira Time Tracker');
-
-        set({
-            activeWorkItem: null,
-            activeTimeSliceId: null,
-            startTime: null,
-            elapsedSeconds: 0,
-            totalTimeSpent: 0,
-            historicalBase: 0
-        });
-
-        notifyMiniPlayerIdle();
-
-        return finalEndTime;
+        const endTime = await api.stopTracking();
+        await get().checkActiveTracking();
+        return endTime;
     },
 
     tick: () => {
@@ -200,24 +127,13 @@ export const useTrackingStore = create<TrackingStore>((set, get) => ({
 
             // Start a new slice from now
             const now = formatISO(new Date());
-            const newSlice = await api.saveTimeSlice({
+            await api.saveTimeSlice({
                 work_item_id: activeWorkItem.id,
                 start_time: now,
                 end_time: null
             });
 
-            // Fetch updated historical seconds
-            const workItems = await api.getWorkItems({ query: activeWorkItem.jira_key || activeWorkItem.description });
-            const freshWorkItem = workItems.find(wi => wi.id === activeWorkItem.id);
-            const historicalSeconds = freshWorkItem?.total_seconds || 0;
-
-            set({
-                activeTimeSliceId: newSlice.id,
-                startTime: now,
-                elapsedSeconds: 0,
-                totalTimeSpent: historicalSeconds,
-                historicalBase: historicalSeconds
-            });
+            await get().checkActiveTracking();
             return;
         }
 
@@ -239,87 +155,50 @@ export const useTrackingStore = create<TrackingStore>((set, get) => ({
             });
 
             // Start a new slice from now for the original work item
-            const newSlice = await api.saveTimeSlice({
+            await api.saveTimeSlice({
                 work_item_id: activeWorkItem.id,
                 start_time: now,
                 end_time: null
             });
 
-            // Fetch updated historical seconds
-            const workItems = await api.getWorkItems({ query: activeWorkItem.jira_key || activeWorkItem.description });
-            const freshWorkItem = workItems.find(wi => wi.id === activeWorkItem.id);
-            const historicalSeconds = freshWorkItem?.total_seconds || 0;
-
-            set({
-                activeTimeSliceId: newSlice.id,
-                startTime: now,
-                elapsedSeconds: 0,
-                totalTimeSpent: historicalSeconds,
-                historicalBase: historicalSeconds
-            });
+            await get().checkActiveTracking();
         }
     },
 
-    updateActiveWorkItem: async (workItem: WorkItem) => {
-        const { activeTimeSliceId, elapsedSeconds } = get();
+    updateActiveWorkItem: async () => {
+        await get().checkActiveTracking();
+    },
 
-        if (!activeTimeSliceId) return;
-
-        // Fetch fresh work item to get updated total_seconds
-        const freshWorkItem = await api.getWorkItem(workItem.id);
-        const historicalSeconds = freshWorkItem?.total_seconds || 0;
-
-        set({
-            activeWorkItem: workItem,
-            historicalBase: historicalSeconds,
-            totalTimeSpent: historicalSeconds + elapsedSeconds
-        });
-
-        // Notify main process for tray update
-        api.setTrayIcon('active', workItem.description);
-        api.setTrayTooltip(`Tracking: ${workItem.description}`);
-        const currentStartTime = get().startTime;
-        if (currentStartTime) {
-            notifyMiniPlayerActive(workItem, currentStartTime);
+    applyTrackingSnapshot: (snapshot) => {
+        if (snapshot.revision < get().revision) return;
+        const { activeSlice, workItem } = snapshot;
+        if (activeSlice && workItem) {
+            const elapsed = Math.max(0, Math.floor((Date.now() - new Date(activeSlice.start_time).getTime()) / 1000));
+            const historicalBase = Math.max(0, (workItem.total_seconds || 0) - elapsed);
+            set({
+                revision: snapshot.revision,
+                activeWorkItem: workItem,
+                activeTimeSliceId: activeSlice.id,
+                startTime: activeSlice.start_time,
+                elapsedSeconds: elapsed,
+                totalTimeSpent: historicalBase + elapsed,
+                historicalBase
+            });
+        } else {
+            set({
+                revision: snapshot.revision,
+                activeWorkItem: null,
+                activeTimeSliceId: null,
+                startTime: null,
+                elapsedSeconds: 0,
+                totalTimeSpent: 0,
+                historicalBase: 0
+            });
         }
     },
 
     checkActiveTracking: async () => {
-        const activeSlice = await api.getActiveTimeSlice();
-
-        if (activeSlice) {
-            // Guaranteed to find it even if it's completed or not in first search results
-            const workItem = await api.getWorkItem(activeSlice.work_item_id);
-
-            if (workItem) {
-                const elapsed = Math.max(0, Math.floor((Date.now() - new Date(activeSlice.start_time).getTime()) / 1000));
-                const totalIncludingActive = workItem.total_seconds || 0;
-                const historicalBase = Math.max(0, totalIncludingActive - elapsed);
-
-                set({
-                    activeWorkItem: workItem,
-                    activeTimeSliceId: activeSlice.id,
-                    startTime: activeSlice.start_time,
-                    elapsedSeconds: elapsed,
-                    totalTimeSpent: historicalBase + elapsed,
-                    historicalBase: historicalBase
-                });
-
-                // Update tray
-                api.setTrayIcon('active', workItem.description);
-                api.setTrayTooltip(`Tracking: ${workItem.description}`);
-                notifyMiniPlayerActive(workItem, activeSlice.start_time);
-            }
-        } else {
-            set({
-                activeWorkItem: null,
-                activeTimeSliceId: null,
-                startTime: null,
-                elapsedSeconds: 0
-            });
-            api.setTrayIcon('idle');
-            api.setTrayTooltip('Jira Time Tracker');
-            notifyMiniPlayerIdle();
-        }
+        const snapshot = await api.getTrackingSnapshot();
+        get().applyTrackingSnapshot(snapshot);
     }
 }))
