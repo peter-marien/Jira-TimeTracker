@@ -93,7 +93,7 @@ export function MonthCellDialog({
                         </div>
                         <div className="bg-muted/50 rounded-lg p-4 border min-h-[100px] max-h-[300px] overflow-auto">
                             {notes ? (
-                                <pre className="text-sm font-sans whitespace-pre-wrap break-words leading-relaxed">
+                                <pre className="text-sm font-sans whitespace-pre-wrap wrap-break-word leading-relaxed">
                                     {notes}
                                 </pre>
                             ) : (

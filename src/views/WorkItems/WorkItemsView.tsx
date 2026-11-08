@@ -327,7 +327,7 @@ export function WorkItemsView() {
 
                                                     return (
                                                         <span
-                                                            className="text-xs font-bold px-1.5 py-0.5 rounded flex-shrink-0"
+                                                            className="text-xs font-bold px-1.5 py-0.5 rounded shrink-0"
                                                             style={{
                                                                 backgroundColor: isHex ? `${badgeColor}20` : `hsl(var(--primary) / 0.1)`,
                                                                 color: badgeColor

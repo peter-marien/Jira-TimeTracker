@@ -191,7 +191,7 @@ export function TimeSliceTable({
 
                                             return (
                                                 <span
-                                                    className="text-xs font-bold px-1.5 py-0.5 rounded flex-shrink-0"
+                                                    className="text-xs font-bold px-1.5 py-0.5 rounded shrink-0"
                                                     style={{
                                                         backgroundColor: isHex ? `${badgeColor}20` : `hsl(var(--primary) / 0.1)`,
                                                         color: badgeColor
@@ -230,7 +230,7 @@ export function TimeSliceTable({
                             <div className="flex flex-col gap-1 min-w-0 py-1">
                                 <span className="font-medium truncate">{slice.work_item_description}</span>
                                 {slice.notes ? (
-                                    <p className="text-xs text-muted-foreground break-words max-w-[500px] whitespace-pre-wrap">
+                                    <p className="text-xs text-muted-foreground wrap-break-word max-w-[500px] whitespace-pre-wrap">
                                         {slice.notes}
                                     </p>
                                 ) : (

@@ -134,7 +134,7 @@ export function TimePicker({ value, onChange, className, disabled, allowEmpty = 
                     <button
                         type="button"
                         onClick={handleClear}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded-sm hover:bg-accent focus:outline-none focus:ring-1 focus:ring-ring"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded-sm hover:bg-accent focus:outline-hidden focus:ring-1 focus:ring-ring"
                         tabIndex={-1}
                     >
                         <X className="h-3 w-3" />

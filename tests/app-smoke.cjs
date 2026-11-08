@@ -27,6 +27,7 @@ async function waitFor(check) {
 
 const mainWindow = new Promise(resolve => app.once('browser-window-created', (_event, window) => {
     window.hide();
+    window.webContents.setBackgroundThrottling(false);
     window.setSize(1280, 900);
     resolve(window);
 }));
@@ -44,7 +45,10 @@ app.whenReady().then(() => {
     assert.equal(path.dirname(databasePath), profile);
     assert.ok(fs.existsSync(databasePath));
     // Dismiss first-run setup without supplying any real Jira credentials.
-    await evaluate(window, `Array.from(document.querySelectorAll('button')).find(b => /later|skip/i.test(b.textContent))?.click()`);
+    await waitFor(() => evaluate(window, `document.body.innerText.includes('Add Your First Jira Connection')`));
+    await evaluate(window, `Array.from(document.querySelectorAll('[role="alertdialog"] button')).find(b => /later/i.test(b.textContent)).click()`);
+    await waitFor(() => evaluate(window, `!document.querySelector('[role="alertdialog"]')`));
+    await delay(300);
 
     const artifacts = process.env.JIRA_TEST_ARTIFACTS;
     if (artifacts) fs.mkdirSync(artifacts, { recursive: true });
@@ -58,6 +62,7 @@ app.whenReady().then(() => {
     await waitFor(async () => await caption() !== originalMonth);
     await evaluate(window, `document.querySelector('.rdp-button_previous').click()`);
     await waitFor(async () => await caption() === originalMonth);
+    await delay(300);
     if (artifacts) fs.writeFileSync(path.join(artifacts, 'calendar.png'), (await window.webContents.capturePage()).toPNG());
     await evaluate(window, `Array.from(document.querySelectorAll('button[data-day]')).find(b => ['10', '15'].includes(b.textContent) && b.dataset.selectedSingle !== 'true' && !b.disabled).click()`);
     await waitFor(async () => await evaluate(window, `${dateButton}.textContent`) !== originalDate);

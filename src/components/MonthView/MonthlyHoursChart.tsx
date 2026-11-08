@@ -173,7 +173,7 @@ export function MonthlyHoursChart({ slices, connections, daysInMonth }: MonthlyH
                 }
 
                 return (
-                    <div key={section.key} className="border rounded-md bg-card shadow-sm p-4">
+                    <div key={section.key} className="border rounded-md bg-card shadow-xs p-4">
                         <div className="flex items-center gap-2 mb-4">
                             <div
                                 className="w-3 h-3 rounded-full shrink-0 border border-black/10"

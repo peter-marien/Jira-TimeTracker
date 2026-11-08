@@ -388,7 +388,7 @@ function TimelineSlice({ slice, timelineStart, totalMs, interactive, connections
                         "absolute top-3 bottom-5 rounded-xl transition-all flex flex-col justify-center items-center px-1 overflow-hidden",
                         isActive
                             ? "shadow-[0_0_10px_rgba(0,0,0,0.2)] animate-pulse brightness-110 border-white/20 border cursor-default"
-                            : "hover:brightness-110 shadow-sm border border-white/5 cursor-grab active:cursor-grabbing",
+                            : "hover:brightness-110 shadow-xs border border-white/5 cursor-grab active:cursor-grabbing",
                         isDragging && "z-50 opacity-80 cursor-grabbing",
                         hasOverlap && "ring-2 ring-red-500 z-10"
                     )}

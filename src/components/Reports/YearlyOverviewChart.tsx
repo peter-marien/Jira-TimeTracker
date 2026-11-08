@@ -121,7 +121,7 @@ export function YearlyOverviewChart({ year, slices }: YearlyOverviewChartProps) 
                 </div>
             </div>
 
-            <div className="border rounded-md bg-card shadow-sm p-4">
+            <div className="border rounded-md bg-card shadow-xs p-4">
                 <ChartContainer config={chartConfig} className="h-[400px] w-full">
                     <LineChart
                         data={chartData}
