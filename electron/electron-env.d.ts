@@ -23,5 +23,7 @@ declare namespace NodeJS {
 
 // Used in Renderer process, expose in `preload.ts`
 interface Window {
-  ipcRenderer: import('electron').IpcRenderer
+  ipcRenderer: Pick<import('electron').IpcRenderer, 'send' | 'invoke'> & {
+    on(...args: Parameters<import('electron').IpcRenderer['on']>): () => void
+  }
 }

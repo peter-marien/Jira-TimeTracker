@@ -80,10 +80,10 @@ function AppShell() {
       setUpdateInfo(data);
     };
 
-    window.ipcRenderer.on('update:downloaded', handleUpdateDownloaded);
+    const unsubscribe_handleUpdateDownloaded = window.ipcRenderer.on('update:downloaded', handleUpdateDownloaded);
 
     return () => {
-      window.ipcRenderer.removeListener('update:downloaded', handleUpdateDownloaded);
+      unsubscribe_handleUpdateDownloaded();
     };
   }, []);
 
@@ -94,10 +94,10 @@ function AppShell() {
       handleAwayTime(data.action, data.awayStartTime, data.targetWorkItem);
     };
 
-    window.ipcRenderer.on('away:action-forwarded', handleAwayActionForwarded);
+    const unsubscribe_handleAwayActionForwarded = window.ipcRenderer.on('away:action-forwarded', handleAwayActionForwarded);
 
     return () => {
-      window.ipcRenderer.removeListener('away:action-forwarded', handleAwayActionForwarded);
+      unsubscribe_handleAwayActionForwarded();
     };
   }, [handleAwayTime]);
 
@@ -114,14 +114,14 @@ function AppShell() {
       checkActiveTracking();
     };
 
-    window.ipcRenderer.on('mini-player:stop-tracking', handleMiniPlayerStop);
-    window.ipcRenderer.on('mini-player:tracking-started', handleMiniPlayerStart);
-    window.ipcRenderer.on('tracking:refresh', checkActiveTracking);
+    const unsubscribe_handleMiniPlayerStop = window.ipcRenderer.on('mini-player:stop-tracking', handleMiniPlayerStop);
+    const unsubscribe_handleMiniPlayerStart = window.ipcRenderer.on('mini-player:tracking-started', handleMiniPlayerStart);
+    const unsubscribe_checkActiveTracking = window.ipcRenderer.on('tracking:refresh', checkActiveTracking);
 
     return () => {
-      window.ipcRenderer.removeListener('mini-player:stop-tracking', handleMiniPlayerStop);
-      window.ipcRenderer.removeListener('mini-player:tracking-started', handleMiniPlayerStart);
-      window.ipcRenderer.removeListener('tracking:refresh', checkActiveTracking);
+      unsubscribe_handleMiniPlayerStop();
+      unsubscribe_handleMiniPlayerStart();
+      unsubscribe_checkActiveTracking();
     };
   }, [stopTracking, checkActiveTracking]);
 

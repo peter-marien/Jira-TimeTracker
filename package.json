@@ -8,6 +8,8 @@
     "url": "https://github.com/peter-marien/Jira-TimeTracker.git"
   },
   "scripts": {
+    "test": "node --import ./tests/register-paths.mjs --test \"tests/*.test.mjs\" \"src/**/*.test.ts\"",
+    "test:electron": "node tests/run-electron-smoke.mjs",
     "dev": "vite",
     "prebuild": "taskkill /f /im electron.exe 2>nul || exit 0",
     "build": "tsc && vite build && electron-builder",

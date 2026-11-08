@@ -10,9 +10,6 @@ export function AwayDialogPage() {
     } | null>(null);
 
     useEffect(() => {
-        // Signal that the window is ready to receive data
-        window.ipcRenderer.send('away-window:ready');
-
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const handleData = (_event: any, payload: {
             awayStartTime: string;
@@ -23,11 +20,9 @@ export function AwayDialogPage() {
             setData(payload);
         };
 
-        window.ipcRenderer.on('away:data', handleData);
-
-        return () => {
-            window.ipcRenderer.removeListener('away:data', handleData);
-        };
+        const unsubscribe = window.ipcRenderer.on('away:data', handleData);
+        window.ipcRenderer.send('away-window:ready');
+        return unsubscribe;
     }, []);
 
     const handleAction = (action: 'discard' | 'keep' | 'reassign', targetWorkItem?: WorkItem) => {

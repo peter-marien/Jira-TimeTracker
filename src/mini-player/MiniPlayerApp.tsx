@@ -102,7 +102,7 @@ export function MiniPlayerApp() {
                 loadSettings(); // Re-fetch all to be safe and simple
             }
         };
-        window.ipcRenderer.on('setting:updated', handleSettingUpdate);
+        const unsubscribe_handleSettingUpdate = window.ipcRenderer.on('setting:updated', handleSettingUpdate);
 
         const loadInitial = async () => {
             const activeSlice = await window.ipcRenderer.invoke('db:get-active-time-slice');
@@ -151,14 +151,14 @@ export function MiniPlayerApp() {
             }
         };
 
-        window.ipcRenderer.on('mini-player:state', handleState);
-        window.ipcRenderer.on('mini-player:tracking-started', handleTrackingStarted);
+        const unsubscribe_handleState = window.ipcRenderer.on('mini-player:state', handleState);
+        const unsubscribe_handleTrackingStarted = window.ipcRenderer.on('mini-player:tracking-started', handleTrackingStarted);
         window.ipcRenderer.invoke('db:get-all-connections').then(setConnections);
 
         return () => {
-            window.ipcRenderer.removeListener('mini-player:state', handleState);
-            window.ipcRenderer.removeListener('mini-player:tracking-started', handleTrackingStarted);
-            window.ipcRenderer.removeListener('setting:updated', handleSettingUpdate);
+            unsubscribe_handleState();
+            unsubscribe_handleTrackingStarted();
+            unsubscribe_handleSettingUpdate();
         };
     }, []);
 

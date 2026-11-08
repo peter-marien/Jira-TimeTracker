@@ -59,9 +59,9 @@ export function TitleBar() {
             })
         }
 
-        window.ipcRenderer.on('mini-player:request-state', handleStateRequest)
+        const unsubscribe_handleStateRequest = window.ipcRenderer.on('mini-player:request-state', handleStateRequest)
         return () => {
-            window.ipcRenderer.removeListener('mini-player:request-state', handleStateRequest)
+            unsubscribe_handleStateRequest()
         }
     }, [isTracking, activeWorkItem, elapsedSeconds, startTime])
 

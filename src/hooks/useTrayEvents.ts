@@ -15,10 +15,6 @@ export function useTrayEvents() {
             stopTracking();
         };
 
-        window.ipcRenderer.on('tray:stop-tracking', handler);
-
-        return () => {
-            window.ipcRenderer.removeListener('tray:stop-tracking', handler);
-        };
+        return window.ipcRenderer.on('tray:stop-tracking', handler);
     }, [stopTracking]);
 }

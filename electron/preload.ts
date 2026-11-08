@@ -4,11 +4,11 @@ import { ipcRenderer, contextBridge } from 'electron'
 contextBridge.exposeInMainWorld('ipcRenderer', {
   on(...args: Parameters<typeof ipcRenderer.on>) {
     const [channel, listener] = args
-    return ipcRenderer.on(channel, (event, ...args) => listener(event, ...args))
-  },
-  off(...args: Parameters<typeof ipcRenderer.off>) {
-    const [channel, ...omit] = args
-    return ipcRenderer.off(channel, ...omit)
+    const wrapped: Parameters<typeof ipcRenderer.on>[1] = (event, ...values) => listener(event, ...values)
+    ipcRenderer.on(channel, wrapped)
+    // Callback proxies are not identity-stable across contextBridge calls.
+    // Return cleanup tied to this exact registration instead.
+    return () => { ipcRenderer.removeListener(channel, wrapped) }
   },
   send(...args: Parameters<typeof ipcRenderer.send>) {
     const [channel, ...omit] = args
@@ -18,11 +18,5 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
     const [channel, ...omit] = args
     return ipcRenderer.invoke(channel, ...omit)
   },
-  removeListener(...args: Parameters<typeof ipcRenderer.removeListener>) {
-    const [channel, listener] = args
-    return ipcRenderer.removeListener(channel, listener)
-  },
 
-  // You can expose other APTs you need here.
-  // ...
 })
