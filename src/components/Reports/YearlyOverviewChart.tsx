@@ -151,7 +151,7 @@ export function YearlyOverviewChart({ year, slices }: YearlyOverviewChartProps) 
                                             header={<span className="font-semibold">{label} {year}</span>}
                                         >
                                             <div className="flex flex-col gap-2">
-                                                {payload.map((entry: { name: string; value: number; color: string }) => (
+                                                {payload.map((entry) => (
                                                     <div key={entry.name} className="flex justify-between gap-8 items-center">
                                                         <div className="flex items-center gap-2">
                                                             <div
@@ -166,8 +166,8 @@ export function YearlyOverviewChart({ year, slices }: YearlyOverviewChartProps) 
 
                                                 {/* Calculate Overtime (Actual - Expected) */}
                                                 {(() => {
-                                                    const actual = payload.find((p: { dataKey: string; value: number }) => p.dataKey === "actualHours")?.value || 0;
-                                                    const expected = payload.find((p: { dataKey: string; value: number }) => p.dataKey === "expectedHours")?.value || 0;
+                                                    const actual = Number(payload.find(p => p.dataKey === "actualHours")?.value ?? 0);
+                                                    const expected = Number(payload.find(p => p.dataKey === "expectedHours")?.value ?? 0);
                                                     const overtime = Math.round((actual - expected) * 10) / 10;
                                                     const isPositive = overtime > 0;
 

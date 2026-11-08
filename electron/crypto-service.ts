@@ -35,7 +35,7 @@ function getEncryptionKey(): Buffer {
         return encryptionKey;
     } catch (error) {
         console.error('Failed to derive encryption key:', error);
-        throw new Error('Failed to initialize encryption');
+        throw new Error('Failed to initialize encryption', { cause: error });
     }
 }
 
@@ -63,7 +63,7 @@ export function encrypt(plaintext: string): string {
         return `${iv.toString('base64')}:${authTag.toString('base64')}:${encrypted}`;
     } catch (error) {
         console.error('Encryption failed:', error);
-        throw new Error('Failed to encrypt data');
+        throw new Error('Failed to encrypt data', { cause: error });
     }
 }
 
@@ -98,7 +98,7 @@ export function decrypt(ciphertext: string): string {
         return decrypted;
     } catch (error) {
         console.error('Decryption failed:', error);
-        throw new Error('Failed to decrypt data');
+        throw new Error('Failed to decrypt data', { cause: error });
     }
 }
 

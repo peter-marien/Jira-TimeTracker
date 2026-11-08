@@ -31,12 +31,12 @@ database fixtures and isolated profiles; never open the user's live database.**
 
 ## 2. Tooling and desktop runtime — PLAN phase 2
 
-- [ ] Upgrade TypeScript to approved compatible version (proposed 6.0.3).
-- [ ] Verify test helper's compiler API and Node TypeScript/module-hook behavior.
-- [ ] Migrate deprecated TypeScript configuration while preserving `@/` aliases.
-- [ ] Upgrade ESLint/parser/plugins together and migrate to flat configuration.
-- [ ] Preserve lint scope, generated-output ignores, existing rules, zero warnings.
-- [ ] Run lint, tests, and type checks after this group; resolve migration failures.
+- [x] Upgrade TypeScript to approved compatible version (proposed 6.0.3).
+- [x] Verify test helper's compiler API and Node TypeScript/module-hook behavior.
+- [x] Migrate deprecated TypeScript configuration while preserving `@/` aliases.
+- [x] Upgrade ESLint/parser/plugins together and migrate to flat configuration.
+- [x] Preserve lint scope, generated-output ignores, existing rules, zero warnings.
+- [x] Run lint, tests, and type checks after this group; resolve migration failures.
 - [ ] Upgrade Vite/React plugin/Electron plugins together.
 - [ ] Migrate applicable build configuration to Rolldown options.
 - [ ] Verify main/mini-player HTML builds and native dependency externalization.

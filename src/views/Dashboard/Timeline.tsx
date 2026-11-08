@@ -145,8 +145,8 @@ export function Timeline({ date, slices, className, onSliceClick, connections, o
         setInteractiveState(prev => {
             if (!prev) return null;
 
-            let startOffset = 0;
-            let endOffset = 0;
+            let startOffset: number;
+            let endOffset: number;
 
             if (prev.type === 'resize-start') {
                 const newStart = Math.round((prev.originalStartMs + deltaMs) / intervalMs) * intervalMs;
