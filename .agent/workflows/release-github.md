@@ -1,47 +1,18 @@
 ---
-description: lint, bump version, and release the application to GitHub
+description: trigger and monitor the GitHub Actions release workflow
 ---
 
-1. Check if the current branch is master
-```powershell
-$branch = git rev-parse --abbrev-ref HEAD
-if ($branch -ne "master") {
-    Write-Error "Release must be performed on the 'master' branch. Current branch: $branch"
-    exit 1
-}
-```
+Use [the Release workflow](../../.github/workflows/release.yml) as the release
+procedure. Follow the execution steps in the
+[README deployment section](../../README.md#deploy-new-version-to-github).
 
-2. Check for uncommitted changes
-```powershell
-$status = git status --porcelain
-if ($status) {
-    Write-Error "Working tree is not clean. Please commit or stash changes before releasing."
-    exit 1
-}
-```
+1. Obtain the requested version: `patch`, `minor`, `major`, or an explicit `x.y.z`.
+2. Ensure the intended release changes are committed and pushed to `master`,
+   and that CI passes. Resolve lint failures during development.
+3. Trigger the `Release` GitHub Actions workflow on `master`, passing the version
+   as the `new-version` input.
+4. Monitor the run and report its outcome and release link, or the failed step.
 
-3. Run lint and fix automatically
-```powershell
-npm run lint -- --fix
-```
-
-4. Verify no linting issues remain
-```powershell
-npm run lint
-```
-
-5. Bump the version and create commit/tag
-```powershell
-# Parameter: new-version (e.g. 0.8.4, patch, minor, major)
-npm version {{new-version}} -m "Bump version to %s"
-```
-
-6. Push changes and tags to Git
-```powershell
-git push origin master --tags
-```
-
-7. Trigger the release build and upload
-```powershell
-npm run release
-```
+The release workflow calls the reusable CI workflow before bumping the version,
+creating tags, or publishing. Validation reports failures without fixing lint
+or committing source changes. Do not duplicate release operations locally.

@@ -9,11 +9,17 @@ on:
         type: string
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
+  validate:
+    uses: ./.github/workflows/ci.yml
+
   release:
+    needs: validate
     runs-on: windows-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repository
@@ -23,11 +29,17 @@ jobs:
 
       - name: Validate branch
         shell: pwsh
+        env:
+          VALIDATED_SHA: ${{ github.sha }}
         run: |
           $branch = git rev-parse --abbrev-ref HEAD
           if ($branch -ne "master") {
               Write-Error "Release must be performed on the 'master' branch. Current branch: $branch"
               exit 1
+          }
+          $head = git rev-parse HEAD
+          if ($LASTEXITCODE -ne 0 -or $head -ne $env:VALIDATED_SHA) {
+              throw "Release checkout does not match the validated commit."
           }
 
       - name: Set up Node.js
@@ -48,12 +60,6 @@ jobs:
               exit 1
           }
 
-      - name: Run lint and fix automatically
-        run: npm run lint -- --fix
-
-      - name: Verify no linting issues remain
-        run: npm run lint
-
       - name: Configure Git author
         shell: pwsh
         run: |
@@ -62,9 +68,11 @@ jobs:
 
       - name: Bump version and create commit/tag
         shell: pwsh
-        run: npm version "${{ github.event.inputs['new-version'] }}" -m "Bump version to %s"
+        env:
+          NEW_VERSION: ${{ inputs.new-version }}
+        run: npm version "$env:NEW_VERSION" -m "Bump version to %s"
 
-      - name: Push version commit and tag
+      - name: Push version commit and tags
         shell: pwsh
         run: git push origin master --tags
 

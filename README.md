@@ -68,28 +68,54 @@ minimize, hibernate, and resume. Both windows should remain idle. Repeat while
 tracking and after disconnecting a monitor; the active entry should remain the
 same and reopening the app should show its window on an available screen.
 
+### Continuous integration
+
+The [CI workflow](.github/workflows/ci.yml) runs on pushes to `master` and pull
+requests targeting `master`. It also supports `workflow_call`, so releases use
+the same validation steps:
+
+1. Install dependencies with `npm ci` using the Node.js version in `.nvmrc`.
+2. Check lint with `npm run lint`.
+3. Run regression tests with `npm test`.
+4. Check TypeScript with `npx tsc --noEmit`.
+5. Build the application with `npx vite build`.
+6. Run the real Electron regression check with `npm run test:electron`.
+
+CI reports failures without modifying source files or creating commits. Run
+`npm run lint -- --fix` locally to apply available fixes, then review and commit
+them before pushing.
+
+Push checks run after a commit reaches GitHub. To require successful validation
+before merging, configure the CI validation check as a required status check in
+the branch protection settings for `master`.
+
 ### Deploy new version to GitHub
 
-The project includes an agentic workflow for safe and automated releases.
+Releases are created by the manually triggered [Release workflow](.github/workflows/release.yml) in GitHub Actions.
 
 **Prerequisites:**
-- For local releases, ensure you have a `.env` file with a valid GitHub token in the root: `GH_TOKEN=[YOUR_GITHUB_TOKEN]`.
-- For GitHub Actions releases, no extra secret is needed beyond the built-in GITHUB_TOKEN.
-- Be on the `master` branch with a clean working tree.
+
+- Commit and push the changes to release to `master` and check that CI passes. Fix lint failures during development; releases do not fix lint or commit code changes automatically.
+- Ensure GitHub Actions can push commits and tags to `master`. The workflow requests `contents: write` and uses the built-in `GITHUB_TOKEN`; no local `.env` file or additional release token is required.
 
 **Execution:**
-You can trigger the release by asking the AI assistant:
-```text
-/release-github [new-version]
-```
-Where `[new-version]` can be a specific version (e.g., `0.8.4`) or an npm version keyword (`patch`, `minor`, `major`).
+
+1. Open the repository on GitHub and go to **Actions → Release**.
+2. Select **Run workflow** and choose the `master` branch.
+3. Enter `patch`, `minor`, `major`, or an explicit version such as `0.18.0` in the **new-version** field.
+4. Start the workflow and check that the run completes successfully.
 
 **The workflow automatically:**
-1. Validates the branch and working tree.
-2. Fixes linting issues automatically.
-3. Bumps `package.json` version and creates a Git commit/tag.
-4. Pushes changes and tags to GitHub.
-5. Builds the production installer and uploads it to GitHub Releases.
+
+1. Calls the reusable [CI workflow](.github/workflows/ci.yml) and waits for all validation checks to pass.
+2. Checks out the same validated commit on a Windows runner, verifies `master`, installs dependencies with `npm ci`, and checks that the working tree is clean.
+3. Configures `github-actions[bot]` as the Git author and runs `npm version` to update the package version and lock file, then creates a version commit and tag.
+4. Pushes the version commit and tags to GitHub.
+5. Runs `npm run release` to build the versioned Windows installer and publish it to GitHub Releases.
+
+Validation failure stops the release before the version bump or any push. Validation has read-only repository permissions; only the release job can push commits, tags, and release assets.
+
+The application build is checked before the version bump. Installer packaging and publishing still happen after the commits and tags are pushed. If packaging or upload fails, inspect the failed run before starting another version bump.
 
 ## 📂 Data & Configuration
 
