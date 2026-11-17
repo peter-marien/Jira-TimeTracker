@@ -15,6 +15,7 @@
     "build": "tsc && vite build && electron-builder",
     "prerelease": "taskkill /f /im electron.exe 2>nul || exit 0",
     "release": "tsc && vite build && dotenv -e .env -- electron-builder --publish always",
+    "release:build": "tsc && vite build && electron-builder --win nsis --x64 --publish never",
     "lint": "eslint . --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "test:sqlite": "node tests/native-sqlite.mjs",

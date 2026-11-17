@@ -11,6 +11,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   validate:
     uses: ./.github/workflows/ci.yml
@@ -76,8 +80,12 @@ jobs:
         shell: pwsh
         run: git push origin master --tags
 
-      - name: Trigger release build and upload
+      - name: Build installer and update metadata
+        run: npm run release:build
+
+      - name: Upload and verify draft release files
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run release
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: node scripts/publish-release.mjs
 
