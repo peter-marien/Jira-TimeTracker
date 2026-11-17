@@ -275,44 +275,6 @@ export function SettingsView() {
                             </div>
 
                             <div className="grid gap-2 pt-4 border-t">
-                                <div className="flex items-center gap-2">
-                                    <Switch
-                                        id="mini-player-enabled"
-                                        checked={miniPlayerEnabled}
-                                        onCheckedChange={async (checked) => {
-                                            await api.saveSetting('mini_player_enabled', String(checked));
-                                            setMiniPlayerEnabled(checked);
-                                        }}
-                                    />
-                                    <Label htmlFor="mini-player-enabled">Mini-Player</Label>
-                                </div>
-                                {miniPlayerEnabled && <div className="grid gap-2">
-                                    <Label htmlFor="mini-player-theme">Theme</Label>
-                                    <Select
-                                        value={miniPlayerTheme}
-                                        onValueChange={async (value) => {
-                                            setMiniPlayerTheme(value);
-                                            await api.saveSetting('mini_player_theme', value);
-                                        }}
-                                    >
-                                        <SelectTrigger id="mini-player-theme" className="w-[300px]">
-                                            <SelectValue placeholder="Select theme" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="inverted">Inverted (Opposite of App)</SelectItem>
-                                            <SelectItem value="match">Match App Theme</SelectItem>
-                                            <SelectItem value="light">Always Light</SelectItem>
-                                            <SelectItem value="dark">Always Dark</SelectItem>
-                                            <SelectItem value="system">Follow System</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <p className="text-xs text-muted-foreground">
-                                        Choose how the mini-player should look.
-                                    </p>
-                                </div>}
-                            </div>
-
-                            <div className="grid gap-2 pt-4 border-t">
                                 <Label htmlFor="other-color" className="flex items-center gap-2">
                                     <Clock className="h-4 w-4" /> Non-Jira Time ("Other") Color
                                 </Label>
@@ -352,6 +314,56 @@ export function SettingsView() {
                                 </div>
                                 <p className="text-xs text-muted-foreground">
                                     The target hours for a single workday (Monday-Friday).
+                                </p>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="mt-6">
+                        <CardHeader>
+                            <CardTitle>Mini-Player</CardTitle>
+                            <CardDescription>Configure the floating mini-player and its theme.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <Label htmlFor="mini-player-enabled">Enable Mini-Player</Label>
+                                    <p className="text-xs text-muted-foreground">
+                                        Show the floating mini-player.
+                                    </p>
+                                </div>
+                                <Switch
+                                    id="mini-player-enabled"
+                                    checked={miniPlayerEnabled}
+                                    onCheckedChange={async (checked) => {
+                                        await api.saveSetting('mini_player_enabled', String(checked));
+                                        setMiniPlayerEnabled(checked);
+                                    }}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="mini-player-theme">Theme</Label>
+                                <Select
+                                    value={miniPlayerTheme}
+                                    disabled={!miniPlayerEnabled}
+                                    onValueChange={async (value) => {
+                                        setMiniPlayerTheme(value);
+                                        await api.saveSetting('mini_player_theme', value);
+                                    }}
+                                >
+                                    <SelectTrigger id="mini-player-theme" className="w-[300px]">
+                                        <SelectValue placeholder="Select theme" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="inverted">Inverted (Opposite of App)</SelectItem>
+                                        <SelectItem value="match">Match App Theme</SelectItem>
+                                        <SelectItem value="light">Always Light</SelectItem>
+                                        <SelectItem value="dark">Always Dark</SelectItem>
+                                        <SelectItem value="system">Follow System</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-xs text-muted-foreground">
+                                    Choose how the mini-player should look.
                                 </p>
                             </div>
                         </CardContent>
