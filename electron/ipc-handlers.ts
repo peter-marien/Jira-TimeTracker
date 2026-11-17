@@ -13,6 +13,7 @@ import { encrypt } from './crypto-service'
 import { cleanupApplicationLogs, getLogFilePath, getLogsDirectory, normalizeLogRetentionDays } from './logger'
 import { normalizeTagName, parseTagMarkers, validateTagName } from '../src/lib/tags'
 import { handleTrackingMutation } from './tracking-state'
+import { setMiniPlayerEnabled } from './mini-player'
 
 export function registerIpcHandlers() {
     const db = getDatabase()
@@ -443,6 +444,10 @@ export function registerIpcHandlers() {
     ipcMain.handle('db:save-setting', (_, { key, value }: { key: string, value: string }) => {
         const stmt = db.prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, ?)');
         stmt.run(key, value, Date.now());
+
+        if (key === 'mini_player_enabled') {
+            setMiniPlayerEnabled(value !== 'false');
+        }
 
         if (key === 'update_check_interval') {
             const interval = parseInt(value, 10);

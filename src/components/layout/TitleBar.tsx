@@ -9,6 +9,25 @@ export function TitleBar() {
     const [isMaximized, setIsMaximized] = useState(false)
     const [isDark, setIsDark] = useState(false)
     const [version, setVersion] = useState<string | null>(null)
+    const [miniPlayerEnabled, setMiniPlayerEnabled] = useState(true)
+
+    useEffect(() => {
+        let active = true;
+        let updated = false;
+        const unsubscribe = window.ipcRenderer.on('setting:updated', (_: unknown, { key, value }: { key: string, value: string }) => {
+            if (key === 'mini_player_enabled') {
+                updated = true;
+                setMiniPlayerEnabled(value !== 'false');
+            }
+        });
+        api.getSettings().then(settings => {
+            if (active && !updated) setMiniPlayerEnabled(settings.mini_player_enabled !== 'false');
+        });
+        return () => {
+            active = false;
+            unsubscribe();
+        };
+    }, []);
 
     useEffect(() => {
         const fetchVersion = async () => {
@@ -69,7 +88,7 @@ export function TitleBar() {
             </div>
 
             <div className="flex items-center no-drag-region">
-                <Button
+                {miniPlayerEnabled && <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-10 hover:bg-primary/10 hover:text-primary rounded-none"
@@ -77,7 +96,7 @@ export function TitleBar() {
                     title="Minimize to Widget"
                 >
                     <PictureInPicture2 className="h-3.5 w-3.5" />
-                </Button>
+                </Button>}
                 <Button
                     variant="ghost"
                     size="icon"

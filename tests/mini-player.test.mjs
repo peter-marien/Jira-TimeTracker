@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { loadElectronModule } from './load-electron-module.mjs';
 
-function setup() {
+function setup(savedPreference) {
     const main = new EventEmitter();
     let minimized = true;
     main.isMinimized = () => minimized;
@@ -36,10 +36,16 @@ function setup() {
         './main': { RENDERER_DIST: 'test-renderer' },
         './config-service': { getAppConfig: () => ({}), saveAppConfig() {} },
         './tracking-state': { getTrackingSnapshot: () => snapshot },
+        '../src/database/db': { getDatabase: () => ({ prepare: () => ({
+            get: key => {
+                assert.equal(key, 'mini_player_enabled');
+                return savedPreference === undefined ? undefined : { value: savedPreference };
+            }
+        }) }) },
         './window-lifecycle': { installWindowRecovery() {}, revealWindow() {} }
     });
     module.initializeMiniPlayer(main);
-    return { main, ipc, windows,
+    return { main, ipc, windows, setEnabled: module.setMiniPlayerEnabled,
         restore: () => { minimized = false; main.emit('restore'); },
         stop: () => { snapshot = { revision: 2, activeSlice: null, workItem: null }; }
     };
@@ -50,6 +56,56 @@ test('repeated minimize events during loading install only one load listener', (
     for (let i = 0; i < 20; i++) env.main.emit('minimize');
     assert.equal(env.windows.length, 1);
     assert.equal(env.windows[0].webContents.listenerCount('did-finish-load'), 1);
+});
+
+test('missing preference keeps the mini-player enabled for existing and new users', () => {
+    const env = setup();
+    env.main.emit('minimize');
+    const widget = env.windows[0];
+    widget.loading = false;
+    widget.webContents.emit('did-finish-load');
+    assert.equal(widget.visible, true);
+});
+
+test('saved disabled preference blocks minimize and explicit show requests after startup', () => {
+    const env = setup('false');
+    env.main.emit('minimize');
+    env.ipc.emit('mini-player:show');
+    assert.equal(env.windows.length, 0);
+});
+
+test('disabling a visible mini-player hides it and blocks subsequent requests', () => {
+    const env = setup('true');
+    env.main.emit('minimize');
+    const widget = env.windows[0];
+    widget.loading = false;
+    widget.webContents.emit('did-finish-load');
+    assert.equal(widget.visible, true);
+    env.setEnabled(false);
+    env.main.emit('minimize');
+    env.ipc.emit('mini-player:show');
+    widget.webContents.emit('did-finish-load');
+    assert.equal(widget.visible, false);
+});
+
+test('disabling during loading prevents the pending load from showing the mini-player', () => {
+    const env = setup();
+    env.main.emit('minimize');
+    env.setEnabled(false);
+    const widget = env.windows[0];
+    widget.loading = false;
+    widget.webContents.emit('did-finish-load');
+    assert.equal(widget.visible, false);
+    env.setEnabled(true);
+    assert.equal(widget.visible, true);
+});
+
+test('re-enabling only shows the mini-player when the main window is minimized', () => {
+    const env = setup('false');
+    env.restore();
+    env.setEnabled(true);
+    env.ipc.emit('mini-player:show');
+    assert.equal(env.windows.length, 0);
 });
 
 test('a restored main window prevents a pending mini-player load from showing the widget', () => {

@@ -59,6 +59,7 @@ export function SettingsView() {
     const [checkingUpdate, setCheckingUpdate] = React.useState(false);
     const [updateStatus, setUpdateStatus] = React.useState<{ type: 'current' | 'available' | 'error', message: string } | null>(null);
     const [miniPlayerTheme, setMiniPlayerTheme] = React.useState("inverted");
+    const [miniPlayerEnabled, setMiniPlayerEnabled] = React.useState(true);
     const [dailyTargetHours, setDailyTargetHours] = React.useState(8);
     const [hideCompletedItems, setHideCompletedItems] = React.useState(true);
     const [logRetentionDays, setLogRetentionDays] = React.useState(30);
@@ -78,6 +79,7 @@ export function SettingsView() {
 
             // Load mini-player theme
             setMiniPlayerTheme(settings.mini_player_theme || "inverted");
+            setMiniPlayerEnabled(settings.mini_player_enabled !== 'false');
 
             // Load away detection settings
             const threshold = settings.away_threshold_minutes ? parseInt(settings.away_threshold_minutes, 10) : 5;
@@ -273,28 +275,41 @@ export function SettingsView() {
                             </div>
 
                             <div className="grid gap-2 pt-4 border-t">
-                                <Label>Mini-Player Theme</Label>
-                                <Select
-                                    value={miniPlayerTheme}
-                                    onValueChange={async (value) => {
-                                        setMiniPlayerTheme(value);
-                                        await api.saveSetting('mini_player_theme', value);
-                                    }}
-                                >
-                                    <SelectTrigger className="w-[300px]">
-                                        <SelectValue placeholder="Select theme" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="inverted">Inverted (Opposite of App)</SelectItem>
-                                        <SelectItem value="match">Match App Theme</SelectItem>
-                                        <SelectItem value="light">Always Light</SelectItem>
-                                        <SelectItem value="dark">Always Dark</SelectItem>
-                                        <SelectItem value="system">Follow System</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <p className="text-xs text-muted-foreground">
-                                    Choose how the mini-player should look.
-                                </p>
+                                <div className="flex items-center gap-2">
+                                    <Switch
+                                        id="mini-player-enabled"
+                                        checked={miniPlayerEnabled}
+                                        onCheckedChange={async (checked) => {
+                                            await api.saveSetting('mini_player_enabled', String(checked));
+                                            setMiniPlayerEnabled(checked);
+                                        }}
+                                    />
+                                    <Label htmlFor="mini-player-enabled">Mini-Player</Label>
+                                </div>
+                                {miniPlayerEnabled && <div className="grid gap-2">
+                                    <Label htmlFor="mini-player-theme">Theme</Label>
+                                    <Select
+                                        value={miniPlayerTheme}
+                                        onValueChange={async (value) => {
+                                            setMiniPlayerTheme(value);
+                                            await api.saveSetting('mini_player_theme', value);
+                                        }}
+                                    >
+                                        <SelectTrigger id="mini-player-theme" className="w-[300px]">
+                                            <SelectValue placeholder="Select theme" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="inverted">Inverted (Opposite of App)</SelectItem>
+                                            <SelectItem value="match">Match App Theme</SelectItem>
+                                            <SelectItem value="light">Always Light</SelectItem>
+                                            <SelectItem value="dark">Always Dark</SelectItem>
+                                            <SelectItem value="system">Follow System</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="text-xs text-muted-foreground">
+                                        Choose how the mini-player should look.
+                                    </p>
+                                </div>}
                             </div>
 
                             <div className="grid gap-2 pt-4 border-t">
