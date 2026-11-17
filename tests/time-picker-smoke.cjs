@@ -4,10 +4,12 @@ const { app, BrowserWindow } = require('electron');
 
 app.setPath('userData', process.argv[2]);
 app.disableHardwareAcceleration();
-const delay = () => new Promise(resolve => setTimeout(resolve, 50));
 app.whenReady().then(async () => {
     const window = new BrowserWindow({ show: false, webPreferences: { backgroundThrottling: false } });
     const evaluate = code => window.webContents.executeJavaScript(code);
+    // Let the mask's renderer-side caret tracking run between input events.
+    // A main-process timer can expire before a hidden renderer processes its timers.
+    const delay = () => evaluate(`new Promise(resolve => setTimeout(resolve, 50))`);
     const render = async (props, reset = true) => {
         await evaluate(`window.timePickerTest.render(${JSON.stringify(props)}, ${reset})`);
         await delay();
