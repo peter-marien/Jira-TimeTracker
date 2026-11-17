@@ -6,15 +6,20 @@ import { VITE_DEV_SERVER_URL, RENDERER_DIST } from './main';
 import { getAppConfig, saveAppConfig } from './config-service';
 import { getTrackingSnapshot } from './tracking-state';
 import { installWindowRecovery, revealWindow } from './window-lifecycle';
+import { getDatabase } from '../src/database/db';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 let miniPlayerWindow: BrowserWindow | null = null;
 let mainWindow: BrowserWindow | null = null;
 let miniPlayerRequested = false;
+let miniPlayerEnabled = true;
 
 export function initializeMiniPlayer(main: BrowserWindow) {
     mainWindow = main;
+    const setting = getDatabase().prepare('SELECT value FROM settings WHERE key = ?')
+        .get('mini_player_enabled') as { value: string } | undefined;
+    miniPlayerEnabled = setting?.value !== 'false';
 
     // Listen for main window minimize
     mainWindow.on('minimize', () => {
@@ -164,7 +169,7 @@ function createMiniPlayerWindow(): BrowserWindow {
     // One load listener per window, including after renderer recovery.
     win.webContents.on('did-finish-load', () => {
         win.webContents.send('tracking:state', getTrackingSnapshot());
-        if (miniPlayerRequested && mainWindow?.isMinimized()) win.show();
+        if (miniPlayerEnabled && miniPlayerRequested && mainWindow?.isMinimized()) win.show();
     });
 
     // Load mini player page
@@ -182,6 +187,7 @@ function createMiniPlayerWindow(): BrowserWindow {
 }
 
 export function showMiniPlayer() {
+    if (!miniPlayerEnabled) return;
     // Only allow showing if main window is minimized
     // This enforces the rule: "When app is not minimized, mini-player should not be visible"
     if (mainWindow && !mainWindow.isMinimized()) {
@@ -204,6 +210,15 @@ export function showMiniPlayer() {
     if (!miniPlayerWindow.webContents.isLoading()) {
         miniPlayerWindow.webContents.send('tracking:state', getTrackingSnapshot());
         miniPlayerWindow.show();
+    }
+}
+
+export function setMiniPlayerEnabled(enabled: boolean) {
+    miniPlayerEnabled = enabled;
+    if (!enabled) {
+        hideMiniPlayer();
+    } else if (mainWindow?.isMinimized()) {
+        showMiniPlayer();
     }
 }
 
