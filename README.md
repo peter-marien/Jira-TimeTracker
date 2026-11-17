@@ -27,8 +27,8 @@ A powerful, high-performance desktop application for tracking time and syncing w
 
 ### Prerequisites
 
-- Node.js (Latest LTS recommended)
-- npm or pnpm
+- Node.js 26.13.0 LTS with npm 11.20.0 (see `.nvmrc`)
+- Use npm and the committed `package-lock.json` for reproducible installs.
 
 ### Installation
 
@@ -37,7 +37,7 @@ A powerful, high-performance desktop application for tracking time and syncing w
 git clone https://github.com/peter-marien/jira-timetracker.git
 
 # Install dependencies
-npm install
+npm ci
 ```
 
 ### Development
@@ -56,12 +56,46 @@ npm run build
 
 ### Tests
 
-Run `npm test` with Node.js 24 LTS or newer. The regression suite uses isolated,
+Run `npm test` with Node.js 26.13.0 LTS. The regression suite uses isolated,
 in-memory databases and simulated Electron events; it does not open the installed
 application or access your saved time entries.
 
 After building with `npx vite build`, run `npm run test:electron` to check the built
 preload in a hidden Electron window with a temporary, isolated application profile.
+
+Run `npm run test:sqlite` after `npm ci` to check the actual native SQLite binding
+with a disposable database. SQLite 13 supplies Node-API binaries shared by Node
+and Electron, so packaging disables the unnecessary native rebuild. If adding
+other native dependencies, reassess that setting before packaging them.
+The `allowScripts` entry also prevents npm from inferring an unnecessary
+`node-gyp rebuild` for SQLite during a clean install with npm 11.20.0.
+The Electron smoke test also verifies native SQLite data preservation and rollback.
+These checks never open your saved application database or change its schema.
+Run `npm run test:app` after building to exercise application startup and renderer
+routes with a temporary profile and database. This test blocks external HTTP
+requests and skips OAuth protocol registration, leaving your installed app alone.
+It also checks real tracking start/stop/resume, mini-player synchronization, and
+the away dialog with synthetic data.
+Run `npm run test:input` for time-input keyboard, selection, deletion, insertion,
+validation, and prop-update checks in an isolated Chromium window.
+
+To validate a Windows package without publishing or running the prebuild hook:
+
+```bash
+npx tsc --noEmit
+npx vite build
+npx electron-builder --win --x64 --publish never --config.directories.output=out/upgrade-package
+npm run test:packaged
+node tests/run-app-smoke.mjs out/upgrade-package/win-unpacked/resources/app.asar/dist-electron/main.js
+```
+
+The packaged check runs the executable's native runtime against a temporary
+fixture; the final command boots the packaged app bundle in an isolated profile.
+Neither command installs the package or starts your normal application profile.
+
+CI and release validation target Windows x64. Existing macOS DMG and Linux
+AppImage settings are retained; runtime compatibility on those platforms is unverified.
+Electron 45 requires macOS 13 or newer if you build the macOS target.
 
 For hibernation changes, also verify a packaged build on Windows: stop tracking,
 minimize, hibernate, and resume. Both windows should remain idle. Repeat while
@@ -77,9 +111,12 @@ the same validation steps:
 1. Install dependencies with `npm ci` using the Node.js version in `.nvmrc`.
 2. Check lint with `npm run lint`.
 3. Run regression tests with `npm test`.
-4. Check TypeScript with `npx tsc --noEmit`.
-5. Build the application with `npx vite build`.
-6. Run the real Electron regression check with `npm run test:electron`.
+4. Check native SQLite with `npm run test:sqlite` using a disposable fixture.
+5. Check TypeScript with `npx tsc --noEmit`.
+6. Build the application with `npx vite build`.
+7. Run the real Electron regression check with `npm run test:electron`.
+8. Run the isolated application check with `npm run test:app`.
+9. Run input and calendar range checks with `npm run test:input`.
 
 CI reports failures without modifying source files or creating commits. Run
 `npm run lint -- --fix` locally to apply available fixes, then review and commit

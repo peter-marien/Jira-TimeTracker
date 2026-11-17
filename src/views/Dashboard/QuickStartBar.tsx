@@ -47,7 +47,7 @@ export function QuickStartBar({ totalMinutes = 0, connectionData = [], targetMin
     };
 
     return (
-        <div className="grid grid-cols-[auto_1fr_auto] gap-8 items-start w-full max-w-screen-2xl mx-auto px-4 py-2">
+        <div className="grid grid-cols-[auto_1fr_auto] gap-8 items-start w-full max-w-(--breakpoint-2xl) mx-auto px-4 py-2">
             {/* Left Column: Progress Ring */}
             <div className="hidden lg:flex flex-col items-center justify-start min-w-[300px] gap-2">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground/70 w-full text-center">Total hours</h3>
@@ -64,7 +64,7 @@ export function QuickStartBar({ totalMinutes = 0, connectionData = [], targetMin
                             key={refreshKey}
                             onSelect={handleSelect}
                             placeholder="Search work item to start tracking..."
-                            className="h-12 text-lg shadow-sm"
+                            className="h-12 text-lg shadow-xs"
                         />
                     </div>
                     <Tooltip>

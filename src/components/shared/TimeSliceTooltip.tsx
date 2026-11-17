@@ -52,7 +52,7 @@ export function TimeSliceTooltipContent({ dateLabel, jiraKey, description, items
                                         {timeStr}:
                                     </span>
                                 )}
-                                <span className="break-words">
+                                <span className="wrap-break-word">
                                     {item.text || <span className="italic opacity-50">No notes</span>}
                                 </span>
                             </div>

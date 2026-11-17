@@ -59,7 +59,7 @@ export function TitleBar() {
     const logoSrc = isDark ? logoDark : logoLight
 
     return (
-        <div className="h-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-4 border-b select-none drag-region">
+        <div className="h-10 bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/60 flex items-center justify-between px-4 border-b select-none drag-region">
             <div className="flex items-center gap-2">
                 <img src={logoSrc} className="w-5 h-5" alt="Icon" />
                 <div className="flex items-baseline gap-1.5">

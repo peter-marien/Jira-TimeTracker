@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
-import type { DateRange } from "react-day-picker"
+import type { DateRange } from "@daypicker/react"
 
 interface ImportJiraWorklogsDialogProps {
     open: boolean;

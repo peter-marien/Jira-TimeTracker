@@ -170,7 +170,7 @@ export function ProjectHoursChart({ slices, connections, manualColor }: ProjectH
     }
 
     return (
-        <div className="h-[500px] w-full p-4 border rounded-md bg-card shadow-sm">
+        <div className="h-[500px] w-full p-4 border rounded-md bg-card shadow-xs">
             <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                     data={data}

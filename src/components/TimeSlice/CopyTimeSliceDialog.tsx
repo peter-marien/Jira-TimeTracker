@@ -103,7 +103,7 @@ export function CopyTimeSliceDialog({ open, onOpenChange, slice, onSave }: CopyT
                             mode="multiple"
                             selected={selectedDates}
                             onSelect={setSelectedDates}
-                            className="rounded-md border shadow-sm"
+                            className="rounded-md border shadow-xs"
                             defaultMonth={slice ? new Date(slice.start_time) : undefined}
                         />
                     </div>

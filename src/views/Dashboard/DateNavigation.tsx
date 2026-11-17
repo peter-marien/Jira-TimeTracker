@@ -41,7 +41,7 @@ export function DateNavigation({ className }: { className?: string }) {
                             mode="single"
                             selected={selectedDate}
                             onSelect={handleDateSelect}
-                            initialFocus
+                            autoFocus
                             defaultMonth={selectedDate}
                         />
                     </PopoverContent>

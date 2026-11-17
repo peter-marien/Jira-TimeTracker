@@ -38,7 +38,7 @@ export function TimelineConflictDialog({ open, onOpenChange, onResolve }: Timeli
                     onValueChange={(v) => setBehavior(v as ConflictResolutionBehavior)}
                     className="py-4"
                 >
-                    <div className="flex items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm hover:bg-accent/50 transition-colors cursor-pointer">
+                    <div className="flex items-start space-x-3 space-y-0 rounded-md border p-4 shadow-xs hover:bg-accent/50 transition-colors cursor-pointer">
                         <RadioGroupItem value="split_preserve_duration" id="duration" className="mt-1" />
                         <div className="grid gap-1.5 leading-none">
                             <Label htmlFor="duration" className="text-sm font-semibold cursor-pointer">
@@ -50,7 +50,7 @@ export function TimelineConflictDialog({ open, onOpenChange, onResolve }: Timeli
                         </div>
                     </div>
 
-                    <div className="flex items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm hover:bg-accent/50 transition-colors cursor-pointer">
+                    <div className="flex items-start space-x-3 space-y-0 rounded-md border p-4 shadow-xs hover:bg-accent/50 transition-colors cursor-pointer">
                         <RadioGroupItem value="split_preserve_end" id="end" className="mt-1" />
                         <div className="grid gap-1.5 leading-none">
                             <Label htmlFor="end" className="text-sm font-semibold cursor-pointer">

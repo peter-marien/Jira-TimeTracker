@@ -145,8 +145,8 @@ export function Timeline({ date, slices, className, onSliceClick, connections, o
         setInteractiveState(prev => {
             if (!prev) return null;
 
-            let startOffset = 0;
-            let endOffset = 0;
+            let startOffset: number;
+            let endOffset: number;
 
             if (prev.type === 'resize-start') {
                 const newStart = Math.round((prev.originalStartMs + deltaMs) / intervalMs) * intervalMs;
@@ -388,7 +388,7 @@ function TimelineSlice({ slice, timelineStart, totalMs, interactive, connections
                         "absolute top-3 bottom-5 rounded-xl transition-all flex flex-col justify-center items-center px-1 overflow-hidden",
                         isActive
                             ? "shadow-[0_0_10px_rgba(0,0,0,0.2)] animate-pulse brightness-110 border-white/20 border cursor-default"
-                            : "hover:brightness-110 shadow-sm border border-white/5 cursor-grab active:cursor-grabbing",
+                            : "hover:brightness-110 shadow-xs border border-white/5 cursor-grab active:cursor-grabbing",
                         isDragging && "z-50 opacity-80 cursor-grabbing",
                         hasOverlap && "ring-2 ring-red-500 z-10"
                     )}

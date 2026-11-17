@@ -56,7 +56,7 @@ export function MiniPlayerApp() {
 
     // Theme Logic
     const updateTheme = (appTheme: string, miniTheme: string) => {
-        let effectiveMiniTheme: 'light' | 'dark' = 'dark';
+        let effectiveMiniTheme: 'light' | 'dark';
 
         if (miniTheme === 'light') {
             effectiveMiniTheme = 'light';

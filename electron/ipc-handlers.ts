@@ -139,7 +139,7 @@ export function registerIpcHandlers() {
             // Check for unique constraint violation
             const sqliteError = error as { code?: string; message?: string };
             if (sqliteError.code === 'SQLITE_CONSTRAINT_UNIQUE' || sqliteError.message?.includes('UNIQUE constraint failed')) {
-                throw new Error('A work item with this Jira key already exists.');
+                throw new Error('A work item with this Jira key already exists.', { cause: error });
             }
             throw error;
         }
@@ -492,7 +492,7 @@ export function registerIpcHandlers() {
             return db.prepare('SELECT * FROM tags WHERE id = ?').get(result.lastInsertRowid);
         } catch (error) {
             if (error instanceof Error && error.message.includes('UNIQUE constraint failed')) {
-                throw new Error('A tag with this name already exists.');
+                throw new Error('A tag with this name already exists.', { cause: error });
             }
             throw error;
         }

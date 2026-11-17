@@ -370,9 +370,9 @@ export function MonthView() {
                     </TabsList>
 
                     <TabsContent value="all" className="flex-1 min-h-0 mt-0">
-                        <div className="h-full border rounded-md overflow-auto bg-card shadow-sm" onWheel={(e) => e.stopPropagation()}>
+                        <div className="h-full border rounded-md overflow-auto bg-card shadow-xs" onWheel={(e) => e.stopPropagation()}>
                             <table className="w-full border-collapse text-xs table-fixed">
-                                <thead className="sticky top-0 bg-secondary/80 backdrop-blur-sm z-20 shadow-sm">
+                                <thead className="sticky top-0 bg-secondary/80 backdrop-blur-xs z-20 shadow-xs">
                                     <tr>
                                         <th className="w-24 p-2 border-r border-b text-left bg-primary/10 font-bold">Jira Key</th>
                                         <th className="w-64 p-2 border-r border-b text-left bg-primary/10 font-bold">Work Item</th>
@@ -498,7 +498,7 @@ export function MonthView() {
                                 </tbody>
                             </table>
                             {loading && (
-                                <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-30">
+                                <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-xs z-30">
                                     <div className="flex flex-col items-center gap-2">
                                         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
                                         <span className="text-sm font-medium animate-pulse">Loading monthly overview...</span>
@@ -520,7 +520,7 @@ export function MonthView() {
                             const connection = connections.find(c => c.name === connectionName);
                             const connColor = connection?.color || '#64748b';
                             return (
-                                <div key={connectionName} className="border rounded-md bg-card shadow-sm overflow-hidden">
+                                <div key={connectionName} className="border rounded-md bg-card shadow-xs overflow-hidden">
                                     <div
                                         className="p-3 font-bold text-sm border-b flex items-center gap-2"
                                     >
@@ -532,7 +532,7 @@ export function MonthView() {
                                     </div>
                                     <div className="overflow-auto" onWheel={(e) => e.stopPropagation()}>
                                         <table className="w-full border-collapse text-xs table-fixed">
-                                            <thead className="sticky top-0 bg-secondary/80 backdrop-blur-sm z-20 shadow-sm">
+                                            <thead className="sticky top-0 bg-secondary/80 backdrop-blur-xs z-20 shadow-xs">
                                                 <tr>
                                                     <th className="w-24 p-2 border-r border-b text-left bg-primary/5 font-bold">Jira Key</th>
                                                     <th className="w-64 p-2 border-r border-b text-left bg-primary/5 font-bold">Work Item</th>
