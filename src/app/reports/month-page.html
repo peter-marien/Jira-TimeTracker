@@ -1,0 +1,102 @@
+<section class="page month-page">
+    <header class="flex items-center justify-between">
+        <div class="min-w-0">
+            <h1>Month View</h1>
+            @if (data.hasValue()) {
+                <div class="month-summary mt-2">
+                    @for (stat of stats(); track stat.label) {
+                        <div>
+                            <span>{{ stat.label }}</span>
+                            <strong [class.text-muted-foreground]="stat.overtime && stat.value <= 0" [class.text-emerald-500]="stat.overtime && stat.value > 0">{{ stat.overtime && stat.value > 0 ? '+' : '' }}{{ formatHours(stat.value) }}{{ stat.unit }}</strong>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+        <div class="flex shrink-0 items-center gap-2">
+            <button class="legacy-button legacy-outline mr-2 h-9" (click)="month.set(today)">Today</button>
+            <button class="legacy-button legacy-outline size-10 p-0" aria-label="Previous month" (click)="step(-1)"><svg lucideChevronLeft class="size-4"></svg></button>
+            <strong class="min-w-[150px] text-center text-lg font-semibold">{{ month() | date:'MMMM yyyy' }}</strong>
+            <button class="legacy-button legacy-outline size-10 p-0" aria-label="Next month" (click)="step(1)"><svg lucideChevronRight class="size-4"></svg></button>
+        </div>
+    </header>
+    @if (data.error(); as failure) { <p class="error" role="alert">{{ message(failure) }}</p> }
+    @else if (data.isLoading()) { <p role="status">Loading month…</p> }
+    @else {
+        <mat-tab-group class="legacy-tabs" animationDuration="0ms" [selectedIndex]="tab()" (selectedIndexChange)="tab.set($event)">
+            <mat-tab label="All">
+                <ng-template matTabContent>
+                    <app-month-hours-matrix class="tab-content" [rows]="rows()" [days]="days()" (opened)="open($event)" (dayOpened)="openDay($event)" />
+                </ng-template>
+            </mat-tab>
+            <mat-tab label="By Connection">
+                <ng-template matTabContent>
+                    <div class="stack tab-content">
+                        @for (group of groups(); track group.id) {
+                            <section class="panel stack">
+                                <h2>{{ group.label }}</h2>
+                                        <app-month-hours-matrix [label]="group.label" [rows]="group.rows" [days]="days()" (opened)="open($event)" (dayOpened)="openDay($event)" />
+                            </section>
+                        } @empty { <p class="empty">No time slices in this month.</p> }
+                    </div>
+                </ng-template>
+            </mat-tab>
+            <mat-tab label="Daily Chart">
+                <ng-template matTabContent>
+                    <div class="space-y-6 pb-4 tab-content">
+                        @for (chart of dailyCharts(); track chart.label) {
+                            <app-hours-chart class="block" [heading]="chart.label" [labels]="dayLabels()" [dates]="chartDates()" [series]="[chart]" />
+                        } @empty {
+                            <p class="grid place-items-center h-[400px] text-muted-foreground">No time tracked this month to display in chart.</p>
+                        }
+                    </div>
+                </ng-template>
+            </mat-tab>
+            <mat-tab label="Project Hours">
+                <ng-template matTabContent>
+                    @if (projects().length) {
+                            <div class="tab-content border bg-card p-4 h-[500px] shadow-xs">
+                                <div class="project-chart">
+                                    @for (project of projects(); track project.group + ':' + project.name) {
+                                        @let key = project.group + ':' + project.name;
+                                        <div class="project-row">
+                                            <span class="project-label text-xs text-muted-foreground">{{ project.name }}</span>
+                                            <div class="project-bar">
+                                                <div class="project-axis" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+                                                <button type="button" class="project-value shrink-0" [style.width.%]="project.hours / projectMax() * 100"
+                                                    [style.background]="project.color" [attr.aria-label]="project.name + ' · ' + project.hours + ' hours'"
+                                                    (pointerenter)="hoveredProject.set(key)" (pointerleave)="hoveredProject.set(null)"
+                                                    (focus)="hoveredProject.set(key)" (blur)="hoveredProject.set(null)"></button>
+                                                <span class="text-[10px] font-medium">{{ project.hours }}h</span>
+                                                @if (hoveredProject() === key) {
+                                                    <div class="project-tooltip legacy-popover text-xs" role="tooltip">
+                                                        <header class="flex justify-between gap-4 bg-muted/50 border-b px-3 py-2">
+                                                            <span class="flex items-center gap-2"><span class="size-2 rounded-full" [style.background]="project.color"></span>
+                                                                <strong>{{ project.name }}</strong><span class="text-[10px] text-muted-foreground">({{ project.connection }})</span>
+                                                            </span>
+                                                            <strong>{{ project.hours }}h <span class="text-[10px] text-muted-foreground font-normal ml-1">total</span></strong>
+                                                        </header>
+                                                        <div class="p-3 grid gap-1.5">
+                                                            <h4 class="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-1">Top Work Items</h4>
+                                                            @for (item of project.items; track item.id) {
+                                                                <div class="flex justify-between gap-3 text-[11px] py-0.5">
+                                                                    <span class="truncate">@if (item.key) { <span class="font-mono text-[10px] mr-1" [style.color]="project.color">{{ item.key }}</span> }{{ item.description }}</span>
+                                                                    <span class="font-mono font-medium opacity-80">{{ (item.total / 3600).toFixed(2) }}h</span>
+                                                                </div>
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                    } @else {
+                        <p class="tab-content grid place-items-center h-[400px] text-muted-foreground">No time tracked this month to display in project chart.</p>
+                    }
+                </ng-template>
+            </mat-tab>
+        </mat-tab-group>
+    }
+</section>

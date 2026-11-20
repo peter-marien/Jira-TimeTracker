@@ -1,0 +1,8 @@
+:host { display: grid; grid-template-rows: 40px minmax(0, 1fr); height: 100dvh; overflow: hidden; }
+.workspace { display: grid; grid-template-columns: 64px minmax(0, 1fr); min-height: 0; }
+.nav-item { color: hsl(var(--foreground)); }
+.nav-item.active { background: hsl(var(--accent) / .8); color: hsl(var(--accent-foreground)); }
+.nav-item:last-child { margin-top: auto; }
+main { overflow: auto; min-width: 0; }
+.tracking { position: sticky; top: 0; z-index: 3; }
+.window-button { display: inline-grid; place-items: center; width: 40px; height: 32px; transition: background-color .15s, color .15s; }

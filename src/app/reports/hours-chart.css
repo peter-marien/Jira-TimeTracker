@@ -1,0 +1,11 @@
+.plot { display:block; }
+.plot text { font-size:12px; fill:#666; }
+.plot .value-label { font-size:10px; font-weight:500; fill:hsl(var(--foreground)); }
+.plot .annual-value { font-weight:700; }
+.gridline { stroke:color-mix(in oklab, hsl(var(--border)) 50%, transparent); stroke-dasharray:3 3; }
+.plot-cursor { stroke:hsl(var(--border)); }
+.plot-legend { position:absolute; bottom:20px; left:20px; right:30px; margin:0; padding:0; text-align:center; }
+.legend { display:inline-block; margin-right:10px; white-space:nowrap; font-size:12px; line-height:1.4; }
+.legend svg { display:inline-block; vertical-align:middle; margin-right:4px; }
+.chart-tooltip { position:absolute; z-index:2; pointer-events:none; width:max-content; max-width:400px; }
+.chart-tooltip.right-half { transform:translateX(-100%); }

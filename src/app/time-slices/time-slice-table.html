@@ -1,0 +1,90 @@
+<div class="scroll-table border bg-card">
+    <table aria-label="Time slices">
+        <colgroup>
+            @if (showDate()) { <col class="w-28"> }
+            <col class="w-28"><col class="w-28"><col class="w-36"><col><col class="w-24"><col class="w-16">
+        </colgroup>
+        <thead class="bg-secondary/20">
+            <tr>
+                @if (showDate()) { <th scope="col">Date</th> }
+                <th scope="col">Start</th><th scope="col">End</th><th scope="col">Jira Key</th><th scope="col">Work Item</th>
+                <th scope="col" class="text-right">Duration</th><th scope="col" class="text-right pr-4">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (slice of ordered(); track slice.id) {
+                <tr (click)="selectRow($event, slice.id)" (dblclick)="open($event, slice)"
+                    [cdkContextMenuTriggerFor]="actions" [cdkContextMenuTriggerData]="{ context: true }" [class.active]="!slice.end_time"
+                    [class.selected]="selected().includes(slice.id)">
+                    @if (showDate()) { <td class="text-sm text-muted-foreground">{{ slice.start_time | date:'dd-MM-yyyy' }}</td> }
+                    <td class="font-mono text-sm font-semibold text-foreground/90">{{ slice.start_time | date:'HH:mm:ss' }}</td>
+                    <td class="font-mono text-sm text-foreground/70">
+                        @if (slice.end_time) { {{ slice.end_time | date:'HH:mm:ss' }} }
+                        @else { <span class="text-primary font-medium animate-pulse text-xs">Now</span> }
+                    </td>
+                    <td>
+                        <div class="flex items-center gap-1.5">
+                            @if (slice.jira_key) {
+                                <span class="text-xs font-bold px-1.5 py-0.5 bg-primary/10 text-primary">{{ slice.jira_key }}</span>
+                                @if (slice.synced_to_jira) { <svg lucideCircleCheck class="size-3.5 text-emerald-600"><title>Synced to Jira</title></svg> }
+                                @else if (slice.jira_worklog_id) { <svg lucideCircleAlert class="size-3.5 text-amber-500"><title>Out of sync with Jira</title></svg> }
+                            } @else {
+                                <span class="text-[10px] text-muted-foreground/40 italic px-2">Manual</span>
+                            }
+                        </div>
+                    </td>
+                    <td>
+                        <div class="flex flex-col gap-1 min-w-0 py-1">
+                            <span class="font-medium truncate">{{ slice.work_item_description }}</span>
+                            @if (slice.notes) { <p class="text-xs text-muted-foreground wrap-break-word max-w-[500px] whitespace-pre-wrap">{{ slice.notes }}</p> }
+                            @else { <svg lucideCircleAlert class="size-4 text-destructive mt-0.5"><title>Missing notes</title></svg> }
+                            @if (slice.tags?.length) {
+                                <div class="flex flex-wrap gap-1 pt-0.5">
+                                    @for (tag of slice.tags ?? []; track tag.id) { <span class="bg-secondary px-1.5 text-[10px] font-medium" [title]="tag.description">{{ tag.name }}</span> }
+                                </div>
+                            }
+                        </div>
+                    </td>
+                    <td class="text-right font-mono text-sm">
+                        @if (slice.end_time) { {{ clock(duration(slice)) }} }
+                        @else { <span class="text-primary font-medium">Tracking</span> }
+                    </td>
+                    <td class="text-right">
+                        <button type="button" class="legacy-button size-8 p-0" [cdkMenuTriggerFor]="actions"
+                            [cdkMenuTriggerData]="{ context: false }" [cdkMenuPosition]="menuPositions" aria-label="Time slice actions"><svg lucideEllipsis class="size-4"></svg></button>
+                        <ng-template #actions let-context="context">
+                            <div cdkMenu class="legacy-popover action-menu" [class.action-context-menu]="context" aria-label="Time slice actions">
+                                @if (selectable() && selected().length > 1 && selected().includes(slice.id)) {
+                                    <button cdkMenuItem class="text-amber-600" (cdkMenuItemTriggered)="mergeRequested.emit()"><svg lucideMerge class="size-4"></svg>{{ context ? 'Merge Selected Slices' : 'Merge Selected' }}</button>
+                                    <div class="legacy-menu-separator" role="separator"></div>
+                                }
+                                <button cdkMenuItem (cdkMenuItemTriggered)="run('edit', slice)"><svg lucidePencil class="size-4"></svg>{{ context ? 'Edit Time / Notes' : 'Edit Time' }}</button>
+                                <button cdkMenuItem [cdkMenuItemDisabled]="!slice.jira_key || !slice.jira_connection_id || selected().length > 1"
+                                    (cdkMenuItemTriggered)="run('jira', slice)"><svg lucideExternalLink class="size-4"></svg>Open in Jira</button>
+                                <button cdkMenuItem (cdkMenuItemTriggered)="run('workItem', slice)"><svg lucideFilePen class="size-4"></svg>Edit Work Item</button>
+                                @if (slice.end_time) {
+                                    <button cdkMenuItem (cdkMenuItemTriggered)="run('resume', slice)"><svg lucidePlay class="size-4 text-primary"></svg>{{ context ? 'Resume Tracking' : 'Resume' }}</button>
+                                } @else {
+                                    <button cdkMenuItem class="text-amber-600" (cdkMenuItemTriggered)="run('stop', slice)"><svg lucideX class="size-4"></svg>Stop Tracking</button>
+                                }
+                                @if (context) { <div class="legacy-menu-separator" role="separator"></div> }
+                                <button cdkMenuItem (cdkMenuItemTriggered)="run('split', slice)">
+                                    @if (context) { <svg lucideSquareSplitHorizontal class="size-4"></svg> } @else { <svg lucideSplit class="size-4"></svg> }
+                                    {{ context ? 'Split Slice' : 'Split' }}
+                                </button>
+                                <button cdkMenuItem (cdkMenuItemTriggered)="run('move', slice)">
+                                    @if (context) { <svg lucideMoveRight class="size-4"></svg> } @else { <svg lucideArrowRightLeft class="size-4"></svg> }
+                                    {{ context ? 'Move to Work Item...' : 'Move' }}
+                                </button>
+                                <button cdkMenuItem [cdkMenuItemDisabled]="!slice.end_time" (cdkMenuItemTriggered)="run('copy', slice)"><svg lucideCopy class="size-4"></svg>{{ context ? 'Copy to other days...' : 'Copy to other days' }}</button>
+                                <div class="legacy-menu-separator" role="separator"></div>
+                                <button cdkMenuItem class="text-destructive" (cdkMenuItemTriggered)="run('delete', slice)"><svg lucideTrash2 class="size-4"></svg>Delete</button>
+                            </div>
+                        </ng-template>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (!slices().length) { <p class="empty" role="status">{{ emptyText() }}</p> }
+</div>

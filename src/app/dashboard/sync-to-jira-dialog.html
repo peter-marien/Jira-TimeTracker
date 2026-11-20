@@ -1,0 +1,92 @@
+<h2 mat-dialog-title>Sync to Jira</h2>
+<button type="button" class="dialog-close" aria-label="Close" [disabled]="busy()" (click)="dialog.close(!!result())"><svg lucideX class="size-4"></svg></button>
+<mat-dialog-content>
+    <p class="legacy-dialog-description">{{ date }}</p>
+    <div class="space-y-4 py-4 mt-4">
+        @if (result(); as outcome) {
+            <div class="flex items-center gap-2 text-emerald-600 bg-emerald-50 p-3 rounded-sm border border-emerald-200" role="status">
+                <svg lucideCircleCheck class="size-5"></svg>
+                <div><p class="font-medium">Sync Complete</p><p class="text-emerald-700">{{ outcome.success }} worklogs ({{ outcome.slices }} slices) successfully synced to Jira.</p></div>
+            </div>
+            @if (outcome.failed.length) {
+                <section class="space-y-2">
+                    <h3 class="flex items-center gap-2 text-sm font-medium text-destructive"><svg lucideCircleAlert class="size-4"></svg>Failed Items ({{ outcome.failed.length }})</h3>
+                    <div class="max-h-[200px] overflow-auto border bg-destructive/5 p-2 space-y-1">
+                        @for (failure of outcome.failed; track $index) { <p class="border bg-background border-destructive/20 text-destructive p-2">{{ failure }}</p> }
+                    </div>
+                </section>
+            }
+            @if (skipped.length) {
+                <section class="space-y-2">
+                    <h3 class="flex items-center gap-2 text-sm font-medium text-amber-600"><svg lucideTriangleAlert class="size-4"></svg>Skipped Items (Manual Action Required)</h3>
+                    <div class="h-[200px] overflow-auto border bg-slate-50 dark:bg-slate-900/50 p-2 space-y-1">
+                        @for (row of skipped; track row.slice.id) {
+                            <div class="flex items-center justify-between gap-2 border border-amber-100 dark:border-amber-900/30 bg-white dark:bg-slate-800 p-2">
+                                <div class="grid"><span class="font-medium truncate">{{ row.slice.work_item_description }}</span><span class="text-xs text-muted-foreground">{{ row.slice.jira_key || 'LOCAL' }} - {{ sliceDuration(row.slice) }}</span></div>
+                                <span class="text-xs px-2 py-0.5 bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300">{{ row.reason || 'No Jira Key' }}</span>
+                            </div>
+                        }
+                    </div>
+                </section>
+            }
+        } @else {
+            @if (classification.activeSlice) {
+                <p class="p-3 border border-destructive/30 bg-destructive/10 text-destructive">Stop active tracking before syncing this day.</p>
+            }
+            <div class="flex items-center justify-between gap-4 border rounded-sm bg-slate-50 dark:bg-slate-900/30 p-3 pb-3.5">
+                <div class="space-y-0.5">
+                    <p class="font-medium">Combine slices for same Jira ticket</p>
+                    <p class="text-xs text-muted-foreground">Creates one Jira worklog per ticket with joined notes and summed duration.</p>
+                </div>
+                <mat-slide-toggle aria-label="Combine slices for same Jira ticket" [checked]="combine()" [disabled]="busy()" (change)="combine.set($event.checked)" />
+            </div>
+            <section class="space-y-2">
+                <header class="flex justify-between items-center">
+                    <h3 class="text-sm font-medium text-muted-foreground">Ready to Sync ({{ entries().length }} worklogs from {{ count() }} slices)</h3>
+                    @if (entries().length) { <span class="text-[10px] italic text-muted-foreground">Approx. {{ estimate() }}s</span> }
+                </header>
+                @if (entries().length) {
+                    <div class="max-h-[60vh] overflow-auto border rounded-sm bg-white dark:bg-slate-950 p-1">
+                        @for (entry of entries(); track entry.id) {
+                            <div class="grid grid-cols-[80px_1fr_auto] gap-3 items-center p-2 border-b last:border-0 hover:bg-muted/50"
+                                [title]="entry.comment">
+                                <span class="font-mono font-medium text-emerald-600 dark:text-emerald-500 truncate">{{ entry.jiraKey }}</span>
+                                <span class="text-muted-foreground truncate" [class.underline]="entry.comment" [class.decoration-dotted]="entry.comment">
+                                    {{ entry.description }}{{ entry.slices.length > 1 ? ' (' + entry.slices.length + ' slices)' : '' }}
+                                </span>
+                                <span class="font-mono text-xs">{{ duration(entry.timeSpentSeconds) }}</span>
+                            </div>
+                        }
+                    </div>
+                } @else {
+                    <div class="h-[60px] border border-dashed rounded-sm grid place-items-center text-muted-foreground">No items ready to sync.</div>
+                }
+            </section>
+            @if (skipped.length) {
+                <section class="space-y-2">
+                    <h3 class="text-sm font-medium text-muted-foreground">Not Ready to Sync ({{ skipped.length }})</h3>
+                    <div class="h-[120px] overflow-auto border rounded-sm bg-slate-50 dark:bg-slate-900/30 p-1">
+                        @for (row of skipped; track row.slice.id) {
+                            <div class="grid grid-cols-[80px_1fr_auto] gap-3 items-center p-2 border-b last:border-0 opacity-80">
+                                <span class="font-mono font-medium" [class.text-amber-600]="row.reason" [class.text-muted-foreground]="!row.reason">{{ row.slice.jira_key || 'LOCAL' }}</span>
+                                <span class="flex flex-col text-muted-foreground"><span>{{ row.slice.work_item_description }}</span>
+                                    @if (row.reason) { <span class="text-[10px] text-amber-600">{{ row.reason }}</span> }
+                                </span>
+                                <span class="font-mono text-xs text-muted-foreground">{{ sliceDuration(row.slice) }}</span>
+                            </div>
+                        }
+                    </div>
+                </section>
+            }
+        }
+        @if (busy()) { <p role="status">{{ progress() }}</p> }
+    </div>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+    @if (result()) {
+        <button class="legacy-button legacy-primary h-10 px-4" (click)="dialog.close(true)">Close</button>
+    } @else {
+        <button class="legacy-button legacy-secondary h-10 px-4" (click)="dialog.close(false)" [disabled]="busy()">Cancel</button>
+        <button class="legacy-button legacy-primary h-10 px-4" (click)="sync()" [disabled]="busy() || !!classification.activeSlice || !entries().length">{{ busy() ? 'Syncing...' : 'Sync Now' }}</button>
+    }
+</mat-dialog-actions>

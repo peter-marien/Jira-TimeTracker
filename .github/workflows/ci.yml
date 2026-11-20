@@ -38,10 +38,10 @@ jobs:
         run: npm run test:sqlite
 
       - name: Check TypeScript
-        run: npx tsc --noEmit
+        run: npm run typecheck
 
       - name: Build application for Electron regression check
-        run: npx vite build
+        run: npm run build:app
 
       - name: Run Electron regression check
         run: npm run test:electron
@@ -49,5 +49,5 @@ jobs:
       - name: Check application with an isolated database
         run: npm run test:app
 
-      - name: Check time input interactions
-        run: npm run test:input
+      - name: Check tracking transactions against an isolated database
+        run: npm run test:electron -- --main

@@ -1,0 +1,35 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "projects": {
+    "jira-time-tracker": {
+      "projectType": "application",
+      "root": "",
+      "sourceRoot": "src",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "src/main.ts",
+            "index": "index.html",
+            "tsConfig": "tsconfig.app.json",
+            "baseHref": "./",
+            "outputPath": { "base": "dist", "browser": "" },
+            "assets": [{ "glob": "**/*", "input": "public" }],
+            "styles": ["src/styles/legacy.css", "src/styles/app.scss"]
+          },
+          "configurations": {
+            "production": { "outputHashing": "all", "optimization": { "fonts": false } },
+            "development": { "optimization": false, "sourceMap": true }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "options": { "buildTarget": "jira-time-tracker:build:development" }
+        }
+      }
+    }
+  },
+  "cli": { "analytics": false }
+}

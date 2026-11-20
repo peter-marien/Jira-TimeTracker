@@ -9,7 +9,8 @@ const userData = fs.mkdtempSync(path.join(temporaryRoot, 'jira-timetracker-test-
 try {
     const env = { ...process.env };
     delete env.ELECTRON_RUN_AS_NODE;
-    const output = execFileSync(electron, ['tests/electron-smoke.cjs', userData], {
+    const entry = process.argv.includes('--main') ? 'tests/electron-main-smoke.cjs' : 'tests/electron-smoke.cjs';
+    const output = execFileSync(electron, [entry, userData], {
         env, windowsHide: true, timeout: 30_000, encoding: 'utf8'
     });
     process.stdout.write(output);

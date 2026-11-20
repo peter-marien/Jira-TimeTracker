@@ -1,0 +1,64 @@
+<header class="h-10 bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/60 flex items-center justify-between px-4 border-b select-none drag-region">
+    <div class="flex items-center gap-2">
+        <img [src]="settings.dark() ? 'logo-dark.svg' : 'logo.svg'" alt="" width="20" height="20">
+        <div class="flex items-baseline gap-1.5">
+            <span class="text-xs font-semibold text-muted-foreground tracking-tight">Jira Time Tracker</span>
+            @if (version()) { <span class="text-[10px] text-muted-foreground/50 font-medium">v{{ version() }}</span> }
+        </div>
+    </div>
+    <div class="flex items-center no-drag-region">
+        @if (settings.values()['mini_player_enabled'] !== 'false') {
+            <button class="window-button hover:bg-primary/10 hover:text-primary" title="Minimize to Widget" aria-label="Minimize to mini-player" (click)="api.minimizeToMiniPlayer()"><svg lucidePictureInPicture2 class="size-3.5"></svg></button>
+        }
+        <button class="window-button hover:bg-muted" title="Minimize" aria-label="Minimize" (click)="api.minimizeToMiniPlayer()"><svg lucideMinus class="size-3.5"></svg></button>
+        <button class="window-button hover:bg-muted" title="Toggle maximize" aria-label="Toggle maximize" (click)="maximize()">
+            @if (maximized()) { <svg lucideCopy class="size-3.5"></svg> } @else { <svg lucideSquare class="size-3.5"></svg> }
+        </button>
+        <button class="window-button hover:bg-destructive hover:text-destructive-foreground" title="Close" aria-label="Close" (click)="api.closeWindow()"><svg lucideX class="size-4"></svg></button>
+    </div>
+</header>
+<div class="workspace">
+    <nav class="flex flex-col items-center gap-4 w-16 py-4 border-r bg-muted/20" aria-label="Main navigation">
+        @for (item of nav; track item.route) {
+            <a [routerLink]="item.route" [attr.title]="item.label" [attr.aria-label]="item.label"
+                class="nav-item p-3 rounded-md transition-colors hover:bg-accent"
+                routerLinkActive="active" ariaCurrentWhenActive="page"
+                [routerLinkActiveOptions]="{queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored', paths: item.route === '/' ? 'exact' : 'subset'}">
+                @switch (item.route) {
+                    @case ('/') { <svg lucideLayoutDashboard class="size-6"></svg> }
+                    @case ('/work-items') { <svg lucideBriefcase class="size-6"></svg> }
+                    @case ('/tags') { <svg lucideTags class="size-6"></svg> }
+                    @case ('/month') { <svg lucideCalendarDays class="size-6"></svg> }
+                    @case ('/search') { <svg lucideSearch class="size-6"></svg> }
+                    @case ('/reports') { <svg lucideBarChart3 class="size-6"></svg> }
+                    @case ('/settings') { <svg lucideSettings class="size-6"></svg> }
+                }
+            </a>
+        }
+    </nav>
+    <main>
+        @if (tracking.workItem(); as item) {
+            <aside class="tracking bg-primary text-primary-foreground px-4 py-3 flex items-center justify-between shadow-lg" aria-label="Active tracking">
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <span class="relative flex size-3"><span class="animate-ping absolute inline-flex size-full rounded-full bg-white opacity-75"></span><span class="relative inline-flex rounded-full size-3 bg-white"></span></span>
+                        <span class="font-semibold tracking-wide">Tracking</span>
+                    </div>
+                    <div class="h-4 w-px bg-primary-foreground/20 mx-2"></div>
+                    <div class="flex items-center gap-3">
+                        <span class="font-medium">{{ item.description }}</span>
+                        @if (item.jira_key) { <span class="bg-white/10 px-2 py-0.5 rounded text-xs font-mono font-medium">{{ item.jira_key }}</span> }
+                    </div>
+                </div>
+                <div class="flex items-center gap-6">
+                    <div class="flex flex-col items-end">
+                        <span class="text-2xl font-bold font-mono tracking-widest leading-none">{{ clock(tracking.elapsedSeconds()) }}</span>
+                        <span class="flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider opacity-70 mt-1"><svg lucideClock class="size-3"></svg> Total: {{ tracking.totalSeconds() | duration }}</span>
+                    </div>
+                    <button class="legacy-button bg-secondary text-secondary-foreground font-semibold hover:bg-white hover:text-primary" (click)="stop()"><svg lucideCircleStop class="size-4 fill-current"></svg> Stop</button>
+                </div>
+            </aside>
+        }
+        <router-outlet />
+    </main>
+</div>

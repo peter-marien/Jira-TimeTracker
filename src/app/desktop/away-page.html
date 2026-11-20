@@ -1,0 +1,52 @@
+@if (data(); as details) {
+    <main class="away-dialog" role="dialog" aria-labelledby="away-title" (keydown.escape)="complete('keep')">
+        <button type="button" class="close-button" aria-label="Close" [disabled]="busy()" (click)="complete('keep')"><svg lucideX class="size-4"></svg></button>
+        <header class="pb-4">
+            <h1 id="away-title" class="flex items-center gap-2"><svg lucideClock class="size-5 text-primary"></svg>You Were Away</h1>
+            <p class="text-sm text-muted-foreground text-center mt-1.5">
+                You were away for <strong>{{ details.awayDurationSeconds | duration }}</strong>
+                @if (details.currentWorkItem; as item) { while tracking <span class="font-medium">"{{ item.description }}"</span> }.
+                <br>What would you like to do with this time?
+            </p>
+        </header>
+        <fieldset aria-label="What should happen to the away time?" class="grid gap-5">
+            <label class="choice">
+                <input type="radio" [formControl]="action" value="keep">
+                <span><strong><svg lucidePlus class="size-4 text-green-500"></svg> Add to current task</strong>
+                    <span class="description">Keep the away time as part of your current tracking.</span></span>
+            </label>
+            <label class="choice">
+                <input type="radio" [formControl]="action" value="discard">
+                <span><strong><svg lucideTrash2 class="size-4 text-destructive"></svg> Discard away time</strong>
+                    <span class="description">End your previous tracking when you left and start fresh now.</span></span>
+            </label>
+            <label class="choice">
+                <input type="radio" [formControl]="action" value="reassign">
+                <span><strong><svg lucideArrowRight class="size-4 text-blue-500"></svg> Add to a different task</strong>
+                    <span class="description">Assign the away time to another work item.</span></span>
+            </label>
+            <label class="choice">
+                <input type="radio" [formControl]="action" value="import">
+                <span><strong><svg lucideDownload class="size-4 text-blue-500"></svg> Import from Jira</strong>
+                    <span class="description">Search for a Jira issue, create a work item, and assign time to it.</span></span>
+            </label>
+        </fieldset>
+        <div class="min-h-[90px] border-t">
+            @if (action.value === 'reassign') {
+                <app-work-item-picker label="Select work item for away time:" (selected)="target.set($event)" />
+                @if (target(); as item) { <p class="muted text-sm">Selected: {{ item.description }}</p> }
+            }
+            @if (action.value === 'import') {
+                <app-jira-issue-picker (selected)="issue.set($event)" />
+                @if (issue(); as selected) { <p class="muted text-sm">Selected: {{ selected.key }} {{ selected.summary }}</p> }
+            }
+        </div>
+        @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+        <footer class="grid">
+            <button class="confirm-button" (click)="complete(action.value)" [disabled]="busy() || (action.value === 'reassign' && !target()) || (action.value === 'import' && !issue())">Confirm</button>
+            <button class="legacy-button legacy-outline h-10" (click)="complete('keep')" [disabled]="busy()">Cancel</button>
+        </footer>
+    </main>
+} @else {
+    <p class="grid place-items-center h-screen text-sm text-muted-foreground" role="status">Loading...</p>
+}

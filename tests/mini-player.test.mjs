@@ -33,7 +33,7 @@ function setup(savedPreference) {
     const display = { bounds: { x: 0, y: 0, width: 1920, height: 1080 }, workArea: { x: 0, y: 0, width: 1920, height: 1040 } };
     const module = loadElectronModule('electron/mini-player.ts', {
         electron: { BrowserWindow: Window, ipcMain: ipc, screen: { getAllDisplays: () => [display], getPrimaryDisplay: () => display } },
-        './main': { RENDERER_DIST: 'test-renderer' },
+        './renderer': { loadRenderer: async () => {} },
         './config-service': { getAppConfig: () => ({}), saveAppConfig() {} },
         './tracking-state': { getTrackingSnapshot: () => snapshot },
         '../src/database/db': { getDatabase: () => ({ prepare: () => ({

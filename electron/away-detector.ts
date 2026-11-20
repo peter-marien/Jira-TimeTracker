@@ -1,8 +1,7 @@
-import { powerMonitor, BrowserWindow, ipcMain, Notification } from 'electron';
+import { powerMonitor, ipcMain, Notification } from 'electron';
 import { getDatabase } from '../src/database/db';
 import { createAwayWindow, closeAwayWindow } from './away-window';
 
-let mainWindow: BrowserWindow | null = null;
 let awayStartTime: Date | null = null;
 let isTrackingActive = false;
 let wasIdle = false;
@@ -250,8 +249,7 @@ async function checkAwayOnStartup() {
     }
 }
 
-export async function initializeAwayDetector(win: BrowserWindow) {
-    mainWindow = win;
+export async function initializeAwayDetector() {
 
     // Lock/Unlock events (Windows, macOS, Linux)
     powerMonitor.on('lock-screen', () => {
@@ -297,17 +295,12 @@ export async function initializeAwayDetector(win: BrowserWindow) {
     });
 
     // Handle action from the away window
-    ipcMain.on('away:action', (_event, data) => {
+    ipcMain.on('away:action', () => {
         console.log('[AwayDetector] Received action, closing window');
 
         // Close window
         closeAwayWindow();
         isDialogOpen = false;
-
-        // Forward to main window to update state
-        if (mainWindow) {
-            mainWindow.webContents.send('away:action-forwarded', data);
-        }
 
         // Reset state
         awayStartTime = null;

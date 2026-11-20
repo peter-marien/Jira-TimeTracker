@@ -12,12 +12,13 @@ import { handleOAuthCallback } from './oauth-service'
 import { configureLogging } from './logger'
 import { initializeTrackingState } from './tracking-state'
 import { installWindowRecovery, revealWindow } from './window-lifecycle'
+import { appRoot, assetsDirectory, loadRenderer } from './renderer'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-process.env.APP_ROOT = path.join(__dirname, '..')
+process.env.APP_ROOT = appRoot
 
 // Load package.json early to set app identity
-const pkg = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'package.json'), 'utf-8'));
+const pkg = JSON.parse(fs.readFileSync(path.join(appRoot, 'package.json'), 'utf-8'));
 
 // Set app identity as early as possible
 app.name = pkg.productName || 'Jira Time Tracker';
@@ -69,27 +70,13 @@ if (!gotTheLock) {
   })
 }
 
-//
-// ├─┬─┬ dist
-// │ │ └── index.html
-// │ │
-// │ ├─┬ dist-electron
-// │ │ ├── main.js
-// │ │ └── preload.mjs
-// │
-
-// 🚧 Use ['ENV_NAME'] avoid vite:define plugin - Vite@2.x
-export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
-export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
-export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
-
-process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST
-
 let win: BrowserWindow | null
 
 function createWindow() {
   win = new BrowserWindow({
-    icon: path.join(process.env.VITE_PUBLIC, 'icon.ico'),
+    width: 1120,
+    height: 800,
+    icon: path.join(assetsDirectory, 'icon.ico'),
     frame: false,
     titleBarStyle: 'hidden',
     webPreferences: {
@@ -98,23 +85,12 @@ function createWindow() {
   })
   installWindowRecovery(win, 'main')
 
-  // Test active push message to Renderer-process.
-  win.webContents.on('did-finish-load', () => {
-    win?.webContents.send('main-process-message', (new Date).toLocaleString())
-  })
-
-  if (VITE_DEV_SERVER_URL) {
-    win.loadURL(VITE_DEV_SERVER_URL)
-    win.webContents.openDevTools()
-  } else {
-    // win.loadFile('dist/index.html')
-    win.loadFile(path.join(RENDERER_DIST, 'index.html'))
-  }
+  void loadRenderer(win).catch(error => console.error('[Main] Could not load the renderer', error))
 
   if (win) {
     initializeTray(win)
     initializeAutoUpdater(win)
-    initializeAwayDetector(win)
+    initializeAwayDetector()
     initializeMiniPlayer(win)
   }
 }

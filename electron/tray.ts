@@ -3,32 +3,21 @@ import path from 'node:path';
 import { startPulsing, stopPulsing } from './tray-animator';
 import { stopActiveTracking } from './tracking-state';
 import { revealWindow } from './window-lifecycle';
+import { assetsDirectory } from './renderer';
 
 let tray: Tray | null = null;
 let mainWindow: BrowserWindow | null = null;
 
-// Icons should be in resources/assets or public. 
-// For dev, we use public. For prod, resources.
-// Using nativeImage.createFromPath handles some of this if paths are correct.
-// We'll assume standard 'electron-vite.svg' for now or a placeholder.
-
 export function initializeTray(window: BrowserWindow) {
     mainWindow = window;
 
-    // const iconPath = getIconPath('tray-icon.png'); // Placeholder
-    // If icon not found, use default app icon or empty.
-    // nativeImage.createFromPath returns empty image if not found.
-
-    // For now, use the public path logic from main.ts
-    const publicDir = process.env.VITE_PUBLIC;
-    const idlePath = path.join(publicDir || '', 'tray-icon.png');
+    const idlePath = path.join(assetsDirectory, 'tray-icon.png');
     console.log('[Tray] Loading idle icon from:', idlePath);
     let icon = nativeImage.createFromPath(idlePath);
 
     if (icon.isEmpty()) {
-        console.warn('[Tray] idle icon is empty, falling back to svg');
-        const fallbackPath = path.join(publicDir || '', 'electron-vite.svg');
-        icon = nativeImage.createFromPath(fallbackPath);
+        console.warn('[Tray] Idle icon is empty, using the application icon');
+        icon = nativeImage.createFromPath(path.join(assetsDirectory, 'app-icon.png'));
     }
 
     tray = new Tray(icon.resize({ width: 16, height: 16 }));
@@ -88,9 +77,8 @@ export function updateTrayTooltip(text: string) {
 
 export function updateTrayIcon(type: 'active' | 'idle', description?: string) {
     if (tray) {
-        const publicDir = process.env.VITE_PUBLIC;
-        const idlePath = path.join(publicDir || '', 'tray-icon.png');
-        const activePath = path.join(publicDir || '', 'tray-icon-active.png');
+        const idlePath = path.join(assetsDirectory, 'tray-icon.png');
+        const activePath = path.join(assetsDirectory, 'tray-icon-active.png');
 
         if (type === 'active') {
             console.log('[Tray] Activating pulse with:', activePath);

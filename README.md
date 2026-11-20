@@ -1,6 +1,6 @@
 # Jira Time Tracker
 
-A powerful, high-performance desktop application for tracking time and syncing worklogs to Jira. Built with Electron, React, and Vite, it offers a premium user experience with advanced features designed for professional workflows.
+A desktop application for tracking time and syncing worklogs to Jira. Angular renders the UI, and Electron manages the windows, SQLite database, system tray, Jira integration, and updates.
 
 ## 🚀 Key Features
 
@@ -11,16 +11,15 @@ A powerful, high-performance desktop application for tracking time and syncing w
 - **Advanced Work Item Management**: Paginated overview with total time spent calculation, sorting, and completion status.
 - **Precision Tracking**: Configurable time rounding (e.g., to the nearest 15 minutes) and minimum duration enforcement.
 - **Multi-Day Copy**: Effortlessly duplicate time slices to multiple future or past dates.
-- **Clean Visuals**: Modern UI built with ShadCN/UI, featuring smooth animations, dark mode support, and a high-contrast Month View.
+- **Month and Year Views**: Review hours by day, Jira connection, project, and year, with light and dark themes.
 - **System Tray Integration**: Background tracking with status-aware tray icons and tooltips.
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: React, TypeScript, Tailwind CSS
-- **Framework**: Electron, Vite
-- **UI Components**: ShadCN/UI, Lucide Icons
+- **Frontend**: Angular, Angular Material, and TypeScript
+- **Desktop**: Electron
 - **Database**: SQLite (via `better-sqlite3`)
-- **State Management**: Zustand
+- **State Management**: Angular signals, reactive forms, and RxJS for search
 - **Date Handling**: date-fns
 
 ## 📦 Getting Started
@@ -43,14 +42,17 @@ npm ci
 ### Development
 
 ```bash
-# Start the development server
+# Start the Angular development server and launch Electron
 npm run dev
 ```
 
 ### Building
 
 ```bash
-# Build for production
+# Build the Angular renderer and Electron main process without packaging
+npm run build:app
+
+# Create the production installer
 npm run build
 ```
 
@@ -60,8 +62,14 @@ Run `npm test` with Node.js 26.13.0 LTS. The regression suite uses isolated,
 in-memory databases and simulated Electron events; it does not open the installed
 application or access your saved time entries.
 
-After building with `npx vite build`, run `npm run test:electron` to check the built
-preload in a hidden Electron window with a temporary, isolated application profile.
+After `npm run build:app`, run `npm run test:electron` to check the built preload
+and Angular routes in hidden Electron windows with a temporary profile.
+Run `npm run test:electron -- --main` to verify tracking transactions and rollback
+through the production Electron process.
+
+The renderer entry point is `src/main.ts`, with lazy routes in `src/app/app.ts`.
+The app shell hosts the seven main screens. The mini-player and away dialog load
+their routes in separate Electron windows and use the desktop API in `src/lib/api.ts`.
 
 Run `npm run test:sqlite` after `npm ci` to check the actual native SQLite binding
 with a disposable database. SQLite 13 supplies Node-API binaries shared by Node
@@ -75,15 +83,14 @@ Run `npm run test:app` after building to exercise application startup and render
 routes with a temporary profile and database. This test blocks external HTTP
 requests and skips OAuth protocol registration, leaving your installed app alone.
 It also checks real tracking start/stop/resume, mini-player synchronization, and
-the away dialog with synthetic data.
-Run `npm run test:input` for time-input keyboard, selection, deletion, insertion,
-validation, and prop-update checks in an isolated Chromium window.
+the away dialog with synthetic data. The application check also exercises the
+native date input and day navigation.
 
-To validate a Windows package without publishing or running the prebuild hook:
+To validate a Windows package without publishing:
 
 ```bash
-npx tsc --noEmit
-npx vite build
+npm run typecheck
+npm run build:app
 npx electron-builder --win --x64 --publish never --config.directories.output=out/upgrade-package
 npm run test:packaged
 node tests/run-app-smoke.mjs out/upgrade-package/win-unpacked/resources/app.asar/dist-electron/main.js
@@ -112,11 +119,11 @@ the same validation steps:
 2. Check lint with `npm run lint`.
 3. Run regression tests with `npm test`.
 4. Check native SQLite with `npm run test:sqlite` using a disposable fixture.
-5. Check TypeScript with `npx tsc --noEmit`.
-6. Build the application with `npx vite build`.
+5. Check TypeScript with `npm run typecheck`.
+6. Build the application with `npm run build:app`.
 7. Run the real Electron regression check with `npm run test:electron`.
 8. Run the isolated application check with `npm run test:app`.
-9. Run input and calendar range checks with `npm run test:input`.
+9. Check tracking transactions with `npm run test:electron -- --main`.
 
 CI reports failures without modifying source files or creating commits. Run
 `npm run lint -- --fix` locally to apply available fixes, then review and commit
@@ -148,7 +155,7 @@ Releases are created by the manually triggered [Release workflow](.github/workfl
 2. Checks out the same validated commit on a Windows runner, verifies `master`, installs dependencies with `npm ci`, and checks that the working tree is clean.
 3. Configures `github-actions[bot]` as the Git author and runs `npm version` to update the package version and lock file, then creates a version commit and tag.
 4. Pushes the version commit and tags to GitHub.
-5. Runs `npm run release` to build the versioned Windows installer and publish it to GitHub Releases.
+5. Runs `npm run release:build` to build the versioned Windows installer, then uploads and verifies the draft release files.
 
 Validation failure stops the release before the version bump or any push. Validation has read-only repository permissions; only the release job can push commits, tags, and release assets.
 
