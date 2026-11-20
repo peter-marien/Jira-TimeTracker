@@ -2,7 +2,7 @@ import { BrowserWindow, screen, ipcMain } from 'electron';
 import type { Rectangle } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { VITE_DEV_SERVER_URL, RENDERER_DIST } from './main';
+import { loadRenderer } from './renderer';
 import { getAppConfig, saveAppConfig } from './config-service';
 import { getTrackingSnapshot } from './tracking-state';
 import { installWindowRecovery, revealWindow } from './window-lifecycle';
@@ -173,11 +173,7 @@ function createMiniPlayerWindow(): BrowserWindow {
     });
 
     // Load mini player page
-    if (VITE_DEV_SERVER_URL) {
-        win.loadURL(`${VITE_DEV_SERVER_URL}mini-player.html`);
-    } else {
-        win.loadFile(path.join(RENDERER_DIST, 'mini-player.html'));
-    }
+    void loadRenderer(win, '/mini-player').catch(error => console.error('[Mini-player] Could not load the renderer', error));
 
     win.on('closed', () => {
         miniPlayerWindow = null;

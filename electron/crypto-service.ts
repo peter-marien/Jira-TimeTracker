@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { machineIdSync } from 'node-machine-id';
+import machineId from 'node-machine-id';
 
 const ALGORITHM = 'aes-256-gcm';
 const KEY_LENGTH = 32; // 256 bits
@@ -21,11 +21,11 @@ function getEncryptionKey(): Buffer {
 
     try {
         // Get machine-specific ID
-        const machineId = machineIdSync();
+        const identifier = machineId.machineIdSync();
 
         // Derive a key using PBKDF2
         encryptionKey = crypto.pbkdf2Sync(
-            machineId,
+            identifier,
             APP_SALT,
             100000, // iterations
             KEY_LENGTH,

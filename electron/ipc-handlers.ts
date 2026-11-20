@@ -4,7 +4,8 @@ import { formatISO } from 'date-fns'
 import path from 'node:path'
 import fs from 'node:fs'
 import { getDatabase } from '../src/database/db'
-import { normalizeTimeSliceBoundary } from '../src/lib/time-utils'
+import { normalizeTimeSliceBoundary, roundToNearestInterval } from '../src/lib/time-utils'
+import type { TimeSlice } from '../src/lib/api'
 import { updateTrayTooltip, updateTrayIcon } from './tray'
 import { getAppConfig, saveAppConfig } from './config-service'
 import { startUpdateInterval } from './auto-updater'
@@ -127,14 +128,15 @@ export function registerIpcHandlers() {
                     SET jira_connection_id = @jira_connection_id, jira_key = @jira_key, description = @description, updated_at = unixepoch()
                     WHERE id = @id
                 `)
-                return stmt.run(item)
+                stmt.run(item)
+                return db.prepare('SELECT * FROM work_items WHERE id = ?').get(item.id)
             } else {
                 const stmt = db.prepare(`
                     INSERT INTO work_items (jira_connection_id, jira_key, description)
                     VALUES (@jira_connection_id, @jira_key, @description)
                 `)
-                const info = stmt.run(item)
-                return { id: info.lastInsertRowid, ...item }
+                const info = stmt.run({ jira_connection_id: null, jira_key: null, ...item })
+                return db.prepare('SELECT * FROM work_items WHERE id = ?').get(info.lastInsertRowid)
             }
         } catch (error: unknown) {
             // Check for unique constraint violation
@@ -208,7 +210,7 @@ export function registerIpcHandlers() {
         return slice ? hydrateTimeSliceTags(db, [slice])[0] : undefined;
     });
 
-    handleTrackingMutation('db:save-time-slice', (_, slice) => {
+    const saveTimeSlice = db.transaction((slice: Partial<TimeSlice>) => {
         if (slice.id) {
             // Fetch existing record to preserve fields not provided in the update
             const existing = db.prepare('SELECT * FROM time_slices WHERE id = ?').get(slice.id) as {
@@ -239,6 +241,11 @@ export function registerIpcHandlers() {
                 synced_start_time: normalizeTimeSliceBoundary(slice.synced_start_time !== undefined ? slice.synced_start_time : existing.synced_start_time),
                 synced_end_time: normalizeTimeSliceBoundary(slice.synced_end_time !== undefined ? slice.synced_end_time : existing.synced_end_time)
             };
+
+            if (existing.end_time && !merged.end_time &&
+                db.prepare('SELECT 1 FROM time_slices WHERE end_time IS NULL LIMIT 1').get()) {
+                throw new Error('Stop active tracking before reopening this time slice.');
+            }
 
             // Determine if we should reset the sync status
             let synced_to_jira = merged.synced_to_jira || 0;
@@ -274,7 +281,7 @@ export function registerIpcHandlers() {
             const save = db.transaction(() => {
                 stmt.run(params);
                 if (slice.tag_ids !== undefined) {
-                    replaceTimeSliceTags(db, slice.id, nextTagIds);
+                    replaceTimeSliceTags(db, params.id, nextTagIds);
                 }
             });
             save();
@@ -318,6 +325,37 @@ export function registerIpcHandlers() {
             return hydrateTimeSliceTags(db, [{ id, ...slice, ...params }])[0]
         }
     })
+
+    handleTrackingMutation('db:save-time-slice', (_, slice: Partial<TimeSlice>) => saveTimeSlice(slice));
+
+    handleTrackingMutation('db:change-time-slices', (_, changes: { remove?: number; save: Partial<TimeSlice>[] }) =>
+        db.transaction(() => {
+            if (changes.remove !== undefined) {
+                const result = db.prepare('DELETE FROM time_slices WHERE id = ?').run(changes.remove);
+                if (!result.changes) throw new Error('This time slice no longer exists.');
+            }
+            for (const slice of changes.save) saveTimeSlice(slice);
+        })());
+
+    handleTrackingMutation('tracking:start', (_, itemId: number, override?: string) => db.transaction(() => {
+        const setting = db.prepare('SELECT value FROM settings WHERE key = ?');
+        const rounding = (setting.get('rounding_enabled') as { value: string } | undefined)?.value === 'true';
+        const interval = Number((setting.get('rounding_interval') as { value: string } | undefined)?.value ?? 15);
+        const now = formatISO(roundToNearestInterval(new Date(), rounding && interval > 0 ? interval : 1));
+        db.prepare('UPDATE time_slices SET end_time = CASE WHEN julianday(start_time) > julianday(@now) THEN start_time ELSE @now END, synced_to_jira = 0, updated_at = unixepoch() WHERE end_time IS NULL').run({ now });
+        saveTimeSlice({ work_item_id: itemId, start_time: override || now, end_time: null });
+    })());
+
+    handleTrackingMutation('tracking:resolve-away', (_, action: 'keep' | 'discard' | 'reassign', awayStart: string, targetId?: number) => db.transaction(() => {
+        if (action === 'keep') return;
+        const active = db.prepare('SELECT * FROM time_slices WHERE end_time IS NULL LIMIT 1').get() as TimeSlice | undefined;
+        const now = formatISO(new Date());
+        if (!active || !(Date.parse(awayStart) >= Date.parse(active.start_time) && Date.parse(awayStart) <= Date.parse(now))) return;
+        if (action === 'reassign' && targetId === undefined) throw new Error('Select a work item.');
+        saveTimeSlice({ id: active.id, end_time: awayStart });
+        if (action === 'reassign') saveTimeSlice({ work_item_id: targetId, start_time: awayStart, end_time: now });
+        saveTimeSlice({ work_item_id: active.work_item_id, start_time: now, end_time: null });
+    })());
 
     ipcMain.handle('db:get-active-time-slice', () => {
         const slice = db.prepare('SELECT * FROM time_slices WHERE end_time IS NULL LIMIT 1').get()
@@ -616,7 +654,12 @@ export function registerIpcHandlers() {
     });
 
     // Helper to get connection for an issue (by key) or fall back to default
-    const getConnectionForIssue = (issueKey: string): ConnectionRow => {
+    const getConnectionForIssue = (issueKey: string, connectionId?: number): ConnectionRow => {
+        if (connectionId !== undefined) {
+            const connection = db.prepare('SELECT * FROM jira_connections WHERE id = ?').get(connectionId) as ConnectionRow | undefined;
+            if (!connection?.is_enabled) throw new Error('The selected Jira connection is unavailable or disabled.');
+            return connection;
+        }
         // 1. Try to find connection linked to this work item
         const workItem = db.prepare('SELECT jira_connection_id FROM work_items WHERE jira_key = ?').get(issueKey) as { jira_connection_id: number } | undefined;
 
@@ -634,8 +677,8 @@ export function registerIpcHandlers() {
         return defaultConn;
     };
 
-    ipcMain.handle('jira:add-worklog', async (_, { issueKey, timeSpentSeconds, comment, started }) => {
-        const conn = getConnectionForIssue(issueKey);
+    ipcMain.handle('jira:add-worklog', async (_, { issueKey, timeSpentSeconds, comment, started, connectionId }) => {
+        const conn = getConnectionForIssue(issueKey, connectionId);
         const client = await createJiraClientForConnection(conn);
 
         return await client.addWorklog(issueKey, {
@@ -652,8 +695,8 @@ export function registerIpcHandlers() {
         return await client.getWorklogs(issueKey);
     });
 
-    ipcMain.handle('jira:update-worklog', async (_, { issueKey, worklogId, timeSpentSeconds, comment, started }) => {
-        const conn = getConnectionForIssue(issueKey);
+    ipcMain.handle('jira:update-worklog', async (_, { issueKey, worklogId, timeSpentSeconds, comment, started, connectionId }) => {
+        const conn = getConnectionForIssue(issueKey, connectionId);
         const client = await createJiraClientForConnection(conn);
 
         return await client.updateWorklog(issueKey, worklogId, {
@@ -1028,9 +1071,10 @@ export function registerIpcHandlers() {
                     UPDATE jira_connections 
                     SET name = @name, base_url = @base_url, is_default = @is_default, 
                         color = @color, is_enabled = @is_enabled, auth_type = @auth_type,
-                        client_id = @client_id, client_secret_encrypted = @client_secret_encrypted,
-                        access_token_encrypted = @access_token_encrypted, refresh_token_encrypted = @refresh_token_encrypted,
-                        token_expires_at = @token_expires_at, cloud_id = @cloud_id,
+                        client_id = @client_id, client_secret_encrypted = COALESCE(@client_secret_encrypted, client_secret_encrypted),
+                        access_token_encrypted = COALESCE(@access_token_encrypted, access_token_encrypted),
+                        refresh_token_encrypted = COALESCE(@refresh_token_encrypted, refresh_token_encrypted),
+                        token_expires_at = COALESCE(@token_expires_at, token_expires_at), cloud_id = @cloud_id,
                         email = '', api_token = '',
                         updated_at = unixepoch()
                     WHERE id = @id
@@ -1056,7 +1100,9 @@ export function registerIpcHandlers() {
                     UPDATE jira_connections 
                     SET name = @name, base_url = @base_url, email = @email, api_token = @api_token,
                         is_default = @is_default, color = @color, is_enabled = @is_enabled, 
-                        auth_type = 'api_token', updated_at = unixepoch()
+                        auth_type = 'api_token', client_id = NULL, client_secret_encrypted = NULL,
+                        access_token_encrypted = NULL, refresh_token_encrypted = NULL, token_expires_at = NULL,
+                        cloud_id = NULL, updated_at = unixepoch()
                     WHERE id = @id
                 `);
                 return stmt.run({

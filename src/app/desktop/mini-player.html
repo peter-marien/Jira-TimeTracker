@@ -1,0 +1,64 @@
+<main class="mini-player" [class.light]="!settings.miniPlayerDark()" [class.dark]="settings.miniPlayerDark()" [class.idle]="!tracking.workItem()">
+    @if (tracking.workItem(); as item) {
+        <div class="mini-player-content">
+            <div class="pulse-container" aria-hidden="true"><span class="pulse-outer"></span><span class="pulse-inner"></span></div>
+            <span class="time-display">{{ clock(tracking.elapsedSeconds()) }}</span>
+            <div class="divider"></div>
+            <div class="work-info">
+                @if (item.jira_key) { <span class="jira-key">{{ item.jira_key }}</span> }
+                <span class="description" [title]="item.description">{{ error() || item.description }}</span>
+            </div>
+            <div class="button-group no-drag">
+                <button class="mini-btn expand-btn" aria-label="Open main window" title="Expand" (click)="expand()"><svg lucideMaximize2 class="size-3.5"></svg></button>
+                <button class="mini-btn stop-btn" aria-label="Stop tracking" [title]="error() || 'Stop'" [disabled]="busy()" (click)="stop()"><svg lucideCircleStop class="size-4"></svg></button>
+            </div>
+        </div>
+    } @else {
+        <div class="mini-player-idle-content">
+            @if (expanded()) {
+                <div class="search-results-area no-drag" aria-live="polite">
+                    @if (results(); as data) {
+                        @if (data.local.length) {
+                            <div class="result-group">
+                                <div class="group-label">Local Results</div>
+                                @for (item of data.local; track item.id) {
+                                    <button class="result-item" [disabled]="busy()" (click)="start(item)">
+                                        <div class="result-content">
+                                            <div class="result-description">{{ item.description }}</div>
+                                            @if (item.jira_key) { <div class="result-meta"><span class="result-key">{{ item.jira_key }}</span></div> }
+                                        </div>
+                                        <svg lucidePlay class="start-icon size-3"></svg>
+                                    </button>
+                                }
+                            </div>
+                        }
+                        @if (data.jira.length) {
+                            <div class="result-group">
+                                <div class="group-label">Jira Results</div>
+                                @for (issue of data.jira; track issue.connectionId + ':' + issue.key) {
+                                    <button class="result-item" [disabled]="busy()" (click)="importIssue(issue)">
+                                        <div class="result-content">
+                                            <div class="result-description">{{ issue.summary }}</div>
+                                            <div class="result-meta"><span class="result-key">{{ issue.key }}</span></div>
+                                        </div>
+                                        <svg lucidePlay class="start-icon size-3"></svg>
+                                    </button>
+                                }
+                            </div>
+                        }
+                        @if (!data.local.length && !data.jira.length) { <p class="no-results">No work items found</p> }
+                        @for (failure of data.errors; track failure) { <p class="no-results" role="alert">{{ failure }}</p> }
+                    } @else { <p class="no-results">Searching…</p> }
+                    @if (error()) { <p class="no-results" role="alert">{{ error() }}</p> }
+                </div>
+            }
+            <div class="search-bar-row">
+                <div class="search-input-wrapper no-drag">
+                    <svg lucideSearch class="search-icon size-3.5"></svg>
+                    <input type="search" class="search-input" aria-label="Search local work items and Jira" placeholder="Search to start tracking..." [formControl]="query">
+                </div>
+                <button class="mini-btn expand-btn no-drag" aria-label="Open main window" title="Expand" (click)="expand()"><svg lucideMaximize2 class="size-3.5"></svg></button>
+            </div>
+        </div>
+    }
+</main>

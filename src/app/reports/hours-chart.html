@@ -1,0 +1,79 @@
+<section class="border bg-card p-4 shadow-xs">
+    @if (!annual()) {
+        <header class="flex items-center gap-2 mb-4">
+            <span class="size-3 rounded-full shrink-0 border border-black/10" [style.background]="series()[0]?.color"></span>
+            <h3 class="text-sm font-bold uppercase tracking-widest text-muted-foreground/70">{{ heading() }}</h3>
+        </header>
+    }
+    <div #plot class="plot-frame relative" [style.height.px]="height()" tabindex="0"
+        [attr.aria-label]="heading() + ' chart'" (pointermove)="hover($event)" (pointerleave)="active.set(null)"
+        (keydown)="navigate($event)" (blur)="active.set(null)">
+        @if (width() > 0) {
+            <svg class="plot" [attr.width]="width()" [attr.height]="height()"
+                [attr.viewBox]="'0 0 ' + width() + ' ' + height()" role="img" [attr.aria-label]="heading()">
+                @for (level of grid(); track level) {
+                    <line [attr.x1]="left()" [attr.x2]="right()" [attr.y1]="y(level)" [attr.y2]="y(level)" class="gridline" />
+                    <text [attr.x]="left() - 8" [attr.y]="y(level)" text-anchor="end"><tspan [attr.x]="left() - 8" dy="0.355em">{{ level }}h</tspan></text>
+                }
+                @for (label of labels(); track $index) {
+                    <line [attr.x1]="x($index)" [attr.x2]="x($index)" y1="20" [attr.y2]="bottom()" class="gridline" />
+                    @if (annual()) {
+                        <text [attr.x]="x($index)" [attr.y]="bottom() + 16" text-anchor="middle"><tspan [attr.x]="x($index)" dy="0.71em">{{ label }}</tspan></text>
+                    } @else {
+                        @let axisY = bottom() + 14;
+                        <text [attr.x]="x($index)" [attr.y]="axisY" [attr.transform]="'rotate(-45, ' + x($index) + ', ' + axisY + ')'"
+                            text-anchor="end"><tspan [attr.x]="x($index)" dy="0.71em">{{ label }}</tspan></text>
+                    }
+                }
+                @if (active() !== null) {
+                    <line [attr.x1]="x(active()!)" [attr.x2]="x(active()!)" y1="20" [attr.y2]="bottom()" class="plot-cursor" [attr.stroke-width]="annual() ? 2 : 1" />
+                }
+                @for (line of series(); track line.label) {
+                    <path [attr.d]="path(line)" fill="none" [attr.stroke]="line.color" [attr.stroke-dasharray]="line.dashed ? '4 4' : null" [attr.stroke-width]="annual() && !line.dashed ? 3 : 2" />
+                    @for (value of line.values; track $index) {
+                        <circle [attr.cx]="x($index)" [attr.cy]="y(value)" [attr.r]="active() === $index ? (line.dashed ? 5 : 6) : annual() && !line.dashed ? 4 : 3"
+                            [attr.fill]="line.color" [attr.stroke]="active() === $index ? 'hsl(var(--background))' : null" [attr.stroke-width]="active() === $index ? 2 : null" />
+                        @if (!line.dashed && value > 0) {
+                            <text class="value-label" [class.annual-value]="annual()" [attr.x]="x($index)"
+                                [attr.y]="y(value) - (annual() ? 10 : 8)" text-anchor="middle">{{ value }}{{ annual() ? '' : 'h' }}</text>
+                        }
+                    }
+                }
+            </svg>
+        }
+        @if (annual()) {
+            <ul class="plot-legend">
+                @for (line of series(); track line.label) {
+                    <li class="legend" [style.color]="line.color">
+                        <svg width="14" height="14" viewBox="0 0 32 32" aria-hidden="true">
+                            <path stroke="currentColor" fill="none" stroke-width="4" d="M0,16h10.6667A5.3333,5.3333,0,1,1,21.3333,16H32M21.3333,16A5.3333,5.3333,0,1,1,10.6667,16" />
+                        </svg>{{ line.label }}
+                    </li>
+                }
+            </ul>
+        }
+        @if (active() !== null) {
+            @let index = active()!;
+            <div class="chart-tooltip legacy-popover text-xs" role="tooltip" [class.right-half]="x(index) >= width() / 2"
+                [style.left.px]="tooltipX(index)" [style.top.px]="pointerY() + 10">
+                <header class="bg-muted/50 border-b px-3 py-2 font-semibold">{{ annual() ? labels()[index] + ' ' + year() : dates()[index] }}</header>
+                <div class="grid gap-2 p-3">
+                    @for (line of series(); track line.label) {
+                        <div class="flex justify-between gap-8 items-center">
+                            <span class="flex items-center gap-2 text-muted-foreground"><span class="size-2 rounded-full" [style.background]="line.color"></span>{{ line.label }}</span>
+                            <span class="font-mono font-medium">{{ line.values[index] }}h</span>
+                        </div>
+                    }
+                    @if (annual()) {
+                        @let amount = overtime(index);
+                        <div class="h-px bg-border my-1"></div>
+                        <div class="flex justify-between gap-8 items-center">
+                            <span class="text-muted-foreground font-medium">Overtime</span>
+                            <span class="font-mono font-bold" [class.text-emerald-500]="amount > 0" [class.text-red-400]="amount <= 0">{{ amount > 0 ? '+' : '' }}{{ amount }}h</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</section>

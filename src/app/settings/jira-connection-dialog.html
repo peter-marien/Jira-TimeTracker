@@ -1,0 +1,82 @@
+<h2 mat-dialog-title>{{ connection ? 'Edit Connection' : 'Add Jira Connection' }}</h2>
+<button type="button" class="dialog-close" mat-dialog-close aria-label="Close" [disabled]="busy()"><svg lucideX class="size-4"></svg></button>
+<mat-dialog-content class="legacy-connection-content">
+    <p class="legacy-dialog-description mb-4">Configure your Jira instance details.</p>
+    <form id="jira-connection" class="grid gap-4 pb-4" [formGroup]="form" (ngSubmit)="save()">
+        <div class="grid grid-cols-2 bg-muted p-1" role="group" aria-label="Authentication">
+            <button type="button" class="legacy-button h-8" [class.bg-background]="authType() === 'api_token'"
+                [class.text-muted-foreground]="authType() !== 'api_token'" [attr.aria-pressed]="authType() === 'api_token'"
+                [disabled]="busy()" (click)="form.controls.type.setValue('api_token')"><svg lucideKeyRound class="size-4"></svg>API Token</button>
+            <button type="button" class="legacy-button h-8" [class.bg-background]="authType() === 'oauth'"
+                [class.text-muted-foreground]="authType() !== 'oauth'" [attr.aria-pressed]="authType() === 'oauth'"
+                [disabled]="busy()" (click)="form.controls.type.setValue('oauth')"><svg lucideExternalLink class="size-4"></svg>OAuth</button>
+        </div>
+        <label class="field gap-2 font-medium">Connection Name <input class="h-10" formControlName="name" placeholder="e.g. Work Jira" required></label>
+        <label class="field gap-2 font-medium">Base URL
+            @if (authType() === 'oauth' && authorized()) {
+                <input class="h-10 bg-muted" [value]="siteUrl()" readonly>
+            } @else {
+                <input class="h-10" type="url" formControlName="baseUrl" placeholder="https://your-domain.atlassian.net">
+            }
+            @if (authType() === 'oauth') {
+                <span class="text-xs font-normal text-muted-foreground">{{ authorized() ? 'URL is set from authorized Jira site' : 'URL will be set after OAuth authorization' }}</span>
+            }
+        </label>
+        @if (authType() === 'oauth') {
+            @if (authorized()) {
+                <div class="flex items-center gap-3 p-3 border bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800">
+                    <svg lucideCircleCheck class="size-5 text-emerald-600"></svg>
+                    <div class="flex-1"><p class="font-medium text-emerald-600 dark:text-emerald-400">Authorized</p><p class="text-emerald-600 dark:text-emerald-500">{{ siteUrl() || 'Connected to Jira' }}</p></div>
+                    <button class="legacy-button legacy-outline h-9" type="button" [disabled]="busy()" (click)="editAuthorization.set(true)">Re-authorize</button>
+                </div>
+            }
+            @if (!authorized() || editAuthorization()) {
+                <label class="field gap-2 font-medium">Client ID <input class="h-10" formControlName="clientId" placeholder="OAuth 2.0 Client ID"></label>
+                <div class="field gap-2 font-medium">
+                    <label for="jira-client-secret">Client Secret</label>
+                    <div class="relative">
+                        <input id="jira-client-secret" class="h-10 w-full pr-10" [type]="showSecret() ? 'text' : 'password'" formControlName="clientSecret"
+                            [placeholder]="connection?.auth_type === 'oauth' ? '•••••••• (Stored in database)' : 'OAuth 2.0 Client Secret'" autocomplete="new-password">
+                        <button class="absolute inset-y-0 right-0 px-3 text-muted-foreground" type="button" [attr.aria-label]="showSecret() ? 'Hide client secret' : 'Show client secret'" (click)="showSecret.update(value => !value)">
+                            @if (showSecret()) { <svg lucideEyeOff class="size-4"></svg> } @else { <svg lucideEye class="size-4"></svg> }
+                        </button>
+                    </div>
+                    <button class="text-xs font-normal text-muted-foreground underline text-left hover:text-primary" type="button" (click)="openOAuthApp()">Create OAuth App</button>
+                </div>
+                <button class="legacy-button legacy-outline h-9" type="button" [disabled]="busy()" (click)="authorize()"><svg lucideExternalLink class="size-4"></svg>Authorize with Jira</button>
+                @if (operation() === 'authorize') { <button class="legacy-button h-9" type="button" (click)="cancelAuthorization()">Cancel authorization</button> }
+            }
+        } @else {
+            <label class="field gap-2 font-medium">Email <input class="h-10" type="email" formControlName="email" placeholder="email@example.com"></label>
+            <div class="field gap-2 font-medium">
+                <label for="jira-api-token">API Token</label>
+                <div class="relative">
+                    <input id="jira-api-token" class="h-10 w-full pr-10" [type]="showToken() ? 'text' : 'password'" formControlName="token"
+                        placeholder="Atlassian API Token" autocomplete="new-password">
+                    <button class="absolute inset-y-0 right-0 px-3 text-muted-foreground" type="button" [attr.aria-label]="showToken() ? 'Hide token' : 'Show token'" (click)="showToken.update(value => !value)">
+                        @if (showToken()) { <svg lucideEyeOff class="size-4"></svg> } @else { <svg lucideEye class="size-4"></svg> }
+                    </button>
+                </div>
+                <button class="text-xs font-normal text-muted-foreground underline text-left hover:text-primary" type="button" (click)="openTokenPage()">Generate API Token</button>
+            </div>
+        }
+        <div class="grid grid-cols-2 gap-4">
+            <div class="field gap-2 font-medium">
+                <span class="flex items-center gap-2"><svg lucidePalette class="size-4"></svg>Connection Color</span>
+                <app-color-picker label="Connection Color" [color]="form.controls.color.value" (selected)="form.controls.color.setValue($event)" />
+            </div>
+            <div class="flex flex-col justify-end pb-1 gap-2">
+                <label class="flex items-center gap-2 font-medium leading-none"><input class="legacy-check" type="checkbox" formControlName="enabled">Connection Enabled</label>
+                <label class="flex items-center gap-2 font-medium leading-none"><input class="legacy-check" type="checkbox" formControlName="default">Set as default</label>
+            </div>
+        </div>
+        @if (authType() === 'api_token' || connection?.auth_type === 'oauth') {
+            <button class="legacy-button legacy-outline h-9" type="button" (click)="test()" [disabled]="busy()"><svg lucidePlug class="size-4 mr-2"></svg>Test Connection</button>
+        }
+        @if (status(); as result) { <p [class.error]="!result.success" role="status">{{ result.message }}</p> }
+    </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+    <button class="legacy-button legacy-secondary h-10 px-4" mat-dialog-close [disabled]="busy()">Cancel</button>
+    <button class="legacy-button legacy-primary h-10 px-4" type="submit" form="jira-connection" [disabled]="busy() || form.invalid || (authType() === 'oauth' && !authorized())">Save</button>
+</mat-dialog-actions>

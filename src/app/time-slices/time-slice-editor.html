@@ -1,0 +1,95 @@
+<h2 mat-dialog-title>
+    <span>{{ title }}</span>
+    @if (durationLabel() && (data.mode === 'add' || data.mode === 'edit')) {
+        <span class="absolute top-[26px] right-14 inline-flex items-center gap-1.5 border px-3 py-1.5 rounded-full bg-muted/50 text-sm font-normal font-mono text-muted-foreground"><svg lucideClock class="size-3.5"></svg>{{ durationLabel() }}</span>
+    }
+</h2>
+<button type="button" class="dialog-close" mat-dialog-close aria-label="Close" [disabled]="busy()"><svg lucideX class="size-4"></svg></button>
+<mat-dialog-content>
+    <p class="legacy-dialog-description mb-4" [class.secondary-description]="data.mode === 'move' || data.mode === 'copy' || data.mode === 'split'">{{ description }}</p>
+    <form id="time-slice-form" class="grid gap-4 py-4" [class.has-calendar]="data.mode === 'copy'" [class.split-form]="data.mode === 'split'"
+        [formGroup]="form" (ngSubmit)="save()">
+        @switch (data.mode) {
+            @case ('copy') {
+                <div class="flex flex-col gap-2 p-3 bg-muted/50 rounded-lg border">
+                    <span class="text-[10px] leading-normal uppercase font-bold text-muted-foreground tracking-wider">Work Item</span>
+                    <div class="flex flex-col">
+                        @if (source?.jira_key) { <span class="text-primary font-mono text-xs">{{ source?.jira_key }}</span> }
+                        <span class="text-sm font-medium truncate">{{ source?.work_item_description }}</span>
+                    </div>
+                </div>
+                <div class="flex justify-center"><app-calendar-grid class="border shadow-xs" [month]="copyMonth()" [selected]="dates()"
+                    (monthChanged)="copyMonth.set($event)" (chosen)="toggleDate($event)" /></div>
+                <div class="flex items-center justify-between px-1">
+                    <div class="flex flex-col gap-0.5"><span class="text-sm leading-none font-medium">Include Notes</span><span class="text-[11px] leading-normal text-muted-foreground">Copy descriptions and details</span></div>
+                    <mat-slide-toggle aria-label="Include Notes" formControlName="includeNotes" />
+                </div>
+            }
+            @case ('move') {
+                <app-work-item-picker label="New Work Item" placeholder="Select work item..." (selected)="item.set($event)" />
+            }
+            @case ('split') {
+                <div formArrayName="segments" class="grid gap-6">
+                    @for (segment of form.controls.segments.controls; track segment; let index = $index) {
+                        <div class="relative group p-4 border bg-accent/20 grid gap-4" [formGroupName]="index">
+                            <button class="absolute -top-2 -right-2 grid place-items-center size-6 rounded-full bg-background border shadow-xs opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                                type="button" [attr.aria-label]="'Remove segment ' + (index + 1)" (click)="form.controls.segments.removeAt(index)"><svg lucideTrash2 class="size-3 text-destructive"></svg></button>
+                            <span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Segment {{ index + 1 }}</span>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="field gap-1.5 text-xs font-medium">Start Time
+                                    <app-clock-input label="Start Time" [value]="segment.controls.start.value.slice(11)" (changed)="setSegmentTime(segment.controls.start, $event)" />
+                                </div>
+                                <div class="field gap-1.5 text-xs font-medium">End Time
+                                    <app-clock-input label="End Time" [value]="segment.controls.end.value.slice(11)"
+                                        [allowEmpty]="!source?.end_time && index === form.controls.segments.length - 1" (changed)="setSegmentTime(segment.controls.end, $event)" />
+                                </div>
+                            </div>
+                            <div class="grid gap-1.5">
+                                <span class="text-xs font-medium leading-none">Work Item</span>
+                                <app-work-item-picker label="" placeholder="Assign to..." (selected)="segment.controls.itemId.setValue($event.id)" />
+                            </div>
+                        </div>
+                    }
+                </div>
+                <button class="legacy-button legacy-outline border-dashed w-full h-10" type="button" (click)="addSegment()"><svg lucidePlus class="size-4 mr-2"></svg>Add Another Segment</button>
+            }
+            @default {
+                @if (data.mode === 'add') {
+                    <app-work-item-picker label="Work Item" placeholder="Search for work item..." (selected)="item.set($event)" />
+                } @else if (source; as slice) {
+                    <div class="flex items-center gap-2 bg-muted/50 p-3 text-sm font-medium leading-none">
+                        @if (slice.jira_key) { <span class="text-xs font-bold bg-primary/10 text-primary px-1.5 py-0.5">{{ slice.jira_key }}</span> }
+                        {{ slice.work_item_description || 'No description' }}
+                    </div>
+                }
+                <div class="grid gap-2"><span class="text-sm font-medium leading-none">Start Date &amp; Time</span>
+                    <app-day-picker [day]="startDate()" [navigate]="false" [withTime]="true" (selected)="setBoundary('start', $event)" />
+                </div>
+                <div class="grid gap-2"><span class="text-sm font-medium leading-none">End Date &amp; Time{{ data.mode === 'add' ? ' (Optional)' : '' }}</span>
+                    <app-day-picker [day]="endDate()" [navigate]="false" [withTime]="true" [hasValue]="!!endValue()"
+                        [disabled]="data.mode === 'edit' && !source?.end_time" [placeholder]="data.mode === 'edit' ? 'No end time (active)' : 'Leave empty for active slice'"
+                        (selected)="setBoundary('end', $event)" />
+                </div>
+                <label class="field gap-2 text-sm font-medium">Notes <textarea class="min-h-20" formControlName="notes" rows="3" placeholder="What were you working on?"></textarea></label>
+                <div class="grid gap-2">
+                    <span class="text-sm font-medium leading-none">Tags</span>
+                    <app-tag-picker [tags]="tags()" [selectedIds]="tagIds()" (changed)="toggleTag($event.id, $event.checked)" />
+                </div>
+            }
+        }
+        @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+    </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+    @if (data.mode === 'split') { <button class="legacy-button legacy-secondary h-10 px-4" mat-dialog-close [disabled]="busy()">Cancel</button> }
+    <button class="legacy-button legacy-primary h-10 px-4" type="submit" form="time-slice-form"
+        [disabled]="busy() || ((data.mode === 'add' || data.mode === 'move') && !item()) || (data.mode === 'copy' && !dates().length)">
+        @switch (data.mode) {
+            @case ('copy') { {{ busy() ? 'Copying...' : 'Copy to ' + dates().length + (dates().length === 1 ? ' day' : ' days') }} }
+            @case ('edit') { Save changes }
+            @case ('move') { Move }
+            @case ('split') { Apply Split }
+            @default { Add Time Slice }
+        }
+    </button>
+</mat-dialog-actions>

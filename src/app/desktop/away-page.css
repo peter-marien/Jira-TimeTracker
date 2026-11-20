@@ -1,0 +1,14 @@
+:host { display:grid; place-items:center; min-height:100dvh; padding:20px; }
+.away-dialog { position:relative; width:100%; max-width:512px; display:grid; gap:16px; border:1px solid hsl(var(--border)); padding:24px; background:hsl(var(--background)); box-shadow:0 10px 15px rgb(0 0 0 / .08); }
+h1 { font-weight:600; font-size:18px; line-height:1; letter-spacing:-.025em; }
+.close-button { position:absolute; top:16px; right:16px; opacity:.7; }
+.close-button:hover { opacity:1; }
+.choice { display:flex; align-items:flex-start; gap:12px; border:1px solid hsl(var(--border)); padding:12px; font-size:14px; line-height:20px; cursor:pointer; }
+.choice:hover { background:hsl(var(--muted) / .5); }
+.choice input { appearance:none; flex:none; width:16px; height:16px; border:1px solid hsl(var(--primary)); border-radius:50%; margin-top:2px; }
+.choice input:checked { background:radial-gradient(circle, hsl(var(--primary)) 0 4px, transparent 4.5px); }
+.choice strong { display:flex; align-items:center; gap:8px; font-weight:600; line-height:16px; }
+.description { display:block; margin-top:4px; color:hsl(var(--muted-foreground)); }
+.confirm-button { height:40px; background:hsl(var(--primary)); color:hsl(var(--primary-foreground)); font-size:14px; font-weight:500; }
+.confirm-button:hover { background:hsl(var(--primary) / .9); }
+.confirm-button:disabled { opacity:.5; pointer-events:none; }

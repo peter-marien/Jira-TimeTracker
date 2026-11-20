@@ -2,11 +2,9 @@ import { BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { installWindowRecovery } from './window-lifecycle';
+import { loadRenderer } from './renderer';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const APP_ROOT = path.join(__dirname, '..');
-const RENDERER_DIST = path.join(APP_ROOT, 'dist');
-const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
 
 export interface AwayData {
     awayStartTime: string;
@@ -49,11 +47,7 @@ export function createAwayWindow(data: AwayData) {
         awayWindow?.show();
     });
 
-    if (VITE_DEV_SERVER_URL) {
-        awayWindow.loadURL(`${VITE_DEV_SERVER_URL}#/away`);
-    } else {
-        awayWindow.loadFile(path.join(RENDERER_DIST, 'index.html'), { hash: 'away' });
-    }
+    void loadRenderer(awayWindow, '/away').catch(error => console.error('[Away] Could not load the renderer', error));
 
     awayWindow.on('closed', () => {
         awayWindow = null;
@@ -61,7 +55,7 @@ export function createAwayWindow(data: AwayData) {
     });
 }
 
-// Handler for when the React component mounts and requests data
+// The renderer requests the payload after it registers its listener.
 ipcMain.on('away-window:ready', (event) => {
     // Only reply if this event came from our away window
     const senderWin = BrowserWindow.fromWebContents(event.sender);

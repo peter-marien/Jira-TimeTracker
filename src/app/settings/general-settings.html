@@ -1,0 +1,95 @@
+<div class="grid gap-6">
+    <section class="panel space-y-4">
+        <header class="space-y-1.5 mb-6"><h2 class="legacy-card-title">Appearance</h2><p class="text-sm text-muted-foreground">Customize the application theme.</p></header>
+        <div class="grid grid-cols-3 gap-4">
+            <button class="theme-option legacy-button legacy-outline flex-col" [class.selected]="values()['theme'] === 'light'" (click)="save('theme', 'light')"><svg lucideSun class="size-4"></svg>Light</button>
+            <button class="theme-option legacy-button legacy-outline flex-col" [class.selected]="(values()['theme'] || 'dark') === 'dark'" (click)="save('theme', 'dark')"><svg lucideMoon class="size-4"></svg>Dark</button>
+            <button class="theme-option legacy-button legacy-outline flex-col" [class.selected]="values()['theme'] === 'system'" (click)="save('theme', 'system')"><svg lucideMonitor class="size-4"></svg>System</button>
+        </div>
+        <div class="grid gap-2 pt-4 border-t">
+            <div class="field">
+                <span class="flex items-center gap-2 text-sm font-medium"><svg lucideClock class="size-4"></svg> Non-Jira Time ("Other") Color</span>
+                <app-color-picker label="Non-Jira Time Color" [color]="values()['other_color'] || '#64748b'" (selected)="save('other_color', $event)" />
+            </div>
+            <p class="text-xs text-muted-foreground">This color will be used for time slices not linked to any Jira connection.</p>
+        </div>
+        <div class="grid gap-2 pt-4 border-t">
+            <label class="field">
+                <span class="flex items-center gap-2 text-sm font-medium"><svg lucideClock class="size-4"></svg> Daily Target Hours</span>
+                <span class="flex items-center gap-2 text-sm text-muted-foreground">
+                    <input class="w-24 h-10" type="number" min="0.5" max="24" step="0.5" [value]="values()['daily_target_hours'] || '8'" (change)="saveNumber('daily_target_hours', $event)">hours
+                </span>
+            </label>
+            <p class="text-xs text-muted-foreground">The target hours for a single workday (Monday-Friday).</p>
+        </div>
+    </section>
+    <section class="panel grid gap-6">
+        <header class="space-y-1.5"><h2 class="legacy-card-title">Mini-Player</h2><p class="text-sm text-muted-foreground">Configure the floating mini-player and its theme.</p></header>
+        <div class="page-header">
+            <div><div class="text-sm font-medium">Enable Mini-Player</div><p class="text-xs text-muted-foreground">Show the floating mini-player.</p></div>
+            <mat-slide-toggle aria-label="Enable Mini-Player" [checked]="values()['mini_player_enabled'] !== 'false'" (change)="save('mini_player_enabled', $event.checked)" />
+        </div>
+        <div class="field text-sm font-medium">Theme
+            <mat-select class="legacy-select" panelClass="legacy-select-panel" aria-label="Mini-player theme" disableOptionCentering
+                [value]="values()['mini_player_theme'] || 'inverted'" [disabled]="values()['mini_player_enabled'] === 'false'"
+                (selectionChange)="save('mini_player_theme', $event.value)">
+                <mat-option value="inverted">Inverted (Opposite of App)</mat-option><mat-option value="match">Match App Theme</mat-option>
+                <mat-option value="light">Always Light</mat-option><mat-option value="dark">Always Dark</mat-option><mat-option value="system">Follow System</mat-option>
+            </mat-select>
+        </div>
+        <p class="-mt-4 text-xs text-muted-foreground">Choose how the mini-player should look.</p>
+    </section>
+    <section class="panel grid gap-6">
+        <header class="space-y-1.5"><h2 class="legacy-card-title flex items-center gap-2"><svg lucideClock class="size-5"></svg>Away Detection</h2><p class="text-sm text-muted-foreground">Configure how the app handles time when you're away.</p></header>
+        <div class="page-header">
+            <div><div class="text-sm font-medium">Enable Away Detection</div><p class="text-xs text-muted-foreground">Show a dialog when you return after being away.</p></div>
+            <mat-slide-toggle aria-label="Enable Away Detection" [checked]="values()['away_detection_enabled'] !== 'false'" (change)="save('away_detection_enabled', $event.checked)" />
+        </div>
+        <label class="field text-sm font-medium">Away Threshold (minutes)
+            <span class="flex items-center gap-2 text-muted-foreground"><input class="w-24 h-10" type="number" min="1" max="120" [disabled]="values()['away_detection_enabled'] === 'false'"
+                [value]="values()['away_threshold_minutes'] || '5'" (change)="saveNumber('away_threshold_minutes', $event)">minutes</span>
+        </label>
+        <p class="-mt-4 text-xs text-muted-foreground">How long you need to be away before the dialog appears.</p>
+        <div class="page-header">
+            <div><div class="text-sm font-medium">Notification Sound</div><p class="text-xs text-muted-foreground">Play a sound when the notification appears.</p></div>
+            <mat-slide-toggle aria-label="Notification Sound" [checked]="values()['away_notification_sound'] !== 'false'" [disabled]="values()['away_detection_enabled'] === 'false'"
+                (change)="save('away_notification_sound', $event.checked)" />
+        </div>
+    </section>
+    <section class="panel grid gap-6">
+        <header class="space-y-1.5"><h2 class="legacy-card-title">Time Rounding</h2><p class="text-sm text-muted-foreground">Automatically round start and end times when stopping a timer.</p></header>
+        <div class="page-header">
+            <div><div class="text-sm font-medium">Enable Rounding</div><p class="text-xs text-muted-foreground">Round start times down and end times up.</p></div>
+            <mat-slide-toggle aria-label="Enable Rounding" [checked]="values()['rounding_enabled'] === 'true'" (change)="save('rounding_enabled', $event.checked)" />
+        </div>
+        <label class="field text-sm font-medium">Rounding Interval (minutes)
+            <span class="flex items-center gap-2 text-muted-foreground"><input class="w-24 h-10" type="number" min="1" max="60" [disabled]="values()['rounding_enabled'] !== 'true'"
+                [value]="values()['rounding_interval'] || '15'" (change)="saveNumber('rounding_interval', $event)">minutes</span>
+        </label>
+        <p class="-mt-4 text-xs text-muted-foreground">Example: 15m interval. 09:07 → 09:00 (Start), 09:23 → 09:30 (End).</p>
+    </section>
+    <section class="panel grid gap-4">
+        <header class="space-y-1.5 mb-2"><h2 class="legacy-card-title">Updates</h2><p class="text-sm text-muted-foreground">Configure automatic update checks.</p></header>
+        <div class="grid gap-2">
+            <div class="field text-sm font-medium">Check for updates
+                <mat-select class="legacy-select w-[200px]" panelClass="legacy-select-panel" aria-label="Update interval" disableOptionCentering
+                    [value]="values()['update_check_interval'] || '60'" (selectionChange)="save('update_check_interval', $event.value)">
+                    <mat-option value="15">Every 15 minutes</mat-option><mat-option value="30">Every 30 minutes</mat-option><mat-option value="60">Every hour</mat-option>
+                    <mat-option value="240">Every 4 hours</mat-option><mat-option value="1440">Daily</mat-option><mat-option value="0">Never (Manual only)</mat-option>
+                </mat-select>
+            </div>
+            <p class="text-xs text-muted-foreground">The application will check for updates in the background.</p>
+        </div>
+        <div class="page-header pt-4 border-t">
+            <div><div class="text-sm font-medium">Manual Update Check</div><p class="text-xs text-muted-foreground">Check now for the latest version.</p></div>
+            <button class="legacy-button legacy-outline h-9" (click)="check()" [disabled]="checking()"><svg lucideRefreshCcw class="mr-2 size-4" [class.animate-spin]="checking()"></svg>Check Now</button>
+        </div>
+    </section>
+    <section class="panel grid gap-6">
+        <header class="space-y-1.5"><h2 class="legacy-card-title flex items-center gap-2"><svg lucideFilePlus2 class="size-5"></svg>Search</h2><p class="text-sm text-muted-foreground">Configure how search behaves across the app.</p></header>
+        <div class="page-header">
+            <div><div class="text-sm font-medium">Hide Completed Items</div><p class="text-xs text-muted-foreground">Exclude completed local items from search results by default.</p></div>
+            <mat-slide-toggle aria-label="Hide Completed Items" [checked]="values()['hide_completed_items'] !== 'false'" (change)="save('hide_completed_items', $event.checked)" />
+        </div>
+    </section>
+</div>

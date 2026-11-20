@@ -1,0 +1,20 @@
+:host { display:block; min-width:0; }
+.scroll-table { border:1px solid hsl(var(--border)); background:hsl(var(--card)); height:100%; }
+table { width:max-content; min-width:100%; font-size:12px; }
+th, td { padding:8px; line-height:16px; border-right:1px solid hsl(var(--border)); border-bottom:1px solid hsl(var(--border)); }
+thead { background:color-mix(in srgb, hsl(var(--primary)) 7%, hsl(var(--secondary))); }
+thead th { color:hsl(var(--foreground)); font-weight:600; }
+thead th:first-child { width:96px; }
+thead th:nth-child(2) { width:256px; }
+tr > :first-child, tbody th { position:sticky; background:hsl(var(--card)); }
+tr > :first-child { left:0; }
+tbody th, thead th:nth-child(2) { position:sticky; left:96px; }
+tbody th { color:hsl(var(--foreground)); font-weight:400; }
+thead tr > :first-child, thead th:nth-child(2) { background:color-mix(in srgb, hsl(var(--primary)) 12%, hsl(var(--secondary))); }
+.numeric { text-align:center; width:32px; min-width:32px; }
+.weekend { background:hsl(var(--muted) / .4); }
+thead .weekend { color:hsl(var(--muted-foreground)); }
+tfoot { background:hsl(var(--primary) / .20); font-weight:700; }
+tfoot th:first-child { background:color-mix(in srgb, hsl(var(--primary)) 27%, hsl(var(--card))); color:hsl(var(--foreground)); }
+tfoot td, tfoot th { height:40px; }
+.link-button { color:hsl(var(--foreground)); font-weight:600; }

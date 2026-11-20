@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "outDir": "./out/angular",
+    "useDefineForClassFields": false,
+    "types": ["node"],
+    "noEmit": false,
+    "allowImportingTsExtensions": false
+  },
+  "files": ["src/main.ts", "electron/electron-env.d.ts"],
+  "include": [],
+  "references": [],
+  "angularCompilerOptions": { "strictTemplates": true }
+}

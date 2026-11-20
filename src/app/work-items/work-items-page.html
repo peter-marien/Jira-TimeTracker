@@ -1,0 +1,77 @@
+<section class="page work-items-page">
+    <header class="page-header">
+        <h1>Work Items</h1>
+        <div class="flex gap-2">
+            <button class="legacy-button legacy-outline h-10 px-4" (click)="edit({import: true})"><svg lucideDownload class="size-4 mr-2"></svg> Import from Jira</button>
+            @if (selected().length) {
+                <button class="legacy-button legacy-outline h-9" (click)="changeConnection()"><svg lucideArrowRightLeft class="size-4 mr-2"></svg> Change Connection</button>
+            }
+            <button class="legacy-button legacy-primary h-10 px-4" (click)="edit({})"><svg lucidePlus class="size-4 mr-2"></svg> New Work Item</button>
+        </div>
+    </header>
+    <div class="page-header">
+        <label class="legacy-search max-w-sm w-full"><svg lucideSearch class="size-4 shrink-0 text-muted-foreground"></svg>
+            <input type="search" aria-label="Search work items" placeholder="Search work items..." [formControl]="query">
+        </label>
+        <div class="border bg-muted/30 px-3 py-2"><mat-slide-toggle [checked]="completed()" (change)="completed.set($event.checked)"><span class="text-sm font-medium ml-0.5">Show Completed</span></mat-slide-toggle></div>
+    </div>
+    @if (results.error(); as error) { <p class="error" role="alert">{{ message(error) }}</p> }
+    @if (results.isLoading()) { <p class="muted" role="status">Loading work items…</p> }
+    @if (results.hasValue()) {
+        <div class="scroll-table border work-item-table">
+            <table aria-label="Work items">
+                <thead><tr>
+                    <th scope="col" class="w-[150px]">Jira Key</th><th scope="col">Description</th><th scope="col" class="w-[150px]">Connection</th>
+                    <th scope="col" class="w-[120px]">Total Time</th><th scope="col" class="w-[100px] text-right">Actions</th>
+                </tr></thead>
+                <tbody>
+                    @for (item of results.value().items; track item.id) {
+                        <tr (click)="selectRow($event, item.id)" (dblclick)="open($event, item)"
+                            [cdkContextMenuTriggerFor]="menu" [cdkContextMenuTriggerData]="{ context: true }"
+                            [class.completed]="item.is_completed" [class.selected]="selected().includes(item.id)">
+                            <td>
+                                @if (item.jira_key) {
+                                    <span class="text-xs font-bold px-1.5 py-0.5 bg-primary/10 text-primary">{{ item.jira_key }}</span>
+                                } @else { <span class="text-muted-foreground text-xs italic">Manual</span> }
+                            </td>
+                            <td class="font-medium" [class.line-through]="item.is_completed">{{ item.description }}</td>
+                            <td class="text-muted-foreground">{{ item.connection_name || '-' }}</td>
+                            <td><button class="inline-flex items-center bg-secondary rounded-full px-2.5 py-0.5 text-xs font-semibold font-mono" (click)="history(item)"><svg lucideClock class="size-3 mr-1 opacity-70"></svg>{{ item.total_seconds | duration }}</button></td>
+                            <td class="text-right">
+                                <button type="button" class="legacy-button size-10 p-0" aria-label="Work item actions"
+                                    [cdkMenuTriggerFor]="menu" [cdkMenuTriggerData]="{ context: false }" [cdkMenuPosition]="menuPositions"><svg lucideEllipsis class="size-4"></svg></button>
+                                <ng-template #menu let-context="context">
+                                    <div cdkMenu class="legacy-popover action-menu" [class.action-context-menu]="context" aria-label="Work item actions">
+                                        @if (selected().length > 1 && selected().includes(item.id)) {
+                                            <button cdkMenuItem (cdkMenuItemTriggered)="complete(selected(), true)"><svg lucideCircleCheck class="size-4 text-emerald-500"></svg>Mark {{ selected().length }} selected as Complete</button>
+                                            <button cdkMenuItem (cdkMenuItemTriggered)="complete(selected(), false)"><svg lucideCircleX class="size-4"></svg>Mark {{ selected().length }} selected as Incomplete</button>
+                                            <div class="legacy-menu-separator" role="separator"></div>
+                                            <button cdkMenuItem (cdkMenuItemTriggered)="changeConnection()"><svg lucideArrowRightLeft class="size-4"></svg>Change Connection</button>
+                                        } @else {
+                                            <button cdkMenuItem [cdkMenuItemDisabled]="item.id === tracking.workItem()?.id" (cdkMenuItemTriggered)="start(item)"><svg lucideCirclePlay class="size-4 text-primary"></svg>Start Tracking</button>
+                                            <div class="legacy-menu-separator" role="separator"></div>
+                                            <button cdkMenuItem (cdkMenuItemTriggered)="complete([item.id], !item.is_completed)">
+                                                @if (item.is_completed) { <svg lucideCircleX class="size-4 text-muted-foreground"></svg>Mark as Incomplete }
+                                                @else { <svg lucideCircleCheck class="size-4 text-emerald-500"></svg>Mark as Complete }
+                                            </button>
+                                            <div class="legacy-menu-separator" role="separator"></div>
+                                            <button cdkMenuItem (cdkMenuItemTriggered)="edit({item})"><svg lucidePencil class="size-4"></svg>{{ context ? 'Edit Work Item' : 'Edit' }}</button>
+                                            <button cdkMenuItem [cdkMenuItemDisabled]="!item.jira_key || selected().length > 1" (cdkMenuItemTriggered)="openJira(item)"><svg lucideExternalLink class="size-4"></svg>Open in Jira</button>
+                                            @if (context) {
+                                                <button cdkMenuItem (cdkMenuItemTriggered)="changeConnection([item.id])"><svg lucideArrowRightLeft class="size-4"></svg>Change Connection</button>
+                                            }
+                                            <button cdkMenuItem (cdkMenuItemTriggered)="history(item)"><svg lucideHistory class="size-4"></svg>Show Time Slices</button>
+                                        }
+                                        <div class="legacy-menu-separator" role="separator"></div>
+                                        <button cdkMenuItem class="text-destructive" (cdkMenuItemTriggered)="remove(item)"><svg lucideTrash2 class="size-4"></svg>Delete</button>
+                                    </div>
+                                </ng-template>
+                            </td>
+                        </tr>
+                    } @empty { <tr><td colspan="5" class="empty h-24">No work items found.</td></tr> }
+                </tbody>
+            </table>
+        </div>
+        <app-page-controls noun="items" [total]="results.value().total" [page]="page()" [size]="size()" (changed)="changePage($event)" />
+    }
+</section>

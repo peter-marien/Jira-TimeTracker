@@ -1,6 +1,7 @@
 const assert = require('node:assert/strict');
 const path = require('node:path');
 const { app, BrowserWindow, ipcMain } = require('electron');
+const { runAngularSmoke } = require('./angular-renderer-smoke.cjs');
 
 app.setPath('userData', process.argv[2]);
 app.disableHardwareAcceleration();
@@ -32,7 +33,7 @@ app.whenReady().then(async () => {
     `);
     assert.deepEqual(result, { staleCalls: 0, isTracking: false });
     console.log('PASS: built preload removes listeners across the real Electron context bridge.');
-    window.destroy();
+    await runAngularSmoke();
     app.exit(0);
 }).catch(error => {
     console.error(error);

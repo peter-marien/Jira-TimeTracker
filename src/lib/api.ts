@@ -143,22 +143,27 @@ export const api = {
     getRecentWorkItems: () => ipc.invoke('db:get-recent-work-items') as Promise<WorkItem[]>,
 
     // Time Slices
-    getTimeSlices: (startStr: string, endStr: string) => ipc.invoke('db:get-time-slices', { startStr, endStr }),
+    getTimeSlices: (startStr: string, endStr: string) => ipc.invoke('db:get-time-slices', { startStr, endStr }) as Promise<TimeSlice[]>,
     getTimeSlice: (id: number) => ipc.invoke('db:get-time-slice', id) as Promise<TimeSlice>,
     getTimeSlicesForWorkItem: (workItemId: number) => ipc.invoke('db:get-work-item-time-slices', workItemId) as Promise<TimeSlice[]>,
     clearDatabase: (options: { clearTimeSlices: boolean, clearWorkItems: boolean }) => ipc.invoke('db:clear-data', options),
     saveTimeSlice: (slice: Partial<TimeSlice>) => ipc.invoke('db:save-time-slice', slice) as Promise<TimeSlice>,
+    changeTimeSlices: (save: Partial<TimeSlice>[], remove?: number) =>
+        ipc.invoke('db:change-time-slices', { save, remove }) as Promise<void>,
     deleteTimeSlice: (id: number) => ipc.invoke('db:delete-time-slice', id),
     getActiveTimeSlice: () => ipc.invoke('db:get-active-time-slice') as Promise<TimeSlice | undefined>,
     getTrackingSnapshot: () => ipc.invoke('tracking:get-state') as Promise<import('./tracking-state').TrackingSnapshot>,
     stopTracking: () => ipc.invoke('tracking:stop') as Promise<string | null>,
+    startTracking: (itemId: number, startTime?: string) => ipc.invoke('tracking:start', itemId, startTime) as Promise<void>,
+    resolveAwayTime: (action: 'keep' | 'discard' | 'reassign', startTime: string, itemId?: number) =>
+        ipc.invoke('tracking:resolve-away', action, startTime, itemId) as Promise<void>,
     searchTimeSlices: (params: { query?: string, limit?: number, offset?: number } = {}) =>
         ipc.invoke('db:search-time-slices', params) as Promise<TimeSlice[]>,
     searchTimeSlicesCount: (params: { query?: string } = {}) =>
         ipc.invoke('db:search-time-slices-count', params) as Promise<number>,
 
     // Settings
-    getSettings: () => ipc.invoke('db:get-settings'),
+    getSettings: () => ipc.invoke('db:get-settings') as Promise<Record<string, string>>,
     saveSetting: (key: string, value: string) => ipc.invoke('db:save-setting', { key, value }),
 
     // Tags
@@ -172,14 +177,15 @@ export const api = {
         results: Array<{ key: string; summary: string; connectionId: number; connectionName: string }>;
         errors: Array<{ connectionId: number; connectionName: string; error: string }>;
     }>,
-    addJiraWorklog: (issueKey: string, data: { timeSpentSeconds: number, comment: string, started: string }) =>
-        ipc.invoke('jira:add-worklog', { issueKey, ...data }),
-    updateJiraWorklog: (issueKey: string, worklogId: string, data: { timeSpentSeconds: number, comment: string, started: string }) =>
-        ipc.invoke('jira:update-worklog', { issueKey, worklogId, ...data }),
+    addJiraWorklog: (issueKey: string, data: { timeSpentSeconds: number, comment: string, started: string }, connectionId?: number) =>
+        ipc.invoke('jira:add-worklog', { issueKey, ...data, connectionId }) as Promise<{ id: string }>,
+    updateJiraWorklog: (issueKey: string, worklogId: string, data: { timeSpentSeconds: number, comment: string, started: string }, connectionId?: number) =>
+        ipc.invoke('jira:update-worklog', { issueKey, worklogId, ...data, connectionId }) as Promise<{ id: string }>,
     getJiraWorklogs: (issueKey: string) => ipc.invoke('jira:get-worklogs', { issueKey }),
     importJiraWorklogs: (request: JiraWorklogImportRequest) =>
         ipc.invoke('jira:import-worklogs', request) as Promise<JiraWorklogImportResult>,
-    testJiraConnection: (config: { baseUrl: string, email: string, apiToken: string }) => ipc.invoke('jira:test-connection', config),
+    testJiraConnection: (config: { baseUrl: string, email: string, apiToken: string }) =>
+        ipc.invoke('jira:test-connection', config) as Promise<{ success: boolean; displayName?: string; error?: string }>,
     getDatabasePath: () => ipc.invoke('database:get-path') as Promise<string>,
     selectDatabaseFile: () => ipc.invoke('database:select-file') as Promise<{ success: boolean; filePath?: string; error?: string; canceled?: boolean }>,
     createDatabaseFile: () => ipc.invoke('database:create-file') as Promise<{ success: boolean; filePath?: string; canceled?: boolean }>,

@@ -1,0 +1,42 @@
+<div class="scroll-table">
+    <table [attr.aria-label]="label()">
+        <thead><tr>
+            <th scope="col">Jira Key</th>
+            <th scope="col">Work Item</th>
+            @for (day of days(); track day.getTime()) {
+                <th scope="col" class="numeric" [class.weekend]="weekend(day)" [title]="(day | date:'fullDate') ?? ''">
+                    <button type="button" [attr.aria-label]="'Open ' + (day | date:'fullDate') + ' on dashboard'" (click)="dayOpened.emit(day)">{{ day.getDate() }}</button>
+                </th>
+            }
+            <th scope="col" class="numeric">Total (h)</th>
+        </tr></thead>
+        <tbody>
+            @for (row of rows(); track row.id) {
+                <tr>
+                    <td class="font-mono">{{ row.key || '-' }}</td>
+                    <th scope="row">{{ row.description }}</th>
+                    @for (day of days(); track day.getTime()) {
+                        <td class="numeric" [class.weekend]="weekend(day)">
+                            @if (row.days.get(day.getDate()); as cell) {
+                                <button class="link-button" type="button" (click)="opened.emit({row, date: day, slices: cell.slices})"
+                                    [attr.aria-label]="row.description + ', ' + (day | date:'fullDate') + ', ' + (cell.seconds / 3600 | number:'1.0-2') + ' hours'">
+                                    {{ cell.seconds / 3600 | number:'1.0-2' }}
+                                </button>
+                            }
+                        </td>
+                    }
+                    <td class="numeric">{{ row.total / 3600 | number:'1.0-2' }}</td>
+                </tr>
+            } @empty { <tr><td class="empty" [attr.colspan]="days().length + 3">No time slices in this month.</td></tr> }
+        </tbody>
+        @if (rows().length) {
+            <tfoot><tr>
+                <th scope="row" colspan="2">TOTAL</th>
+                @for (total of totals(); track $index) {
+                    <td class="numeric" [class.weekend]="weekend(days()[$index])">{{ total ? (total / 3600 | number:'1.0-2') : '' }}</td>
+                }
+                <td class="numeric">{{ sum() / 3600 | number:'1.0-2' }}</td>
+            </tr></tfoot>
+        }
+    </table>
+</div>

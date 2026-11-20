@@ -1,7 +1,7 @@
 import { registerHooks } from 'node:module';
 import path from 'node:path';
 
-// Match Vite's source alias when running the existing TypeScript tests in Node.
+// Resolve the application's TypeScript alias in Node regression tests.
 registerHooks({
     resolve(specifier, context, nextResolve) {
         if (specifier.startsWith('@/')) {

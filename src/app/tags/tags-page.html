@@ -1,0 +1,38 @@
+<section class="page">
+    <header><h1>Tags</h1><p class="mt-1 text-sm text-muted-foreground">Manage tags that can be linked to time slices and synced to Jira.</p></header>
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <section class="panel grid content-start gap-6" aria-label="Existing tags">
+            <header class="space-y-1.5"><h2 class="legacy-card-title">Tags</h2><p class="text-sm text-muted-foreground">Create, review, and organize your available tags.</p></header>
+            @if (tags.error(); as loadError) {
+                <p class="error" role="alert">{{ message(loadError) }}</p>
+            } @else if (tags.isLoading()) {
+                <p role="status">Loading tags…</p>
+            } @else if (tags.value()?.length) {
+                <div class="border divide-y">
+                    @for (tag of tags.value() ?? []; track tag.id) {
+                        <div class="flex items-start gap-4 p-4">
+                            <div class="flex-1 min-w-0"><p class="font-medium">{{ tag.name }}</p><p class="mt-1 text-sm text-muted-foreground">{{ tag.description || 'No description' }}</p></div>
+                            <button class="legacy-button legacy-icon" [attr.aria-label]="'Edit ' + tag.name" (click)="edit(tag)"><svg lucidePencil class="size-4"></svg></button>
+                            <button class="legacy-button legacy-icon" [attr.aria-label]="'Delete ' + tag.name" (click)="remove(tag)"><svg lucideTrash2 class="size-4 text-destructive"></svg></button>
+                        </div>
+                    }
+                </div>
+            } @else {
+                <div class="flex flex-col items-center gap-2 border border-dashed p-10 text-center text-muted-foreground"><svg lucideTag class="size-8"></svg><p class="text-sm">No tags have been created yet.</p></div>
+            }
+        </section>
+        <form class="panel grid gap-4" [formGroup]="form" (ngSubmit)="save()">
+            <header class="space-y-1.5 mb-2"><h2 class="legacy-card-title">{{ editing() ? 'Edit Tag' : 'New Tag' }}</h2><p class="text-sm text-muted-foreground">Jira renders this tag as #[[name]].</p></header>
+            <label class="field gap-2 text-sm font-medium">Name <input formControlName="name" maxlength="100" required></label>
+            <label class="field gap-2 text-sm font-medium">Description <textarea formControlName="description" maxlength="500" rows="4"></textarea></label>
+            @if (error()) { <p class="error text-sm font-medium" role="alert">{{ error() }}</p> }
+            <div class="flex gap-2">
+                <button class="legacy-button legacy-primary h-10 px-4" [disabled]="busy()">
+                    @if (editing()) { <svg lucideSave class="size-4 mr-2"></svg> Save Changes }
+                    @else { <svg lucidePlus class="size-4 mr-2"></svg> Add Tag }
+                </button>
+                @if (editing()) { <button class="legacy-button legacy-outline h-9" type="button" (click)="edit()"><svg lucideX class="size-4 mr-2"></svg> Cancel</button> }
+            </div>
+        </form>
+    </div>
+</section>

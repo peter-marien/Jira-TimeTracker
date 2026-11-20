@@ -47,8 +47,8 @@ app.whenReady().then(() => {
     assert.ok(fs.existsSync(databasePath));
     // Dismiss first-run setup without supplying any real Jira credentials.
     await waitFor(() => evaluate(window, `document.body.innerText.includes('Add Your First Jira Connection')`));
-    await evaluate(window, `Array.from(document.querySelectorAll('[role="alertdialog"] button')).find(b => /later/i.test(b.textContent)).click()`);
-    await waitFor(() => evaluate(window, `!document.querySelector('[role="alertdialog"]')`));
+    await evaluate(window, `Array.from(document.querySelectorAll('mat-dialog-container button')).find(b => b.textContent.trim() === 'Cancel').click()`);
+    await waitFor(() => evaluate(window, `!document.querySelector('mat-dialog-container')`));
     await delay(300);
 
     const artifacts = process.env.JIRA_TEST_ARTIFACTS;
@@ -68,18 +68,18 @@ app.whenReady().then(() => {
         show: false, frame: false, width: 420, height: 72,
         webPreferences: { preload: path.join(path.dirname(entry), 'preload.mjs'), contextIsolation: true, backgroundThrottling: false, offscreen: true }
     });
-    await mini.loadFile(path.join(path.dirname(entry), '../dist/mini-player.html'));
+    await mini.loadFile(path.join(path.dirname(entry), '../dist/index.html'), { hash: '/mini-player' });
     await waitFor(() => evaluate(mini, `document.body.innerText.includes('Fixture task')`));
     for (const theme of ['dark', 'light']) {
         await evaluate(window, `window.ipcRenderer.invoke('db:save-setting', { key: 'mini_player_theme', value: '${theme}' })`);
-        await waitFor(() => evaluate(mini, `!!document.querySelector('.mini-player.${theme}')`));
+        await waitFor(() => evaluate(mini, `document.documentElement.classList.contains('dark') === ${theme === 'dark'}`));
         await delay(200);
         if (artifacts) fs.writeFileSync(path.join(artifacts, `mini-player-${theme}.png`), (await mini.webContents.capturePage()).toPNG());
     }
     const end = await evaluate(mini, `window.ipcRenderer.invoke('tracking:stop')`);
     assert.equal(typeof end, 'string');
     powerMonitor.emit('resume');
-    await waitFor(() => evaluate(mini, `!!document.querySelector('.mini-player.idle')`));
+    await waitFor(() => evaluate(mini, `!!document.querySelector('app-mini-player input[type=search]')`));
     const stopped = await evaluate(window, `window.ipcRenderer.invoke('tracking:get-state')`);
     assert.equal(stopped.activeSlice, null);
     const saved = await evaluate(window, `window.ipcRenderer.invoke('db:get-time-slice', ${active.activeSlice.id})`);
@@ -97,7 +97,7 @@ app.whenReady().then(() => {
         });
     };
     ipcMain.on('away-window:ready', onAwayReady);
-    await away.loadFile(path.join(path.dirname(entry), '../dist/index.html'), { hash: 'away' });
+    await away.loadFile(path.join(path.dirname(entry), '../dist/index.html'), { hash: '/away' });
     await waitFor(() => evaluate(away, `document.body.innerText.includes('Fixture task')`));
     ipcMain.removeListener('away-window:ready', onAwayReady);
     for (const theme of ['dark', 'light']) {
@@ -109,29 +109,33 @@ app.whenReady().then(() => {
     mini.destroy();
     await evaluate(window, `window.location.hash = '/'`);
     await waitFor(() => evaluate(window, `document.body.innerText.includes('Dashboard')`));
-    const dateButton = `Array.from(document.querySelectorAll('button')).find(b => /\\b\\d{4}\\b/.test(b.textContent))`;
-    const originalDate = await evaluate(window, `${dateButton}.textContent`);
-    await evaluate(window, `${dateButton}.click()`);
-    await waitFor(() => evaluate(window, `!!document.querySelector('[data-slot="calendar"]')`));
-    const caption = () => evaluate(window, `document.querySelector('.rdp-month_caption').textContent`);
-    const originalMonth = await caption();
-    await evaluate(window, `document.querySelector('.rdp-button_next').click()`);
-    await waitFor(async () => await caption() !== originalMonth);
-    await evaluate(window, `document.querySelector('.rdp-button_previous').click()`);
-    await waitFor(async () => await caption() === originalMonth);
-    await delay(300);
-    if (artifacts) fs.writeFileSync(path.join(artifacts, 'calendar.png'), (await window.webContents.capturePage()).toPNG());
-    await evaluate(window, `Array.from(document.querySelectorAll('button[data-day]')).find(b => ['10', '15'].includes(b.textContent) && b.dataset.selectedSingle !== 'true' && !b.disabled).click()`);
-    await waitFor(async () => await evaluate(window, `${dateButton}.textContent`) !== originalDate);
-    await evaluate(window, `document.querySelector('[data-slot="calendar"]')?.closest('[role="dialog"]')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
+    const selectedDay = `document.querySelector('input[aria-label="Selected day"]')`;
+    await waitFor(() => evaluate(window, `!!${selectedDay}`));
+    const originalDate = await evaluate(window, `${selectedDay}.value`);
+    await evaluate(window, `document.querySelector('button[aria-label="Next day"]').click()`);
+    await waitFor(async () => await evaluate(window, `${selectedDay}.value`) !== originalDate);
+    await evaluate(window, `document.querySelector('button[aria-label="Previous day"]').click()`);
+    await waitFor(async () => await evaluate(window, `${selectedDay}.value`) === originalDate);
+    await evaluate(window, `{
+        const date = ${selectedDay};
+        date.value = '2026-01-10';
+        date.dispatchEvent(new Event('change', { bubbles: true }));
+    }`);
+    await evaluate(window, `document.querySelector('button[aria-label="Next day"]').click()`);
+    await waitFor(async () => await evaluate(window, `${selectedDay}.value`) === '2026-01-11');
     await delay(200);
     await evaluate(window, `Array.from(document.querySelectorAll('button')).find(b => b.textContent === 'Today')?.click()`);
-    for (const [name, route] of [['dashboard', '/'], ['month', '/month'], ['reports', '/reports'], ['settings', '/settings']]) {
+    for (const [name, route] of [
+        ['dashboard', '/'], ['work-items', '/work-items'], ['tags', '/tags'], ['month', '/month'],
+        ['search', '/search'], ['reports', '/reports'], ['settings', '/settings'],
+        ['settings-connections', '/settings?tab=connections'], ['settings-database', '/settings?tab=database'],
+        ['settings-developer', '/settings?tab=developer']
+    ]) {
         await evaluate(window, `window.location.hash = ${JSON.stringify(route)}`);
         await delay(500);
-        assert.ok(await evaluate(window, `document.querySelector('#root').textContent.length > 30`));
+        assert.ok(await evaluate(window, `document.querySelector('app-root').textContent.length > 30`));
         for (const theme of ['dark', 'light']) {
-            await evaluate(window, `document.documentElement.classList.toggle('dark', ${theme === 'dark'})`);
+            await evaluate(window, `window.ipcRenderer.invoke('db:save-setting', { key: 'theme', value: '${theme}' })`);
             await delay(100);
             if (artifacts) fs.writeFileSync(path.join(artifacts, `${name}-${theme}.png`), (await window.webContents.capturePage()).toPNG());
         }
